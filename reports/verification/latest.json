@@ -1,0 +1,62 @@
+{
+  "checked_at": "2026-09-15T18:00:57.914817+00:00",
+  "scope": "all",
+  "start_year": 2010,
+  "end_year": 2025,
+  "errors": [],
+  "checks": {
+    "original_sources": "passed",
+    "census_sources_and_derivations": "passed",
+    "hashes_sizes_and_payloads": "passed",
+    "unique_files_hashed": 1382
+  },
+  "counts": {
+    "spc_tracks": 20164,
+    "spc_ratings": {
+      "0": 9197,
+      "2": 1776,
+      "1": 7149,
+      "3": 426,
+      "4": 83,
+      "5": 8,
+      "-9": 1525
+    },
+    "ncei_raw": {
+      "details": 1037691,
+      "fatalities": 14711,
+      "locations": 950862
+    },
+    "ncei_tornado": {
+      "details": 23189,
+      "fatalities": 1352,
+      "locations": 35920
+    },
+    "dat": {
+      "points": 218231,
+      "lines": 11585,
+      "polygons": 10009
+    },
+    "census_county_years": 50294,
+    "county_map_features": 3234,
+    "census_map_unmatched_fips": [
+      "09110",
+      "09120",
+      "09130",
+      "09140",
+      "09150",
+      "09160",
+      "09170",
+      "09180",
+      "09190"
+    ]
+  },
+  "manifest": {
+    "path": "download_manifest_2010_2025.json",
+    "sha256": "2d6cb2a5ed7d2ff9933c944713bb8168c7c02423f249d3afc5a981ce05c65c74"
+  },
+  "census_manifest": {
+    "path": "census_manifest_2010_2025.json",
+    "sha256": "b95a05be113792da897116bb5095ef884a4be11b4c62970a2e47cc794b24c073"
+  },
+  "status": "passed"
+}

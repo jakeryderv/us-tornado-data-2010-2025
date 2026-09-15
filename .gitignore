@@ -1,0 +1,7 @@
+.venv/
+.ipynb_checkpoints/
+__pycache__/
+
+# Downloaded NOAA/Census sources, derived files, and collection metadata.
+data/*
+!data/.gitkeep

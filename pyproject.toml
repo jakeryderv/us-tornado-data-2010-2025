@@ -1,0 +1,10 @@
+[project]
+name = "tornado-classification"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "ipykernel>=7.3.0",
+    "jupyter>=1.1.1",
+    "pandas>=2.2,<4",
+    "matplotlib>=3.9,<4",
+]

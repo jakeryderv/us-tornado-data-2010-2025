@@ -1,0 +1,44 @@
+{
+  "checked_at": "2026-09-15T16:43:35.525425+00:00",
+  "scope": "SPC_NCEI_DAT",
+  "start_year": 2010,
+  "end_year": 2025,
+  "errors": [],
+  "checks": {
+    "original_sources": "passed",
+    "hashes_sizes_and_payloads": "passed",
+    "unique_files_hashed": 1374
+  },
+  "counts": {
+    "spc_tracks": 20164,
+    "spc_ratings": {
+      "0": 9197,
+      "2": 1776,
+      "1": 7149,
+      "3": 426,
+      "4": 83,
+      "5": 8,
+      "-9": 1525
+    },
+    "ncei_raw": {
+      "details": 1037691,
+      "fatalities": 14711,
+      "locations": 950862
+    },
+    "ncei_tornado": {
+      "details": 23189,
+      "fatalities": 1352,
+      "locations": 35920
+    },
+    "dat": {
+      "points": 218231,
+      "lines": 11585,
+      "polygons": 10009
+    }
+  },
+  "manifest": {
+    "path": "download_manifest_2010_2025.json",
+    "sha256": "2d6cb2a5ed7d2ff9933c944713bb8168c7c02423f249d3afc5a981ce05c65c74"
+  },
+  "status": "passed"
+}
