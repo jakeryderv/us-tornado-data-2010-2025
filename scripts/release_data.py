@@ -12,6 +12,7 @@ import re
 import shutil
 import subprocess
 import sys
+import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -32,11 +33,16 @@ def write_json(path, value):
     Path(path).write_text(json.dumps(value, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
 
 
-def local(root, relative):
+def local(root, relative, *, allow_file_symlink=False):
     item = PurePosixPath(relative)
     if item.is_absolute() or '..' in item.parts or '\\' in relative:
         raise ValueError(f'Unsafe release path: {relative}')
-    path = (Path(root) / relative).resolve()
+    path = Path(root) / relative
+    # HF snapshot caches link individual files to a sibling blob store. Permit
+    # those read-only verification inputs; parent directories must stay inside.
+    if allow_file_symlink and path.is_symlink() and path.parent.resolve().is_relative_to(Path(root).resolve()):
+        return path
+    path = path.resolve()
     if not path.is_relative_to(Path(root).resolve()):
         raise ValueError(f'Path escapes release: {relative}')
     return path
@@ -121,7 +127,7 @@ def verify_release(folder, expected_manifest_sha=None):
     if len(names) != len(set(names)):
         raise ValueError('Duplicate release file paths')
     for entry in entries:
-        path = local(folder, entry['path'])
+        path = local(folder, entry['path'], allow_file_symlink=True)
         if not path.is_file() or path.stat().st_size != entry['bytes'] or digest(path) != entry['sha256']:
             raise ValueError(f'Release file failed verification: {entry["path"]}')
     if sum(entry['bytes'] for entry in entries) != manifest['payload_bytes'] or len(entries) != manifest['file_count']:
@@ -219,18 +225,59 @@ def stage(payload, destination, platform, owner, config):
     summary = f'\nRelease **{manifest["version"]}**; {manifest["file_count"]:,} shared files; {manifest["payload_bytes"]:,} bytes.\n'
     if platform == 'huggingface':
         header = ('---\npretty_name: ' + json.dumps(config['title']) + '\nlanguage:\n- en\nlicense: other\n'
-                  'license_name: us-government-works\nlicense_link: DATA_SOURCES.md\n'
+                  'license_name: us-government-works\n'
+                  f'license_link: https://huggingface.co/datasets/{owner}/{config["slug"]}/blob/main/DATA_SOURCES.md\n'
                   'tags:\n- tornado\n- weather\n- geospatial\n- census\n- tabular\n'
                   'size_categories:\n- 10K<n<100K\nviewer: false\n---\n\n')
         (destination / 'README.md').write_text(header + card + summary)
     elif platform == 'kaggle':
+        summary += ('\nKaggle transport: `release.zip.bin` is a ZIP archive with an extra `.bin` suffix '
+                    'to preserve the original compressed source files. Extract it with Python `zipfile` '
+                    'before loading tables. Verify the extracted tree against `release_manifest.json`.\n')
         (destination / 'README.md').write_text(card + summary)
         write_json(destination / 'dataset-metadata.json', dict(title=config['title'], subtitle=config['subtitle'],
                    id=f'{owner}/{config["slug"]}', licenses=[{'name': config['data_license']}],
-                   description=card + summary, keywords=['weather', 'geography']))
+                   description=card + summary, keywords=['geography']))
     else:
         raise ValueError('Unknown platform')
-    return verify_release(destination, digest(payload / 'release_manifest.json'))
+    verified = verify_release(destination, digest(payload / 'release_manifest.json'))
+    if platform == 'kaggle':
+        archive = destination / 'release.zip.bin'
+        paths = [entry['path'] for entry in manifest['files']] + ['release_manifest.json', 'SHA256SUMS']
+        with zipfile.ZipFile(archive, 'w', compression=zipfile.ZIP_DEFLATED) as zipped:
+            for relative in sorted(paths):
+                zipped.write(local(payload, relative), relative)
+        # Keep descriptive files visible, but transport data only inside the archive.
+        for item in list(destination.iterdir()):
+            if item.is_dir():
+                shutil.rmtree(item)
+            elif item.name not in {'release.zip.bin', 'README.md', 'dataset-metadata.json',
+                                   'DATASET_CARD.md', 'DATA_SOURCES.md', 'CITATION.cff',
+                                   'CODE_LICENSE.txt', 'COLLECTION.md', 'schema.json',
+                                   'release_manifest.json', 'SHA256SUMS'}:
+                item.unlink()
+        verified['archive_sha256'] = digest(archive)
+        verified['archive_bytes'] = archive.stat().st_size
+    return verified
+
+
+def unpack(archive, destination, expected_manifest_sha, expected_archive_sha=None):
+    """Restore a Kaggle transport archive into a new directory and verify it."""
+    archive, destination = Path(archive).resolve(), Path(destination).resolve()
+    if destination.exists():
+        raise ValueError('Extraction directory already exists')
+    if expected_archive_sha and digest(archive) != expected_archive_sha:
+        raise ValueError('Archive does not match trusted archive hash')
+    with zipfile.ZipFile(archive) as zipped:
+        seen = set()
+        for info in zipped.infolist():
+            local(destination, info.filename)
+            if info.filename in seen or (info.external_attr >> 16) & 0o170000 == 0o120000:
+                raise ValueError('Duplicate path or symlink in archive')
+            seen.add(info.filename)
+        destination.mkdir(parents=True)
+        zipped.extractall(destination)
+    return verify_release(destination, expected_manifest_sha)
 
 
 def main(argv=None):
@@ -242,6 +289,11 @@ def main(argv=None):
     v = sub.add_parser('verify')
     v.add_argument('folder', type=Path)
     v.add_argument('--manifest-sha256')
+    u = sub.add_parser('unpack')
+    u.add_argument('archive', type=Path)
+    u.add_argument('destination', type=Path)
+    u.add_argument('--manifest-sha256', required=True)
+    u.add_argument('--archive-sha256')
     s = sub.add_parser('stage')
     s.add_argument('platform', choices=['huggingface', 'kaggle'])
     s.add_argument('--owner', required=True)
@@ -253,6 +305,8 @@ def main(argv=None):
         build(args.data_dir, args.output or ROOT / 'dist' / config['version'], config)
     elif args.command == 'verify':
         print(json.dumps(verify_release(args.folder, args.manifest_sha256), indent=2))
+    elif args.command == 'unpack':
+        print(json.dumps(unpack(args.archive, args.destination, args.manifest_sha256, args.archive_sha256), indent=2))
     else:
         print(json.dumps(stage(args.payload, args.output, args.platform, args.owner, config), indent=2))
 

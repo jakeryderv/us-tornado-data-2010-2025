@@ -2,9 +2,11 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import json
+import gzip
 import unittest
+import zipfile
 
-from scripts.release_data import digest, local, stage, verify_release, write_json
+from scripts.release_data import digest, local, stage, unpack, verify_release, write_json
 
 
 class ReleaseIntegrity(unittest.TestCase):
@@ -12,6 +14,9 @@ class ReleaseIntegrity(unittest.TestCase):
         root.mkdir()
         (root/'DATASET_CARD.md').write_text('# Shared card\n')
         (root/'data.csv').write_text('county_fips,value\n01001,7\n')
+        (root/'source.csv.gz').write_bytes(gzip.compress(b'value\n7\n', mtime=0))
+        with zipfile.ZipFile(root/'source.zip', 'w') as zipped:
+            zipped.writestr('source.txt', 'original archive bytes')
         entries=[dict(path=p.name,bytes=p.stat().st_size,sha256=digest(p)) for p in sorted(root.iterdir())]
         write_json(root/'release_manifest.json',dict(version='v1.0.0',slug='test-dataset',files=entries,
                    file_count=len(entries),payload_bytes=sum(e['bytes'] for e in entries)))
@@ -27,13 +32,45 @@ class ReleaseIntegrity(unittest.TestCase):
             for host in ['huggingface','kaggle']:
                 with self.subTest(host=host):
                     stage(payload,base/host,host,'test-owner',config)
-                    self.assertEqual(verify_release(base/host,trusted)['status'],'passed')
+                    restored = base/host
+                    if host == 'kaggle':
+                        restored = base/'restored'
+                        result = unpack(base/host/'release.zip.bin', restored, trusted)
+                        self.assertEqual(result['status'], 'passed')
+                    self.assertEqual(verify_release(restored,trusted)['status'],'passed')
                     self.assertEqual((base/host/'DATASET_CARD.md').read_bytes(),(payload/'DATASET_CARD.md').read_bytes())
             kg=json.loads((base/'kaggle/dataset-metadata.json').read_text())
             self.assertEqual(kg['id'],'test-owner/test-dataset')
             self.assertEqual(kg['licenses'],[{'name':'US-Government-Works'}])
             self.assertIn('license: other', (base/'huggingface/README.md').read_text())
-            self.assertIn('license_link: DATA_SOURCES.md', (base/'huggingface/README.md').read_text())
+            self.assertIn('license_link: https://huggingface.co/datasets/test-owner/test-dataset/blob/main/DATA_SOURCES.md',
+                          (base/'huggingface/README.md').read_text())
+
+    def test_archive_integrity_and_unsafe_members(self):
+        with TemporaryDirectory() as d:
+            base = Path(d); payload = base/'payload'; config = self.fixture(payload)
+            staged = stage(payload, base/'kaggle', 'kaggle', 'test-owner', config)
+            archive = base/'kaggle/release.zip.bin'
+            with self.assertRaisesRegex(ValueError, 'trusted archive'):
+                unpack(archive, base/'wrong', staged['manifest_sha256'], '0'*64)
+            with zipfile.ZipFile(base/'unsafe.zip', 'w') as zipped:
+                zipped.writestr('../outside', 'invalid')
+            with self.assertRaisesRegex(ValueError, 'Unsafe'):
+                unpack(base/'unsafe.zip', base/'unsafe', staged['manifest_sha256'])
+            self.assertFalse((base/'unsafe').exists())
+
+    def test_huggingface_cache_file_symlinks_are_verified(self):
+        with TemporaryDirectory() as d:
+            base = Path(d); payload = base/'blobs'; self.fixture(payload)
+            cache = base/'snapshot'; cache.mkdir()
+            for source in payload.iterdir():
+                (cache/source.name).symlink_to(source)
+            self.assertEqual(verify_release(cache, digest(payload/'release_manifest.json'))['status'], 'passed')
+            (payload/'data.csv').write_text('corrupt cache blob')
+            with self.assertRaisesRegex(ValueError, 'data.csv'):
+                verify_release(cache)
+            with self.assertRaisesRegex(ValueError, 'escapes release'):
+                local(cache, 'data.csv')  # Writing/build/extraction paths stay strict.
 
     def test_tampering_missing_files_and_wrong_release_are_rejected(self):
         with TemporaryDirectory() as d:

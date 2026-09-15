@@ -3,7 +3,45 @@
 [![Tests](https://github.com/jakeryderv/us-tornado-data-2010-2025/actions/workflows/tests.yml/badge.svg)](https://github.com/jakeryderv/us-tornado-data-2010-2025/actions/workflows/tests.yml)
 
 A focused **2010–2025** dataset for exploring recorded EF ratings, source agreement,
-damage-survey coverage, and county population/housing context. Download with Python, then inspect locally in Jupyter.
+damage-survey coverage, and county population/housing context. Load a frozen release
+with Python, or collect current source records and inspect them locally in Jupyter.
+
+The **v1.0.0** snapshot is published on:
+
+- [Hugging Face](https://huggingface.co/datasets/jakeryderv/us-tornado-data-2010-2025): direct files, convenient for Python loading.
+- [Kaggle, version 2](https://www.kaggle.com/datasets/jakevanslyke/us-tornado-data-2010-2025/versions/2): the same files inside `release.zip.bin`, requiring one ZIP extraction.
+
+The [release receipt](release/v1.0.0.json) records pinned versions, source snapshot
+dates, and verified checksums for all **2,864 shared files (455 MB)**. Kaggle's
+archive is about **255 MB**; the extracted content matches Hugging Face exactly.
+Kaggle version 1 was superseded because its automatic archive extraction changed
+original source paths and bytes.
+
+For example, with `huggingface-hub` and `pandas` installed in your project
+(`uv sync --locked --group publish` installs the clients in this repository):
+
+```python
+from pathlib import Path
+from huggingface_hub import snapshot_download
+import pandas as pd
+
+root = Path(snapshot_download(
+    "jakeryderv/us-tornado-data-2010-2025",
+    repo_type="dataset",
+    revision="44ab66552a2032d3bb7d6137d99967176c1477e4",
+))
+spc = pd.read_csv(root / "spc/tornadoes_2010_2025.csv")
+counties = pd.read_csv(
+    root / "census_population/county_context_2010_2025.csv",
+    dtype={"county_fips": str},
+)
+```
+
+See [Kaggle download, extraction, and integrity checks](docs/RELEASING.md#verify-consumer-downloads)
+for the alternative client workflow. Both downloads use local caches. These are
+separate source tables and survey files; loading them does not perform event joins.
+
+To collect from NOAA and Census yourself instead:
 
 ```sh
 uv sync --locked
@@ -77,6 +115,9 @@ notebooks/                      Dataset inspection notebook
 scripts/                        Verification, coverage audit, plotting
 tests/                          Offline regression tests
 docs/DATASET.md                 Source definitions and limitations
+docs/DATASET_CARD.md            Shared public dataset description
+release/                       Release configuration and publication receipts
+dist/                          Local release staging; ignored by Git
 reports/
   dat_coverage/                 Coverage report, figures, metrics, candidates
   verification/latest.json      Most recent standalone verification
@@ -122,8 +163,8 @@ The source code and original project documentation are licensed under the
 [MIT License](LICENSE). NOAA/NWS and Census source material is credited separately
 in [data sources and reuse](docs/DATA_SOURCES.md); the code license does not
 relicense government records or third-party material. `data/` is excluded from
-Git. This repository provides the collection workflow and reports; a hosted
-dataset release is prepared separately from the code repository.
+Git. This repository provides the collection workflow and reports; hosted
+dataset releases are versioned separately from the code repository.
 
 The [shared dataset card](docs/DATASET_CARD.md) documents contents, schemas, and
 limitations for both hosts. See [release instructions](docs/RELEASING.md) for

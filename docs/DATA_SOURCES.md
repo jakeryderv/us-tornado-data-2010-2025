@@ -50,7 +50,7 @@ Census did not produce or endorse this combined collection.
 ## Reproducible attribution
 
 For work based on this collection, cite the original sources above and the
-specific project commit or future dataset release used. The source manifests
+specific project commit or dataset release used. The source manifests
 and per-file metadata under `data/` retain exact URLs, retrieval times, byte
 sizes, and SHA-256 hashes. Those files are generated locally and are not included
 in the GitHub code repository. Pinned Census download URLs and extraction rules
@@ -58,4 +58,8 @@ are listed in [DATASET.md](DATASET.md).
 
 The GitHub repository is the code and methodology reference:
 <https://github.com/jakeryderv/us-tornado-data-2010-2025>.
-A separately hosted dataset release and its citation will be documented when published.
+The frozen data is available on
+[Hugging Face](https://huggingface.co/datasets/jakeryderv/us-tornado-data-2010-2025)
+and [Kaggle](https://www.kaggle.com/datasets/jakevanslyke/us-tornado-data-2010-2025).
+Use the revisions and checksums in the [v1.0.0 release receipt](../release/v1.0.0.json)
+and the `CITATION.cff` included with the snapshot when citing this collection.

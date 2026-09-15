@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "version": "v1.0.0",
+  "slug": "us-tornado-data-2010-2025",
+  "recorded_at": "2026-09-15T19:32:06.106921+00:00",
+  "payload_code_commit": "96f613fbf708b90908f5a4f464eab77f1ded7ba0",
+  "built_at": "2026-09-15T19:18:05.767325+00:00",
+  "source_snapshots": {
+    "noaa_completed_at": "2026-09-14T23:21:34.164064+00:00",
+    "census_completed_at": "2026-09-15T17:45:22.906523+00:00"
+  },
+  "manifest_sha256": "765f7b4402ed1e6af8e40e1d2665f5bd9f1901e31a6d1643cd64d6119ac51b9e",
+  "shared_file_count": 2864,
+  "shared_payload_bytes": 455106836,
+  "file_count_scope": "Shared payload files; excludes release_manifest.json, SHA256SUMS and host metadata.",
+  "huggingface": {
+    "url": "https://huggingface.co/datasets/jakeryderv/us-tornado-data-2010-2025",
+    "repo_id": "jakeryderv/us-tornado-data-2010-2025",
+    "commit": "44ab66552a2032d3bb7d6137d99967176c1477e4",
+    "tag": "v1.0.0",
+    "transport": "direct files",
+    "verification": {
+      "status": "passed",
+      "version": "v1.0.0",
+      "files": 2864,
+      "payload_bytes": 455106836,
+      "manifest_sha256": "765f7b4402ed1e6af8e40e1d2665f5bd9f1901e31a6d1643cd64d6119ac51b9e",
+      "platform": "huggingface",
+      "revision": "44ab66552a2032d3bb7d6137d99967176c1477e4",
+      "verified_at": "2026-09-15T19:31:02.944798+00:00",
+      "sample_loads": {
+        "spc_rows": 20164,
+        "county_year_rows": 50294,
+        "county_fips_preserved": true,
+        "dat_2025_features": {
+          "points": 32587,
+          "lines": 1312,
+          "polygons": 911
+        }
+      }
+    },
+    "download_authentication": "anonymous"
+  },
+  "kaggle": {
+    "url": "https://www.kaggle.com/datasets/jakevanslyke/us-tornado-data-2010-2025/versions/2",
+    "handle": "jakevanslyke/us-tornado-data-2010-2025/versions/2",
+    "numeric_version": 2,
+    "transport": "release.zip.bin; extract with Python zipfile or scripts/release_data.py unpack",
+    "archive_sha256": "237133bfec413fdab4fbda3bbf8080d198b935e9c6a182e2224e0f28d6666af0",
+    "archive_bytes": 254975676,
+    "verification": {
+      "status": "passed",
+      "version": "v1.0.0",
+      "files": 2864,
+      "payload_bytes": 455106836,
+      "manifest_sha256": "765f7b4402ed1e6af8e40e1d2665f5bd9f1901e31a6d1643cd64d6119ac51b9e",
+      "platform": "kaggle",
+      "revision": 2,
+      "verified_at": "2026-09-15T19:29:28.629182+00:00",
+      "sample_loads": {
+        "spc_rows": 20164,
+        "county_year_rows": 50294,
+        "county_fips_preserved": true,
+        "dat_2025_features": {
+          "points": 32587,
+          "lines": 1312,
+          "polygons": 911
+        }
+      }
+    },
+    "superseded_versions": [
+      {
+        "numeric_version": 1,
+        "reason": "Kaggle automatically extracted original source archives; failed byte/path integrity verification. Use version 2."
+      }
+    ]
+  }
+}
