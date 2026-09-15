@@ -1,0 +1,47 @@
+{
+  "expectedUpdateFrequency": "never",
+  "userSpecifiedSources": "Independent compilation of five U.S. government sources:\n\n- NOAA/NWS SPC historical tornado database: https://www.spc.noaa.gov/wcm/#data\n- NOAA NCEI Storm Events bulk tables: https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/\n- NOAA/NWS Damage Assessment Toolkit: https://services.dat.noaa.gov/arcgis/rest/services/nws_damageassessmenttoolkit/DamageViewer/MapServer\n- U.S. Census Bureau Population Estimates Program: https://www.census.gov/programs-surveys/popest.html\n- U.S. Census Bureau 2020 Cartographic Boundary Files: https://www.census.gov/geographies/mapping-files/2020/geo/carto-boundary-file.html\n\nNOAA snapshot collected September 14, 2026; Census snapshot collected September 15, 2026. Each source file retains its URL, retrieval time, and checksum in the archive. Population/housing estimates use vintage 2020 for 2010\u20132019 and vintage 2025 for 2020\u20132025; the county map is fixed at 2020.\n\nCollection code, source notices, and release receipt: https://github.com/jakeryderv/us-tornado-data-2010-2025\n\nThis is a fixed 2010\u20132025 research snapshot with no scheduled refresh. Any deliberate corrections will be a separately versioned release.",
+  "resources": [
+    {
+      "path": "README.md",
+      "description": "Start here: dataset overview, source record counts, limitations, and Kaggle extraction instructions. File paths in the card refer to the extracted release.zip.bin archive."
+    },
+    {
+      "path": "DATASET_CARD.md",
+      "description": "Platform-neutral dataset card covering scope, units of observation, fields, transformations, missingness, EF-rating limitations, and source attribution."
+    },
+    {
+      "path": "DATA_SOURCES.md",
+      "description": "Original NOAA/NWS and Census source links, reuse notices, third-party exceptions, and citation guidance. Government records are distinct from MIT-licensed project code."
+    },
+    {
+      "path": "COLLECTION.md",
+      "description": "Detailed collection rules, directory layout, field interpretation, verification methods, and geographic/time-coverage limitations for the five-source collection."
+    },
+    {
+      "path": "CITATION.cff",
+      "description": "Machine-readable citation metadata for the frozen release: title, author, version, release date, and code repository."
+    },
+    {
+      "path": "CODE_LICENSE.txt",
+      "description": "MIT license for project code and original documentation. This does not relicense government records; see DATA_SOURCES.md for source reuse terms."
+    },
+    {
+      "path": "schema.json",
+      "description": "Machine-readable schema inventory: complete CSV headers and saved DAT layer field definitions. Describes files inside the extracted release archive."
+    },
+    {
+      "path": "release_manifest.json",
+      "description": "Release v1.0.0 inventory with source snapshot dates, code commit, sizes, and SHA-256 hashes for all 2,864 shared payload files. Paths are relative to the extracted archive root."
+    },
+    {
+      "path": "SHA256SUMS",
+      "description": "SHA-256 checksums for the shared payload and release_manifest.json. Use these after extraction; the outer transport archive hash is recorded separately in the GitHub release receipt."
+    },
+    {
+      "path": "release.zip.bin",
+      "description": "Complete v1.0.0 dataset: 2,864 shared files (455 MB), packaged as a 255 MB ZIP with an extra .bin suffix to prevent Kaggle from unpacking original source archives. Open with Python zipfile.ZipFile and extract once. Contains SPC tornado tracks; NCEI raw annual tables and tornado extracts; NWS DAT GeoJSON survey batches without photos; Census county population/housing estimates and a simplified 2020 county map; provenance, schemas, and checksums. Preserve unknown EF ratings, string FIPS codes, and source IDs. No cross-source event join or predefined model split is included."
+    }
+  ],
+  "image": "dataset-cover-image.png"
+}

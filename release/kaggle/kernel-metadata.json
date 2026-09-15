@@ -1,0 +1,15 @@
+{
+  "id": "jakevanslyke/us-tornado-data-getting-started",
+  "title": "US Tornado Data Getting Started",
+  "code_file": "../../notebooks/kaggle_getting_started.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": false,
+  "enable_gpu": false,
+  "enable_internet": false,
+  "dataset_sources": [
+    "jakevanslyke/us-tornado-data-2010-2025"
+  ],
+  "competition_sources": [],
+  "kernel_sources": []
+}

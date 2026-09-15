@@ -11,6 +11,12 @@ The **v1.0.0** snapshot is published on:
 - [Hugging Face](https://huggingface.co/datasets/jakeryderv/us-tornado-data-2010-2025): direct files, convenient for Python loading.
 - [Kaggle, version 2](https://www.kaggle.com/datasets/jakevanslyke/us-tornado-data-2010-2025/versions/2): the same files inside `release.zip.bin`, requiring one ZIP extraction.
 
+The [public Kaggle getting-started notebook](https://www.kaggle.com/code/jakevanslyke/us-tornado-data-getting-started)
+shows how to read tables directly from the archive without extraction, verify the
+release, and inspect coverage, EF ratings, surveys, and county context. It runs
+on CPU without internet; [its source](notebooks/kaggle_getting_started.ipynb) is
+included here.
+
 The [release receipt](release/v1.0.0.json) records pinned versions, source snapshot
 dates, and verified checksums for all **2,864 shared files (455 MB)**. Kaggle's
 archive is about **255 MB**; the extracted content matches Hugging Face exactly.

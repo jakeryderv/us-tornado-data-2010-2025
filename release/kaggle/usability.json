@@ -1,0 +1,28 @@
+{
+  "checked_at": "2026-09-15T20:35:24.161388+00:00",
+  "dataset_url": "https://www.kaggle.com/datasets/jakevanslyke/us-tornado-data-2010-2025",
+  "dataset_version": 2,
+  "dataset_release": "v1.0.0",
+  "usability_before": 6.25,
+  "usability_after": 10.0,
+  "expected_update_frequency": "never",
+  "completed": [
+    "cover image",
+    "all 10 file descriptions",
+    "source provenance and collection methodology",
+    "fixed-snapshot update frequency",
+    "public example notebook"
+  ],
+  "notebook": {
+    "url": "https://www.kaggle.com/code/jakevanslyke/us-tornado-data-getting-started",
+    "id": 134529491,
+    "version": 1,
+    "status": "COMPLETE",
+    "public": true,
+    "gpu": false,
+    "internet": false,
+    "local_execution": "passed",
+    "kaggle_execution": "passed"
+  },
+  "data_files_changed": false
+}

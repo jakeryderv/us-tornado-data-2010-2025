@@ -68,6 +68,11 @@ rectangular training table. No automatic train/test splits are declared.
 
 ## Publish
 
+Kaggle's cover, file descriptions, provenance, and public example notebook are
+managed separately from the data version. See the
+[Kaggle listing workflow](../release/kaggle/README.md) for the saved metadata,
+verified update commands, and notebook publishing instructions.
+
 ```sh
 uv run --group publish hf repos create jakeryderv/us-tornado-data-2010-2025 --repo-type dataset --public
 uv run --group publish hf upload jakeryderv/us-tornado-data-2010-2025 dist/v1.0.0/huggingface . --repo-type dataset --commit-message 'Release v1.0.0'
