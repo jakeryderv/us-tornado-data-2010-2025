@@ -5,3 +5,6 @@ __pycache__/
 # Downloaded NOAA/Census sources, derived files, and collection metadata.
 data/*
 !data/.gitkeep
+
+# Locally staged releases and host upload caches.
+dist/

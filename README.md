@@ -123,4 +123,9 @@ The source code and original project documentation are licensed under the
 in [data sources and reuse](docs/DATA_SOURCES.md); the code license does not
 relicense government records or third-party material. `data/` is excluded from
 Git. This repository provides the collection workflow and reports; a hosted
-dataset release is not yet published.
+dataset release is prepared separately from the code repository.
+
+The [shared dataset card](docs/DATASET_CARD.md) documents contents, schemas, and
+limitations for both hosts. See [release instructions](docs/RELEASING.md) for
+verified packaging, platform metadata, authentication, and download checks.
+Publishing clients are isolated in the optional `publish` dependency group.

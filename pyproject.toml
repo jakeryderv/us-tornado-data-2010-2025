@@ -8,3 +8,10 @@ dependencies = [
     "pandas>=2.2,<4",
     "matplotlib>=3.9,<4",
 ]
+
+[dependency-groups]
+publish = [
+    "huggingface-hub>=1.31.0",
+    "kaggle>=2.2.4",
+    "kagglehub>=1.0.2",
+]
