@@ -97,8 +97,11 @@ def schema(data, start, end):
             tables[name] = {'path': str(path.relative_to(data)), 'columns': next(csv.reader(handle)),
                             'note': 'Source-native CSV fields; preserve identifiers as strings.'}
     dat = {name: read_json(data / f'nws_dat/{name}_schema.json')['fields'] for name in ['points', 'lines', 'polygons']}
-    return {'csv_tables': tables, 'dat_source_fields': dat,
-            'geometry': 'DAT and county GeoJSON coordinates are WGS84 longitude/latitude.'}
+    result = {'csv_tables': tables, 'dat_source_fields': dat,
+              'geometry': 'DAT and county GeoJSON coordinates are WGS84 longitude/latitude.'}
+    if (data / 'analysis/manifest.json').is_file():
+        result['analysis_tables'] = read_json(data / 'analysis/manifest.json')['files']
+    return result
 
 
 def source_doc(path, commit, repository):
@@ -176,12 +179,14 @@ def build(data, output, config):
     copied = verify_sources(payload, start, end)
     if copied['status'] != 'passed' or any(copied.get(k) != result.get(k) for k in ['manifest', 'census_manifest', 'counts']):
         raise ValueError('Copied release inputs do not match the verified source snapshot')
+    from scripts.build_analysis import build_analysis
+    build_analysis(payload, start=start, end=end)
     repository = config['code_repository']
     for source, name in [('docs/DATASET_CARD.md', 'DATASET_CARD.md'), ('docs/DATASET.md', 'COLLECTION.md'),
-                         ('docs/DATA_SOURCES.md', 'DATA_SOURCES.md')]:
+                         ('docs/DATA_SOURCES.md', 'DATA_SOURCES.md'), ('docs/ANALYSIS.md', 'ANALYSIS.md')]:
         (payload / name).write_text(source_doc(ROOT / source, commit, repository), encoding='utf-8')
     shutil.copyfile(ROOT / 'LICENSE', payload / 'CODE_LICENSE.txt')
-    write_json(payload / 'schema.json', schema(data, start, end))
+    write_json(payload / 'schema.json', schema(payload, start, end))
     citation = '\n'.join(['cff-version: 1.2.0', 'type: dataset',
                           'message: "Cite this release and its original NOAA/Census sources."',
                           'title: ' + json.dumps(config['title']), 'version: ' + config['version'],
@@ -233,7 +238,9 @@ def stage(payload, destination, platform, owner, config):
     elif platform == 'kaggle':
         summary += ('\nKaggle transport: `release.zip.bin` is a ZIP archive with an extra `.bin` suffix '
                     'to preserve the original compressed source files. Extract it with Python `zipfile` '
-                    'before loading tables. Verify the extracted tree against `release_manifest.json`.\n')
+                    'for the complete collection. The three small analysis tables are also directly '
+                    'available under `analysis/`; they have the same bytes as the copies in the archive. '
+                    'Verify the extracted tree against `release_manifest.json`.\n')
         (destination / 'README.md').write_text(card + summary)
         write_json(destination / 'dataset-metadata.json', dict(title=config['title'], subtitle=config['subtitle'],
                    id=f'{owner}/{config["slug"]}', licenses=[{'name': config['data_license']}],
@@ -249,11 +256,13 @@ def stage(payload, destination, platform, owner, config):
                 zipped.write(local(payload, relative), relative)
         # Keep descriptive files visible, but transport data only inside the archive.
         for item in list(destination.iterdir()):
-            if item.is_dir():
+            if item.is_dir() and item.name != 'analysis':
                 shutil.rmtree(item)
+            elif item.is_dir():
+                continue
             elif item.name not in {'release.zip.bin', 'README.md', 'dataset-metadata.json',
                                    'DATASET_CARD.md', 'DATA_SOURCES.md', 'CITATION.cff',
-                                   'CODE_LICENSE.txt', 'COLLECTION.md', 'schema.json',
+                                   'CODE_LICENSE.txt', 'COLLECTION.md', 'ANALYSIS.md', 'schema.json',
                                    'release_manifest.json', 'SHA256SUMS'}:
                 item.unlink()
         verified['archive_sha256'] = digest(archive)

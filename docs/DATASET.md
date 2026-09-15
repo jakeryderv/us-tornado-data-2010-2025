@@ -148,3 +148,11 @@ The Census sources download **8,810,819 bytes (8.8 MB)** and occupy about **17 M
 with raw files, derived outputs, and metadata. No extra Python dependency is needed:
 CSV, ZIP, XLSX XML, and KML parsing use the standard library. The notebook remains
 read-only and uses the existing pandas/matplotlib dependencies.
+
+## Convenient analysis layer
+
+`scripts/build_analysis.py` generates `data/analysis/tornadoes.parquet`,
+`county_context.parquet`, and `annual_summary.csv` from the verified source
+collection. Release builds regenerate these from the copied source snapshot.
+See [ANALYSIS.md](ANALYSIS.md) for fields and aggregation rules. All source records
+remain intact; the typed view does not join SPC, NCEI, DAT, or Census event identities.

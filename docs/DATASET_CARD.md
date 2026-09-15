@@ -5,6 +5,42 @@ population/housing context from NOAA and the U.S. Census Bureau. It supports
 exploratory research on recorded tornado intensity, survey coverage, and exposure.
 This is an independent compilation, not an official government product.
 
+## Start with the analysis tables
+
+Release **v1.1.0** adds three convenient tables under `analysis/`, totaling about
+1.4 MB: `tornadoes.parquet` (20,164 SPC tracks), `county_context.parquet`
+(50,294 county/year rows), and `annual_summary.csv` (16 years). Original source
+files remain intact. This is a typed, selected view with separate source counts,
+not a cross-source joined training table. See [ANALYSIS.md](ANALYSIS.md) for the
+field dictionary and aggregation rules.
+
+With `pandas`, `pyarrow`, and `huggingface-hub` installed:
+
+```python
+from pathlib import Path
+from huggingface_hub import snapshot_download
+import pandas as pd
+
+root = Path(snapshot_download(
+    "jakeryderv/us-tornado-data-2010-2025", repo_type="dataset",
+    revision="v1.1.0", allow_patterns=["analysis/*", "ANALYSIS.md"],
+))
+tornadoes = pd.read_parquet(root / "analysis/tornadoes.parquet")
+county_context = pd.read_parquet(root / "analysis/county_context.parquet")
+annual_summary = pd.read_csv(root / "analysis/annual_summary.csv")
+```
+
+The [Kaggle mirror](https://www.kaggle.com/datasets/jakevanslyke/us-tornado-data-2010-2025)
+also exposes these analysis files directly. The complete original-source collection
+is supplied in `release.zip.bin` on Kaggle and as direct files on Hugging Face.
+The [public getting-started notebook](https://www.kaggle.com/code/jakevanslyke/us-tornado-data-getting-started)
+demonstrates inspecting the original v1.0.0 snapshot; its older release pins are
+intentional. Use this card's v1.1.0 analysis paths for the newer convenience layer.
+
+This is a fixed 2010–2025 study snapshot with no scheduled refresh. Deliberate
+corrections or additions receive a new release version. Pin a host revision and
+retain the matching release receipt when reproducing an analysis.
+
 ## Contents and units of observation
 
 | Source | Unit | Snapshot contents |
@@ -37,8 +73,10 @@ or damage observation was recorded.
 
 ## File layout
 
-Paths below are relative to the downloaded dataset root:
+Paths below are relative to the Hugging Face dataset root or the extracted Kaggle archive:
 
+- `analysis/`: three convenience tables and an input/output checksum manifest.
+- `ANALYSIS.md`: field dictionary, units, missingness, and aggregation rules.
 - `spc/tornadoes_2010_2025.csv`: primary historical track catalog.
 - `ncei_storm_events/raw/*.csv.gz`: original annual all-hazard archives.
 - `ncei_storm_events/tornado/<year>_<table>.csv`: details/fatalities/locations extracts.

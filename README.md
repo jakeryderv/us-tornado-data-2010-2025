@@ -56,6 +56,24 @@ uv run python download_data.py --verify-downloads
 uv run jupyter notebook notebooks/tornado_dataset.ipynb
 ```
 
+The new analysis layer provides an easier starting point:
+
+```sh
+uv run python scripts/build_analysis.py
+```
+
+```python
+tornadoes = pd.read_parquet("data/analysis/tornadoes.parquet")
+county_context = pd.read_parquet("data/analysis/county_context.parquet")
+annual_summary = pd.read_csv("data/analysis/annual_summary.csv")
+```
+
+These contain 20,164 tracks, 50,294 county/year rows, and 16 annual summaries,
+respectively, totaling about 1.4 MB. EF labels are nullable integers, IDs/FIPS are
+strings, and each source's annual counts remain separate. See the
+[analysis field dictionary](docs/ANALYSIS.md). After refreshing source downloads,
+rebuild the analysis layer before using it.
+
 The dataset contains:
 
 - **SPC:** historical tornado tracks and EF labels.
@@ -151,8 +169,9 @@ Successful retrieval does not establish complete historical survey coverage or
 verified event joins.
 
 Dependencies are locked in `uv.lock`: Jupyter/ipykernel for notebooks, pandas
-for tables, and matplotlib for inspection plots. The downloader and independent
-verification script use only the Python standard library.
+for tables, matplotlib for inspection plots, and pyarrow for the Parquet analysis tables. The downloader and source
+verification script use only the Python standard library. Analysis/release builds
+also use pandas and pyarrow.
 
 Offline regression checks:
 
