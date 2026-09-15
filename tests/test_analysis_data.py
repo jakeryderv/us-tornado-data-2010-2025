@@ -4,7 +4,9 @@ from tempfile import TemporaryDirectory
 import json
 import unittest
 import pandas as pd
-from scripts.build_analysis import tornado_table, county_table, annual_table, build_analysis
+import geopandas as gpd
+from shapely.geometry import mapping, Polygon, MultiPolygon
+from scripts.build_analysis import tornado_table, county_table, annual_table, build_analysis, ncei_table, survey_table, sha
 
 
 def spc_fixture():
@@ -69,20 +71,92 @@ class AnalysisTables(unittest.TestCase):
             for year in [2010,2011]:
                 for table in ['details','fatalities','locations']:
                     p=root/f'ncei_storm_events/tornado/{year}_{table}.csv';p.parent.mkdir(parents=True,exist_ok=True)
-                    p.write_text('EVENT_ID\n1\n2\n')
+                    p.write_text(f'EVENT_ID,EVENT_TYPE,STATE_FIPS,CZ_FIPS,BEGIN_DATE_TIME,TOR_F_SCALE\n{year},Tornado,01,001,01-JAN-{str(year)[2:]} 00:00:00,EF0\n')
                 for layer in ['points','lines','polygons']:
                     p=root/f'nws_dat/{year}/{layer}/index.json';p.parent.mkdir(parents=True,exist_ok=True)
-                    p.write_text(json.dumps({'features':3,'batches':[{'features':3}]}))
+                    geometry = {'type':'Point','coordinates':[-86,32]}
+                    features = [dict(type='Feature',id=year*10+i,geometry=(None if i==1 else {'type':'Point','coordinates':[]} if i==2 else geometry),
+                                properties={'objectid':year*10+i,'stormdate':int(pd.Timestamp(f'{year}-01-01',tz='UTC').timestamp()*1000),
+                                            'efscale':'EFU','globalid':f'{year}-{i}'}) for i in range(3)]
+                    batch=p.parent/'batch.geojson';batch.write_text(json.dumps({'features':features}))
+                    p.write_text(json.dumps({'features':3,'batches':[{'file':'batch.geojson','features':3,'sha256':sha(batch)}]}))
+            fields=[{'name':n,'type':t} for n,t in [('objectid','esriFieldTypeOID'),('stormdate','esriFieldTypeDate'),
+                    ('efscale','esriFieldTypeString'),('globalid','esriFieldTypeGlobalID')]]
+            for layer in ['points','lines','polygons']:
+                (root/f'nws_dat/{layer}_schema.json').write_text(json.dumps({'fields':fields}))
+            county={'STATEFP':'01','COUNTYFP':'001','COUNTYNS':'00123456','AFFGEOID':'0500000US01001','GEOID':'01001',
+                    'NAME':'Autauga','NAMELSAD':'Autauga County','STUSPS':'AL','STATE_NAME':'Alabama','LSAD':'06','ALAND':100,'AWATER':2}
+            polygon=MultiPolygon([Polygon([(0,0),(4,0),(4,4),(0,4),(0,0)],holes=[[(1,1),(1,2),(2,2),(2,1),(1,1)]])])
+            boundary=root/'census_boundaries/counties_2020_5m.geojson';boundary.parent.mkdir()
+            boundary.write_text(json.dumps({'features':[{'properties':county,'geometry':mapping(polygon)}]}))
             m=build_analysis(root,start=2010,end=2011)
             self.assertEqual(m['verification']['unknown_ef_preserved'],1)
-            self.assertEqual(len(m['inputs']),14)
+            self.assertEqual(len(m['inputs']),24)
+            self.assertEqual(len(m['files']),10)
+            geo=gpd.read_parquet(root/'analysis/county_boundaries.parquet')
+            self.assertEqual(geo.county_fips.iloc[0],'01001')
+            self.assertEqual(geo.geometry.iloc[0].wkb,polygon.wkb)
+            self.assertTrue(geo.crs.is_geographic)
+            surveys=gpd.read_parquet(root/'analysis/survey_points.parquet')
+            self.assertEqual(len(surveys),6)
+            self.assertEqual(int(surveys.geometry.isna().sum()),2)
+            self.assertEqual(int(surveys.geometry.is_empty.sum()),2)
+            self.assertTrue(surveys.ef_rating.isna().all())
+            self.assertEqual(str(surveys.storm_datetime_utc.dt.tz),'UTC')
+            self.assertEqual(surveys.storm_datetime_utc.iloc[0],pd.Timestamp('2010-01-01',tz='UTC'))
+            self.assertEqual(surveys.source_row.tolist(),[1,2,3,1,2,3])
             t=pd.read_parquet(root/'analysis/tornadoes.parquet')
             self.assertEqual(str(t.ef_rating.dtype),'Int8')
             self.assertEqual(t.ef_rating.isna().sum(),1)
             c=pd.read_parquet(root/'analysis/county_context.parquet')
             self.assertEqual(c.county_fips.tolist(),['01001','01001'])
             self.assertTrue(pd.isna(c.population.iloc[1]))
+            events=root/'ncei_storm_events/tornado/2010_fatalities.csv'
+            original=events.read_text()
+            events.write_text(original.replace('2010,Tornado','9999,Tornado'))
+            with self.assertRaisesRegex(ValueError,'Orphan'):build_analysis(root,start=2010,end=2011)
+            events.write_text(original)
+            batch=root/'nws_dat/2010/points/batch.geojson'
+            original=batch.read_text();batch.write_text(original+' ')
+            with self.assertRaisesRegex(ValueError,'checksum'):build_analysis(root,start=2010,end=2011)
+            batch.write_text(original)
             (root/'nws_dat/2010/points/index.json').unlink()
             with self.assertRaises(FileNotFoundError):build_analysis(root,start=2010,end=2011)
+
+
+    def test_ncei_preserves_text_identifiers_and_local_dates(self):
+        source=pd.DataFrame({'EVENT_ID':['001','002'],'STATE_FIPS':['1','1'],'CZ_FIPS':['1','2'],
+            'CZ_TYPE':['C','Z'],'BEGIN_DATE_TIME':['01-JAN-10 12:30:00',pd.NA],
+            'TOR_F_SCALE':['EF0','EFU'],'EVENT_NARRATIVE':['NA','Null'],
+            'DEATHS_DIRECT':['0',pd.NA],'DAMAGE_PROPERTY':['0','10K'],'source_year':[2010,2010]})
+        frame,_=ncei_table([source])
+        self.assertEqual(frame.event_id.tolist(),['001','002'])
+        self.assertEqual(frame.state_fips.tolist(),['01','01'])
+        self.assertEqual(frame.county_zone_code.tolist(),['001','002'])
+        self.assertEqual(frame.event_narrative.tolist(),['NA','Null'])
+        self.assertEqual(frame.damage_property.tolist(),['0','10K'])
+        self.assertEqual(frame.ef_rating.iloc[0],0)
+        self.assertTrue(pd.isna(frame.ef_rating.iloc[1]))
+        self.assertTrue(pd.isna(frame.deaths_direct.iloc[1]))
+        self.assertIsNone(frame.begin_datetime_local.dt.tz)
+        self.assertTrue(pd.isna(frame.begin_datetime_local.iloc[1]))
+
+    def test_dat_null_geometry_sentinels_schema_and_layer_ids(self):
+        schema={'fields':[{'name':n,'type':t} for n,t in [('objectid','esriFieldTypeOID'),
+            ('stormdate','esriFieldTypeDate'),('efscale','esriFieldTypeString'),('maxwind','esriFieldTypeSmallInteger')]]}
+        props=dict(objectid=1,stormdate=1262304000000,efscale='Thunderstorm Wind',maxwind=-99,
+                   source_file='batch.geojson',source_row=1,source_year=2010,source_feature_id='001')
+        features=[dict(properties=props,geometry=None)]
+        frame,_=survey_table(features,schema)
+        self.assertEqual(frame.object_id.iloc[0],'1')
+        self.assertEqual(frame.maxwind.iloc[0],-99)
+        self.assertEqual(frame.source_feature_id.iloc[0],'001')
+        self.assertTrue(frame.geometry.isna().iloc[0])
+        self.assertTrue(pd.isna(frame.ef_rating.iloc[0]))
+        with self.assertRaisesRegex(ValueError,'unique'):
+            survey_table(features*2,schema)
+        features[0]['properties']['unexpected']='new value'
+        with self.assertRaisesRegex(ValueError,'schema'):
+            survey_table(features,schema)
 
 if __name__=='__main__':unittest.main()

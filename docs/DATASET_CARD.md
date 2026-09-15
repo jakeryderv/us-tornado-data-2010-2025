@@ -7,12 +7,14 @@ This is an independent compilation, not an official government product.
 
 ## Start with the analysis tables
 
-Release **v1.1.0** adds three convenient tables under `analysis/`, totaling about
-1.4 MB: `tornadoes.parquet` (20,164 SPC tracks), `county_context.parquet`
-(50,294 county/year rows), and `annual_summary.csv` (16 years). Original source
-files remain intact. This is a typed, selected view with separate source counts,
-not a cross-source joined training table. See [ANALYSIS.md](ANALYSIS.md) for the
-field dictionary and aggregation rules.
+Release **v1.2.0** provides nine consolidated tables, an annual summary, and a
+provenance manifest under `analysis/`, totaling about **38 MB** of table data.
+Start with **`tornadoes.parquet`**: 20,164 SPC tracks in about 0.9 MB. Additional
+files provide NCEI tornado details/fatalities/locations, DAT points/lines/polygons,
+Census county/year estimates, and county boundaries. Original source files remain
+intact. These tables retain separate record types and do not imply verified
+cross-source matches. See [ANALYSIS.md](ANALYSIS.md) for the complete source-to-file
+mapping, loading examples, field definitions, and aggregation rules.
 
 With `pandas`, `pyarrow`, and `huggingface-hub` installed:
 
@@ -23,19 +25,21 @@ import pandas as pd
 
 root = Path(snapshot_download(
     "jakeryderv/us-tornado-data-2010-2025", repo_type="dataset",
-    revision="v1.1.0", allow_patterns=["analysis/*", "ANALYSIS.md"],
+    revision="v1.2.0", allow_patterns=["analysis/tornadoes.parquet", "ANALYSIS.md"],
 ))
 tornadoes = pd.read_parquet(root / "analysis/tornadoes.parquet")
-county_context = pd.read_parquet(root / "analysis/county_context.parquet")
-annual_summary = pd.read_csv(root / "analysis/annual_summary.csv")
 ```
+
+Use `allow_patterns=["analysis/*", "ANALYSIS.md"]` to fetch all consolidated
+tables. The four geometry tables use GeoParquet and load with
+`geopandas.read_parquet`; ordinary tables load with `pandas.read_parquet`.
 
 The [Kaggle mirror](https://www.kaggle.com/datasets/jakevanslyke/us-tornado-data-2010-2025)
 also exposes these analysis files directly. The complete original-source collection
 is supplied in `release.zip.bin` on Kaggle and as direct files on Hugging Face.
 The [public getting-started notebook](https://www.kaggle.com/code/jakevanslyke/us-tornado-data-getting-started)
 demonstrates inspecting the original v1.0.0 snapshot; its older release pins are
-intentional. Use this card's v1.1.0 analysis paths for the newer convenience layer.
+intentional. Use this card's v1.2.0 analysis paths for the newer convenience layer.
 
 This is a fixed 2010–2025 study snapshot with no scheduled refresh. Deliberate
 corrections or additions receive a new release version. Pin a host revision and
@@ -75,7 +79,7 @@ or damage observation was recorded.
 
 Paths below are relative to the Hugging Face dataset root or the extracted Kaggle archive:
 
-- `analysis/`: three convenience tables and an input/output checksum manifest.
+- `analysis/`: nine main tables, an annual summary, and an input/output checksum manifest.
 - `ANALYSIS.md`: field dictionary, units, missingness, and aggregation rules.
 - `spc/tornadoes_2010_2025.csv`: primary historical track catalog.
 - `ncei_storm_events/raw/*.csv.gz`: original annual all-hazard archives.
@@ -98,7 +102,7 @@ Paths below are relative to the Hugging Face dataset root or the extracted Kaggl
 A release contains the active files named by the collection manifests plus their
 supporting metadata. Unreferenced cache files, incomplete transfers, and local
 credentials are excluded. The release manifest supplies the exact file count and
-size; the full local collection is approximately 455 MB before host compression.
+size; the full local collection is approximately 493 MB including the consolidated tables before host compression.
 
 ## Fields and interpretation
 

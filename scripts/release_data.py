@@ -238,7 +238,7 @@ def stage(payload, destination, platform, owner, config):
     elif platform == 'kaggle':
         summary += ('\nKaggle transport: `release.zip.bin` is a ZIP archive with an extra `.bin` suffix '
                     'to preserve the original compressed source files. Extract it with Python `zipfile` '
-                    'for the complete collection. The three small analysis tables are also directly '
+                    'for the complete collection. The consolidated analysis tables are also directly '
                     'available under `analysis/`; they have the same bytes as the copies in the archive. '
                     'Verify the extracted tree against `release_manifest.json`.\n')
         (destination / 'README.md').write_text(card + summary)
@@ -254,7 +254,7 @@ def stage(payload, destination, platform, owner, config):
         with zipfile.ZipFile(archive, 'w', compression=zipfile.ZIP_DEFLATED) as zipped:
             for relative in sorted(paths):
                 zipped.write(local(payload, relative), relative)
-        # Keep descriptive files visible, but transport data only inside the archive.
+        # Keep analysis and descriptive files visible; preserve full sources in the archive.
         for item in list(destination.iterdir()):
             if item.is_dir() and item.name != 'analysis':
                 shutil.rmtree(item)

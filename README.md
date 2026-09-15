@@ -36,15 +36,14 @@ root = Path(snapshot_download(
     "jakeryderv/us-tornado-data-2010-2025",
     repo_type="dataset",
     revision="55a34cfc990a3ed1568f7f4fbdaad6408f1c0fd0",
-    allow_patterns=["analysis/*", "ANALYSIS.md"],
+    allow_patterns=["analysis/tornadoes.parquet", "ANALYSIS.md"],
 ))
 tornadoes = pd.read_parquet(root / "analysis/tornadoes.parquet")
-counties = pd.read_parquet(root / "analysis/county_context.parquet")
-annual = pd.read_csv(root / "analysis/annual_summary.csv")
 ```
 
-This downloads only about **1.4 MB** of analysis data and documentation. Remove
-`allow_patterns` to download the complete source collection. To fetch just the
+This downloads only the **0.9 MB tornado table** and its documentation. Use
+`allow_patterns=["analysis/*", "ANALYSIS.md"]` to fetch all consolidated tables
+(about **38 MB** in v1.2.0), or remove the filter for the complete source collection. To fetch just the
 tornado table from Kaggle with `kagglehub`:
 
 ```python
@@ -70,7 +69,7 @@ uv run python download_data.py --verify-downloads
 uv run jupyter notebook notebooks/tornado_dataset.ipynb
 ```
 
-The new analysis layer provides an easier starting point:
+The consolidated analysis layer provides a simple starting point:
 
 ```sh
 uv run python scripts/build_analysis.py
@@ -78,15 +77,26 @@ uv run python scripts/build_analysis.py
 
 ```python
 tornadoes = pd.read_parquet("data/analysis/tornadoes.parquet")
-county_context = pd.read_parquet("data/analysis/county_context.parquet")
-annual_summary = pd.read_csv("data/analysis/annual_summary.csv")
 ```
 
-These contain 20,164 tracks, 50,294 county/year rows, and 16 annual summaries,
-respectively, totaling about 1.4 MB. EF labels are nullable integers, IDs/FIPS are
-strings, and each source's annual counts remain separate. See the
-[analysis field dictionary](docs/ANALYSIS.md). After refreshing source downloads,
-rebuild the analysis layer before using it.
+Start with the 20,164 SPC tracks. Add the following tables as your work needs them:
+
+| Source | Files under `analysis/` |
+|---|---|
+| SPC | `tornadoes.parquet` |
+| Census | `county_context.parquet`, `county_boundaries.parquet` |
+| NCEI | `storm_events.parquet`, `storm_fatalities.parquet`, `storm_locations.parquet` |
+| DAT | `survey_points.parquet`, `survey_lines.parquet`, `survey_polygons.parquet` |
+| Summary/provenance | `annual_summary.csv`, `manifest.json` |
+
+These nine main tables plus the annual summary total about **38 MB**. Ordinary
+tables load with `pandas.read_parquet`; survey and boundary tables use
+`geopandas.read_parquet` to restore their geometry and coordinate reference system.
+Identifiers and missing values are preserved. New consolidated rows carry source
+file/record references. NCEI related tables support explicit event-ID joins;
+SPC/NCEI/DAT event matching remains separate research work. See the
+[analysis field dictionary](docs/ANALYSIS.md) for examples, units, mappings, and
+limitations. After refreshing source downloads, rebuild the analysis layer.
 
 The dataset contains:
 
@@ -97,7 +107,7 @@ The dataset contains:
 - **Census Cartographic Boundary Files:** one simplified 2020 national county map.
 
 All SPC events in the requested period are retained, including unknown EF ratings.
-The full data directory currently occupies roughly **435 MiB (456 MB)**. The Census
+The full data directory currently occupies roughly **470 MiB (493 MB)**. The Census
 additions required 8.8 MB of source downloads and occupy about 17 MiB including
 the derived county/year CSV and GeoJSON map. Counts across
 sources describe different record types and must not be added to count tornadoes.
@@ -183,7 +193,7 @@ Successful retrieval does not establish complete historical survey coverage or
 verified event joins.
 
 Dependencies are locked in `uv.lock`: Jupyter/ipykernel for notebooks, pandas
-for tables, matplotlib for inspection plots, and pyarrow for the Parquet analysis tables. The downloader and source
+for tables, matplotlib for inspection plots, pyarrow for Parquet, and GeoPandas for the spatial analysis tables. The downloader and source
 verification script use only the Python standard library. Analysis/release builds
 also use pandas and pyarrow.
 

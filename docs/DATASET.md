@@ -149,10 +149,16 @@ with raw files, derived outputs, and metadata. No extra Python dependency is nee
 CSV, ZIP, XLSX XML, and KML parsing use the standard library. The notebook remains
 read-only and uses the existing pandas/matplotlib dependencies.
 
-## Convenient analysis layer
+## Consolidated analysis layer
 
-`scripts/build_analysis.py` generates `data/analysis/tornadoes.parquet`,
-`county_context.parquet`, and `annual_summary.csv` from the verified source
-collection. Release builds regenerate these from the copied source snapshot.
-See [ANALYSIS.md](ANALYSIS.md) for fields and aggregation rules. All source records
-remain intact; the typed view does not join SPC, NCEI, DAT, or Census event identities.
+`scripts/build_analysis.py` generates nine Parquet tables and an annual CSV summary
+under `data/analysis/`, totaling about 38 MB. Start with `tornadoes.parquet`, then
+add Census context/map tables, NCEI event/fatality/location records, or DAT
+point/line/polygon surveys as needed. GeoParquet preserves geometry, coordinate
+reference metadata, polygon parts, and holes. Every new consolidated row carries
+a source-file reference and original record position. The analysis manifest lists
+all input/output hashes, types, mappings, and reconciliation results.
+
+Original files are retained. No records are multiplied by a cross-source join,
+no damage values are imputed, and DAT sentinels/categories remain explicit.
+See [ANALYSIS.md](ANALYSIS.md) for every table, field conventions, and examples.

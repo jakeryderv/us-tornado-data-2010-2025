@@ -2,7 +2,7 @@
   "slug": "us-tornado-data-2010-2025",
   "title": "US Tornado Data, 2010–2025",
   "subtitle": "NOAA tornado records and surveys with Census county population and housing",
-  "version": "v1.1.0",
+  "version": "v1.2.0",
   "start_year": 2010,
   "end_year": 2025,
   "code_repository": "https://github.com/jakeryderv/us-tornado-data-2010-2025",
