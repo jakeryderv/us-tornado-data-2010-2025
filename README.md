@@ -111,7 +111,7 @@ download_data.py          Collection CLI and HTTP/cache helpers
 footprint_data.py         EFC inventory, generation-pinned download, validation
 census_data.py            Pinned Census sources and derivations
 dataset_inspection.py     Read-only inspection helpers
-notebooks/               Local inspection and historical Kaggle example
+notebooks/               Local inspection and Kaggle getting-started example
 scripts/                 Analysis build, verification, release packaging
 tests/                   Offline regression tests
 docs/                    Dataset card, field dictionary, collection/release notes
@@ -123,8 +123,9 @@ dist/                    Local staged releases, ignored by Git
 
 [Reports](reports/README.md) distinguish current verification from the historical
 DAT study. The [public Kaggle example](https://www.kaggle.com/code/jakevanslyke/us-tornado-data-getting-started)
-is intentionally pinned to the original v1.0.0 / Kaggle 2 snapshot; use the examples
-above and the local inspection notebook for v2.
+loads v2.0.0 / Kaggle 5 with `kagglehub` and reads the seven consolidated tables.
+It runs on Kaggle or locally; the local inspection notebook additionally checks
+the repository collection and analysis provenance.
 
 ```sh
 uv run python -m unittest discover -s tests -v

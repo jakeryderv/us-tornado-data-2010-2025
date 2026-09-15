@@ -1,0 +1,45 @@
+{
+  "checked_at": "2026-09-15T23:51:11.372140+00:00",
+  "notebook_url": "https://www.kaggle.com/code/jakevanslyke/us-tornado-data-getting-started",
+  "notebook_id": 134529491,
+  "notebook_version": 3,
+  "kaggle_run_id": 350173751,
+  "dataset_release": "v2.0.0",
+  "dataset_version": 5,
+  "dataset_handle": "jakevanslyke/us-tornado-data-2010-2025/versions/5",
+  "manifest_sha256": "d6cf2577f31663c568878e9047e70ec0e26aa4c38f41245aa5620dfa423001d5",
+  "notebook_source_sha256": "71339db766b3397a01d5db5d46a44cac1c1040ff7f245ce228758ce183543dd7",
+  "local_executed_notebook_sha256": "6ccb6df9546b05ef3b879ff8b2142d5a06acee0c9f8641169bb2d4e442cca82e",
+  "hosted_execution_log_sha256": "2fcafcd387e621b50ba115ac9de9358ad27869c13da0db3309c5faed6e3b6f74",
+  "validation": {
+    "local_execution": "passed",
+    "kaggle_execution": "COMPLETE",
+    "kaggle_runtime_seconds": 28.1,
+    "published_source_matches_local": true,
+    "code_cells_executed": 8,
+    "main_tables_loaded": 7,
+    "annual_summary_loaded": true,
+    "selected_analysis_files_sha256_verified": 9,
+    "release_manifest_sha256_verified": true,
+    "local_figures_rendered_and_reviewed": 4,
+    "published_output_verification": "Kaggle version 3 rendered all table sections and the final successful inspection/checksum messages; execution log confirms notebook and HTML rendering completed.",
+    "offline_regression_tests": 21
+  },
+  "execution": {
+    "public": true,
+    "gpu": false,
+    "internet": false,
+    "kaggle_python": "3.12.13",
+    "kaggle_pandas": "2.3.3",
+    "kaggle_geopandas": "1.1.3",
+    "loading": "kagglehub.dataset_download for individual files, then pandas/GeoPandas; attached Kaggle cache or local download cache."
+  },
+  "data_files_changed": false,
+  "data_release_changed": false,
+  "notes": [
+    "Dataset attachments use owner/slug/5 in Kaggle CLI metadata and owner/slug/versions/5 in kagglehub. Pulled CLI metadata omits attachment version; successful manifest/file hash checks confirm the actual v2.0.0 data used.",
+    "Full-collection validation and cross-source tornado matching are outside the notebook scope.",
+    "Notebook version 2 is an intermediate successful publication; version 3 explicitly embeds plots for portable local execution.",
+    "The frozen dataset payload retains its publication-time documentation; this notebook and repository documentation are updated independently."
+  ]
+}

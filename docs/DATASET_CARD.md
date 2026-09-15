@@ -60,8 +60,9 @@ Detailed survey points, damage indicators/degrees, and original standalone DAT
 lines/polygons are no longer included. Earlier v1.2.0 / Kaggle 4 remains available
 for that survey detail. SPC, NCEI, and Census table schemas are unchanged. The
 annual summary replaces DAT point/line/polygon counts with EFC DAT/SED footprint
-counts. The historical public Kaggle example notebook is pinned to v1.0.0; use
-this card and the repository inspection notebook for v2.
+counts. The [public Kaggle example](https://www.kaggle.com/code/jakevanslyke/us-tornado-data-getting-started)
+loads these v2 tables with `kagglehub`; its earlier notebook versions retain the
+original v1.0.0 examples.
 
 ## Scope, provenance, and limitations
 

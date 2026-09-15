@@ -10,10 +10,12 @@ release; use `release/v2.0.0.json` for current publication verification. File me
 API success does not guarantee saved UI descriptions; verify the live listing.
 Nested analysis files previously required the Data Explorer UI for descriptions.
 
-The public getting-started notebook remains a historical v1.0.0 / Kaggle 2 example.
-Its stored code and hashes intentionally reference that older dataset. Use the
-repository quickstart and `notebooks/tornado_dataset.ipynb` for v2. Do not attach
-new data to that older notebook without updating its pins and validating it.
+The public getting-started notebook loads v2.0.0 / Kaggle 5 using `kagglehub`,
+pandas, and GeoPandas. It checks the pinned release manifest and each of nine
+selected analysis files, then previews all seven tables, the annual summary,
+ratings, missing values, source coverage, and geometry. It does not download
+the full archive. Earlier notebook versions remain available in Kaggle history.
+The execution receipt is `notebook-v2.json`.
 
 ## Listing fields
 
@@ -51,3 +53,24 @@ uv run python scripts/plot_dataset_cover.py
 
 The cover uses existing data only. Usability is listing completeness, not a measure
 of scientific validity or complete tornado coverage.
+
+## Publish the example notebook
+
+Install local inspection and publishing dependencies, then run the notebook:
+
+```sh
+uv sync --locked --group publish
+uv run --group publish jupyter nbconvert --execute --to notebook notebooks/kaggle_getting_started.ipynb --output /tmp/kaggle-getting-started-executed.ipynb
+uv run --group publish kaggle kernels push -p release/kaggle
+uv run --group publish kaggle kernels status jakevanslyke/us-tornado-data-getting-started
+```
+
+`kernel-metadata.json` attaches the pinned dataset using the Kaggle CLI form
+`owner/slug/5`; inside the notebook, `kagglehub` uses `owner/slug/versions/5`.
+Keep these pins and the manifest hash in agreement. The notebook runs on CPU
+with internet disabled on Kaggle; the input must already be attached before
+its saved execution starts. Local first-time downloads require internet.
+
+After the hosted run completes, retrieve the executed notebook and inspect its
+outputs, plots, and attachment version. Record the notebook version and checks in
+`notebook-v2.json`. A notebook-only update does not create a new dataset release.

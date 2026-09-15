@@ -8,7 +8,7 @@
   "enable_gpu": false,
   "enable_internet": false,
   "dataset_sources": [
-    "jakevanslyke/us-tornado-data-2010-2025"
+    "jakevanslyke/us-tornado-data-2010-2025/5"
   ],
   "competition_sources": [],
   "kernel_sources": []
