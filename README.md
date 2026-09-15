@@ -6,24 +6,25 @@ A focused **2010–2025** dataset for exploring recorded EF ratings, source agre
 damage-survey coverage, and county population/housing context. Load a frozen release
 with Python, or collect current source records and inspect them locally in Jupyter.
 
-The **v1.0.0** snapshot is published on:
+The **v1.1.0** snapshot is published on:
 
 - [Hugging Face](https://huggingface.co/datasets/jakeryderv/us-tornado-data-2010-2025): direct files, convenient for Python loading.
-- [Kaggle, version 2](https://www.kaggle.com/datasets/jakevanslyke/us-tornado-data-2010-2025/versions/2): the same files inside `release.zip.bin`, requiring one ZIP extraction.
+- [Kaggle, version 3](https://www.kaggle.com/datasets/jakevanslyke/us-tornado-data-2010-2025/versions/3): analysis tables available directly; full sources inside `release.zip.bin`.
 
 The [public Kaggle getting-started notebook](https://www.kaggle.com/code/jakevanslyke/us-tornado-data-getting-started)
-shows how to read tables directly from the archive without extraction, verify the
+demonstrates the original **v1.0.0 / Kaggle 2** snapshot and shows how to read
+tables directly from the archive without extraction, verify the
 release, and inspect coverage, EF ratings, surveys, and county context. It runs
 on CPU without internet; [its source](notebooks/kaggle_getting_started.ipynb) is
 included here.
 
-The [release receipt](release/v1.0.0.json) records pinned versions, source snapshot
-dates, and verified checksums for all **2,864 shared files (455 MB)**. Kaggle's
-archive is about **255 MB**; the extracted content matches Hugging Face exactly.
+The [release receipt](release/v1.1.0.json) records pinned versions, source snapshot
+dates, and verified checksums for all **2,869 shared files (457 MB)**. Kaggle's
+archive is about **256 MB**; the extracted content matches Hugging Face exactly.
 Kaggle version 1 was superseded because its automatic archive extraction changed
 original source paths and bytes.
 
-For example, with `huggingface-hub` and `pandas` installed in your project
+For example, with `huggingface-hub`, `pandas`, and `pyarrow` installed in your project
 (`uv sync --locked --group publish` installs the clients in this repository):
 
 ```python
@@ -34,13 +35,26 @@ import pandas as pd
 root = Path(snapshot_download(
     "jakeryderv/us-tornado-data-2010-2025",
     repo_type="dataset",
-    revision="44ab66552a2032d3bb7d6137d99967176c1477e4",
+    revision="55a34cfc990a3ed1568f7f4fbdaad6408f1c0fd0",
+    allow_patterns=["analysis/*", "ANALYSIS.md"],
 ))
-spc = pd.read_csv(root / "spc/tornadoes_2010_2025.csv")
-counties = pd.read_csv(
-    root / "census_population/county_context_2010_2025.csv",
-    dtype={"county_fips": str},
+tornadoes = pd.read_parquet(root / "analysis/tornadoes.parquet")
+counties = pd.read_parquet(root / "analysis/county_context.parquet")
+annual = pd.read_csv(root / "analysis/annual_summary.csv")
+```
+
+This downloads only about **1.4 MB** of analysis data and documentation. Remove
+`allow_patterns` to download the complete source collection. To fetch just the
+tornado table from Kaggle with `kagglehub`:
+
+```python
+import kagglehub
+
+path = kagglehub.dataset_download(
+    "jakevanslyke/us-tornado-data-2010-2025/versions/3",
+    path="analysis/tornadoes.parquet",
 )
+tornadoes = pd.read_parquet(path)
 ```
 
 See [Kaggle download, extraction, and integrity checks](docs/RELEASING.md#verify-consumer-downloads)
@@ -83,7 +97,7 @@ The dataset contains:
 - **Census Cartographic Boundary Files:** one simplified 2020 national county map.
 
 All SPC events in the requested period are retained, including unknown EF ratings.
-The full data directory currently occupies roughly **434 MiB (455 MB)**. The Census
+The full data directory currently occupies roughly **435 MiB (456 MB)**. The Census
 additions required 8.8 MB of source downloads and occupy about 17 MiB including
 the derived county/year CSV and GeoJSON map. Counts across
 sources describe different record types and must not be added to count tornadoes.

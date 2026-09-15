@@ -1,11 +1,12 @@
 # Kaggle presentation and usability metadata
 
 These files describe the Kaggle listing, independently of the frozen data payload.
-The listing reached **10.00/10 usability** on September 15, 2026. The data remains
-Kaggle version **2**, corresponding to dataset release **v1.0.0**.
+The listing reached **10.00/10 usability** on September 15, 2026. The current data is Kaggle version **3**, corresponding to dataset release
+**v1.1.0**, also verified at **10.00/10**; see [its receipt](../v1.1.0.json).
+The initial score receipt below describes version 2.
 
 - `metadata.json`: source provenance, fixed-snapshot update frequency, descriptions
-  for all ten downloadable files, and cover-image reference.
+  for all fifteen downloadable files and all analysis table columns, and cover-image reference.
 - `dataset-cover-image.png`: a map of actual SPC start locations against the
   collected Census county map, cropped to the contiguous U.S.; no additional data source.
 - `kernel-metadata.json`: publishing configuration for the public CPU-only example.
@@ -15,20 +16,31 @@ The [public notebook](https://www.kaggle.com/code/jakevanslyke/us-tornado-data-g
 reads tables directly from the ZIP archive without extraction, checks the pinned
 archive/manifest hashes, and inspects all five sources. Its source is
 [`notebooks/kaggle_getting_started.ipynb`](../../notebooks/kaggle_getting_started.ipynb).
-It is standalone; the local collection notebook remains separate.
+It is standalone and intentionally pins the original v1.0.0 / Kaggle 2 snapshot.
+The current analysis layer is demonstrated by the repository quickstart and local
+inspection notebook. Do not rerun the older public notebook against version 3
+without updating its archive/manifest pins.
 
 ## Refresh listing metadata
 
-Export current metadata first, then merge these overrides. File descriptions need
-`data` entries with each file's `name`, `description`, and **`totalBytes`**. The
-initial resources-only update returned success without saving the descriptions;
-the size-inclusive update was verified on the live listing. Check the UI after updates.
+The saved `metadata.json` is the source for file and column descriptions. For
+**v1.1.0**, the API rejected column metadata with nested file paths; basename
+requests returned success without changing the live descriptions. All new or
+changed file descriptions and all **50 analysis column descriptions** were saved
+and verified through the Data Explorer's **Edit file description** UI instead.
+Select all displayed columns before editing each table. The listing returned to
+**10.00/10 usability** without changing any data files.
+
+The export/update commands below remain useful for general listing metadata.
+Do not assume API success means file or column descriptions were saved: verify
+those fields in the UI. The initial v1.0.0 listing accepted size-inclusive file
+entries; current nested-file behavior requires the UI fallback described above.
 
 ```sh
 uv run --group publish kaggle datasets metadata jakevanslyke/us-tornado-data-2010-2025 -p dist/kaggle-listing
 ```
 
-The following uses the preserved version-2 staging folder from this release. Set
+The following uses the current version-3 staging folder. Set
 `staged` to the output of `release_data.py stage kaggle` for a future release.
 
 ```python
@@ -37,7 +49,7 @@ import shutil
 from pathlib import Path
 
 folder = Path("dist/kaggle-listing")
-staged = Path("dist/v1.0.0/kaggle-preserved")
+staged = Path("dist/v1.1.0/kaggle")
 path = folder / "dataset-metadata.json"
 exported = json.loads(path.read_text())
 metadata = exported.get("info", exported)

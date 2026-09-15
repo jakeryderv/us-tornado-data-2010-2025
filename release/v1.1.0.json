@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "version": "v1.1.0",
+  "slug": "us-tornado-data-2010-2025",
+  "recorded_at": "2026-09-15T21:03:25.522752+00:00",
+  "payload_code_commit": "b331f376d67b349bc7b4caa3d7f967b0d164894d",
+  "built_at": "2026-09-15T20:55:26.769689+00:00",
+  "source_snapshots": {
+    "noaa_completed_at": "2026-09-14T23:21:34.164064+00:00",
+    "census_completed_at": "2026-09-15T17:45:22.906523+00:00"
+  },
+  "manifest_sha256": "24d2ced59d9535288994003fc5f7b2cb6a10af982155558f922a0999919d8e2e",
+  "shared_file_count": 2869,
+  "shared_payload_bytes": 456520019,
+  "file_count_scope": "Shared payload files; excludes release_manifest.json, SHA256SUMS and host metadata.",
+  "changes": [
+    "Added typed SPC tornado and Census county/year Parquet tables and a 16-row annual source summary.",
+    "Added analysis field dictionary and manifest with input hashes, output hashes, and reconciliation results.",
+    "Kaggle exposes analysis files directly in addition to identical copies inside the complete source archive."
+  ],
+  "original_collection_files_unchanged_from_v1_0_0": 2858,
+  "huggingface": {
+    "url": "https://huggingface.co/datasets/jakeryderv/us-tornado-data-2010-2025",
+    "repo_id": "jakeryderv/us-tornado-data-2010-2025",
+    "commit": "55a34cfc990a3ed1568f7f4fbdaad6408f1c0fd0",
+    "tag": "v1.1.0",
+    "transport": "direct files",
+    "verification": {
+      "status": "passed",
+      "version": "v1.1.0",
+      "files": 2869,
+      "payload_bytes": 456520019,
+      "manifest_sha256": "24d2ced59d9535288994003fc5f7b2cb6a10af982155558f922a0999919d8e2e",
+      "platform": "huggingface",
+      "revision": "55a34cfc990a3ed1568f7f4fbdaad6408f1c0fd0",
+      "verified_at": "2026-09-15T21:02:14.720218+00:00",
+      "original_source_files_unchanged": 2858,
+      "sample_loads": {
+        "tornado_rows": 20164,
+        "unknown_ef_rows": 1525,
+        "county_year_rows": 50294,
+        "county_fips_preserved": true,
+        "annual_rows": 16,
+        "annual_ef_totals_reconciled": true
+      },
+      "direct_analysis_sha256": {}
+    },
+    "download_authentication": "authenticated"
+  },
+  "kaggle": {
+    "url": "https://www.kaggle.com/datasets/jakevanslyke/us-tornado-data-2010-2025/versions/3",
+    "handle": "jakevanslyke/us-tornado-data-2010-2025/versions/3",
+    "numeric_version": 3,
+    "transport": "Direct analysis/ files; full shared payload in release.zip.bin.",
+    "archive_sha256": "e887eb1ff03b344a5d6c7b48875d82d78d7b27a5c1d377f18ca3e46ae3b2c4a9",
+    "archive_bytes": 256310236,
+    "verification": {
+      "status": "passed",
+      "version": "v1.1.0",
+      "files": 2869,
+      "payload_bytes": 456520019,
+      "manifest_sha256": "24d2ced59d9535288994003fc5f7b2cb6a10af982155558f922a0999919d8e2e",
+      "platform": "kaggle",
+      "revision": 3,
+      "verified_at": "2026-09-15T21:00:47.920367+00:00",
+      "original_source_files_unchanged": 2858,
+      "sample_loads": {
+        "tornado_rows": 20164,
+        "unknown_ef_rows": 1525,
+        "county_year_rows": 50294,
+        "county_fips_preserved": true,
+        "annual_rows": 16,
+        "annual_ef_totals_reconciled": true
+      },
+      "direct_analysis_sha256": {
+        "analysis/annual_summary.csv": "6b9b843a2169d2dd49bcd75aed546acf836fdd77022e3947bd4f92229a1ea25e",
+        "analysis/county_context.parquet": "81ec89c844bfd480cf8a0e5033afe13e8a53f98a47ca09641cc0476acbc17afc",
+        "analysis/manifest.json": "18841b67c951e7affc6784df06a4e0d168f894796fdc8e5a583709cb518b11f6",
+        "analysis/tornadoes.parquet": "1eca8d74d2fc36b16f92df95afcc8db2cb1bfb5ebae8a9f38f7a2f8d8d37a700"
+      }
+    },
+    "listing": {
+      "verified_at": "2026-09-15T21:17:00.716775+00:00",
+      "usability_score": 10.0,
+      "file_descriptions": 15,
+      "analysis_column_descriptions": 50,
+      "update_frequency": "never",
+      "verification": "Kaggle API score and live UI saves; new and changed file descriptions plus all analysis columns saved through the editor."
+    }
+  },
+  "previous_release": "v1.0.0.json"
+}

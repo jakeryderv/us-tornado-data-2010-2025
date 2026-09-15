@@ -4,7 +4,7 @@
   "resources": [
     {
       "path": "README.md",
-      "description": "Start here: dataset overview, source record counts, limitations, and Kaggle extraction instructions. File paths in the card refer to the extracted release.zip.bin archive."
+      "description": "Start here: scope, source counts, limitations, and loading examples. The analysis tables are directly downloadable; full original sources are inside release.zip.bin."
     },
     {
       "path": "DATASET_CARD.md",
@@ -28,11 +28,11 @@
     },
     {
       "path": "schema.json",
-      "description": "Machine-readable schema inventory: complete CSV headers and saved DAT layer field definitions. Describes files inside the extracted release archive."
+      "description": "Machine-readable schema inventory: complete CSV headers, saved DAT layer field definitions, and typed analysis tables. Describes files inside the extracted release archive."
     },
     {
       "path": "release_manifest.json",
-      "description": "Release v1.0.0 inventory with source snapshot dates, code commit, sizes, and SHA-256 hashes for all 2,864 shared payload files. Paths are relative to the extracted archive root."
+      "description": "Release v1.1.0 inventory with source snapshot dates, code commit, sizes, and SHA-256 hashes for all 2,869 shared payload files. Paths are relative to the extracted archive root."
     },
     {
       "path": "SHA256SUMS",
@@ -40,7 +40,233 @@
     },
     {
       "path": "release.zip.bin",
-      "description": "Complete v1.0.0 dataset: 2,864 shared files (455 MB), packaged as a 255 MB ZIP with an extra .bin suffix to prevent Kaggle from unpacking original source archives. Open with Python zipfile.ZipFile and extract once. Contains SPC tornado tracks; NCEI raw annual tables and tornado extracts; NWS DAT GeoJSON survey batches without photos; Census county population/housing estimates and a simplified 2020 county map; provenance, schemas, and checksums. Preserve unknown EF ratings, string FIPS codes, and source IDs. No cross-source event join or predefined model split is included."
+      "description": "Complete v1.1.0 dataset: 2,869 shared files (457 MB), packaged as a 256 MB ZIP with an extra .bin suffix to prevent Kaggle from unpacking original source archives. Open with Python zipfile.ZipFile and extract once. Contains SPC tornado tracks; NCEI raw annual tables and tornado extracts; NWS DAT GeoJSON survey batches without photos; Census county population/housing estimates and a simplified 2020 county map; analysis tables; provenance, schemas, and checksums. Preserve unknown EF ratings, string FIPS codes, and source IDs. No cross-source event join or predefined model split is included."
+    },
+    {
+      "path": "ANALYSIS.md",
+      "description": "Field dictionary, transformations, units, nullable types, annual aggregation rules, rebuild instructions, and EF-classification limitations for the compact analysis layer."
+    },
+    {
+      "path": "analysis/tornadoes.parquet",
+      "description": "20,164 retained SPC tornado tracks, 2010\u20132025. Descriptive field names, string identifiers, nullable EF ratings, explicit units, and coordinate plausibility flags. Unknown EF labels remain null; no cross-source joins or model split.",
+      "columns": [
+        {
+          "name": "tornado_id",
+          "description": "spc:<year>:<om>; unique within this snapshot, not an NCEI/DAT ID"
+        },
+        {
+          "name": "spc_event_id",
+          "description": "Opaque om string; retain suffixes and leading zeros"
+        },
+        {
+          "name": "year",
+          "description": "Calendar year, 2010\u20132025."
+        },
+        {
+          "name": "start_date",
+          "description": "date, edat, stored as timezone-naive date values at midnight"
+        },
+        {
+          "name": "start_time",
+          "description": "time, etime, retained as clock-time strings"
+        },
+        {
+          "name": "end_date",
+          "description": "date, edat, stored as timezone-naive date values at midnight"
+        },
+        {
+          "name": "end_time",
+          "description": "time, etime, retained as clock-time strings"
+        },
+        {
+          "name": "spc_timezone_code",
+          "description": "tz; 3=CST, 9=GMT, 0=unknown; no automatic UTC conversion"
+        },
+        {
+          "name": "state",
+          "description": "st, stf; state FIPS padded to two characters"
+        },
+        {
+          "name": "state_fips",
+          "description": "st, stf; state FIPS padded to two characters"
+        },
+        {
+          "name": "spc_rating_code",
+          "description": "Original mag, including -9"
+        },
+        {
+          "name": "injuries",
+          "description": "inj, fat, preserved counts"
+        },
+        {
+          "name": "fatalities",
+          "description": "inj, fat, preserved counts"
+        },
+        {
+          "name": "start_latitude",
+          "description": "slat, slon, decimal degrees"
+        },
+        {
+          "name": "start_longitude",
+          "description": "slat, slon, decimal degrees"
+        },
+        {
+          "name": "end_latitude",
+          "description": "elat, elon, decimal degrees"
+        },
+        {
+          "name": "end_longitude",
+          "description": "elat, elon, decimal degrees"
+        },
+        {
+          "name": "path_length_miles",
+          "description": "len, miles"
+        },
+        {
+          "name": "path_width_yards",
+          "description": "wid, yards"
+        },
+        {
+          "name": "states_affected",
+          "description": "ns"
+        },
+        {
+          "name": "ef_rating",
+          "description": "Nullable integer 0\u20135; -9 becomes null"
+        },
+        {
+          "name": "ef_rating_known",
+          "description": "Whether ef_rating is non-null"
+        },
+        {
+          "name": "start_coordinates_valid",
+          "description": "Both coordinates present, latitude within \u00b190, longitude within \u00b1180, and neither zero"
+        },
+        {
+          "name": "end_coordinates_valid",
+          "description": "Both coordinates present, latitude within \u00b190, longitude within \u00b1180, and neither zero"
+        }
+      ]
+    },
+    {
+      "path": "analysis/county_context.parquet",
+      "description": "50,294 Census county/year records: population, housing units, estimate vintage, and fixed-2020-map presence. Five-character FIPS strings and missing counts preserved. County context is not track-level exposure.",
+      "columns": [
+        {
+          "name": "year",
+          "description": "Calendar year, 2010\u20132025."
+        },
+        {
+          "name": "county_fips",
+          "description": "Five-character county FIPS code; retain leading zeros."
+        },
+        {
+          "name": "state_name",
+          "description": "Census state name."
+        },
+        {
+          "name": "county_name",
+          "description": "Census county or equivalent name."
+        },
+        {
+          "name": "population",
+          "description": "July 1 county population estimate; missing remains null."
+        },
+        {
+          "name": "housing_units",
+          "description": "July 1 county housing unit estimate; missing remains null."
+        },
+        {
+          "name": "estimate_vintage",
+          "description": "Census estimate vintage: 2020 for 2010\u20132019, 2025 for 2020\u20132025."
+        },
+        {
+          "name": "map_2020_fips_present",
+          "description": "Whether this county FIPS exists in the generalized fixed-2020 map; does not establish unchanged boundaries."
+        }
+      ]
+    },
+    {
+      "path": "analysis/annual_summary.csv",
+      "description": "16 yearly summaries with SPC EF-label counts, separate NCEI row counts, DAT feature counts, and Census map coverage. Source units differ; never sum these columns to count tornadoes.",
+      "columns": [
+        {
+          "name": "year",
+          "description": "Calendar year, 2010\u20132025."
+        },
+        {
+          "name": "spc_tracks",
+          "description": "Retained SPC track rows in the year."
+        },
+        {
+          "name": "spc_ef_unknown",
+          "description": "SPC rows with unknown rating (-9 in source); distinct from EF0."
+        },
+        {
+          "name": "spc_ef0",
+          "description": "Number of SPC rows rated EF0 in the year."
+        },
+        {
+          "name": "spc_ef1",
+          "description": "Number of SPC rows rated EF1 in the year."
+        },
+        {
+          "name": "spc_ef2",
+          "description": "Number of SPC rows rated EF2 in the year."
+        },
+        {
+          "name": "spc_ef3",
+          "description": "Number of SPC rows rated EF3 in the year."
+        },
+        {
+          "name": "spc_ef4",
+          "description": "Number of SPC rows rated EF4 in the year."
+        },
+        {
+          "name": "spc_ef5",
+          "description": "Number of SPC rows rated EF5 in the year."
+        },
+        {
+          "name": "spc_known_ef_fraction",
+          "description": "Known-rated SPC rows divided by all SPC rows; blank for a valid zero-track year."
+        },
+        {
+          "name": "ncei_tornado_details_rows",
+          "description": "Rows in the NCEI tornado details extract for its source year; not matched to SPC events."
+        },
+        {
+          "name": "ncei_tornado_fatalities_rows",
+          "description": "Rows in the NCEI tornado fatalities extract for its source year; not matched to SPC events. Not a sum of people killed."
+        },
+        {
+          "name": "ncei_tornado_locations_rows",
+          "description": "Rows in the NCEI tornado locations extract for its source year; not matched to SPC events."
+        },
+        {
+          "name": "dat_points",
+          "description": "DAT points features in annual indexes, including unknown and non-tornado categories; not tornado counts."
+        },
+        {
+          "name": "dat_lines",
+          "description": "DAT lines features in annual indexes, including unknown and non-tornado categories; not tornado counts."
+        },
+        {
+          "name": "dat_polygons",
+          "description": "DAT polygons features in annual indexes, including unknown and non-tornado categories; not tornado counts."
+        },
+        {
+          "name": "census_county_rows",
+          "description": "County context rows in the year."
+        },
+        {
+          "name": "census_counties_without_2020_map",
+          "description": "County/year rows whose saved 2020-map code-presence flag is false."
+        }
+      ]
+    },
+    {
+      "path": "analysis/manifest.json",
+      "description": "Analysis provenance: 98 input hashes, output hashes and sizes, column types, SPC field mapping, software versions, and round-trip/annual reconciliation results."
     }
   ],
   "image": "dataset-cover-image.png"
