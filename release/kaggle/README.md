@@ -1,12 +1,12 @@
 # Kaggle presentation and usability metadata
 
 These files describe the Kaggle listing, independently of the frozen data payload.
-The listing reached **10.00/10 usability** on September 15, 2026. The current data is Kaggle version **3**, corresponding to dataset release
-**v1.1.0**, also verified at **10.00/10**; see [its receipt](../v1.1.0.json).
+The listing reached **10.00/10 usability** on September 15, 2026. The current data is Kaggle version **4**, corresponding to dataset release
+**v1.2.0**; see [its receipt](../v1.2.0.json).
 The initial score receipt below describes version 2.
 
 - `metadata.json`: source provenance, fixed-snapshot update frequency, descriptions
-  for all fifteen downloadable files and all analysis table columns, and cover-image reference.
+  for all 22 downloadable files and templates covering 250 analysis columns, and cover-image reference.
 - `dataset-cover-image.png`: a map of actual SPC start locations against the
   collected Census county map, cropped to the contiguous U.S.; no additional data source.
 - `kernel-metadata.json`: publishing configuration for the public CPU-only example.
@@ -20,6 +20,12 @@ It is standalone and intentionally pins the original v1.0.0 / Kaggle 2 snapshot.
 The current analysis layer is demonstrated by the repository quickstart and local
 inspection notebook. Do not rerun the older public notebook against version 3
 without updating its archive/manifest pins.
+
+For v1.2.0, new file descriptions and the 57 NCEI event-column descriptions were
+saved through the UI. The prior three analysis tables retain their descriptions.
+The complete field inventory/types and all name mappings for the 250 columns are
+also packaged in the analysis manifest and documented in `ANALYSIS.md`. Templates
+in `metadata.json` include the remaining field descriptions for future UI updates.
 
 ## Refresh listing metadata
 
@@ -40,7 +46,7 @@ entries; current nested-file behavior requires the UI fallback described above.
 uv run --group publish kaggle datasets metadata jakevanslyke/us-tornado-data-2010-2025 -p dist/kaggle-listing
 ```
 
-The following uses the current version-3 staging folder. Set
+The following uses the current version-4 staging folder. Set
 `staged` to the output of `release_data.py stage kaggle` for a future release.
 
 ```python
@@ -49,7 +55,7 @@ import shutil
 from pathlib import Path
 
 folder = Path("dist/kaggle-listing")
-staged = Path("dist/v1.1.0/kaggle")
+staged = Path("dist/v1.2.0/kaggle")
 path = folder / "dataset-metadata.json"
 exported = json.loads(path.read_text())
 metadata = exported.get("info", exported)

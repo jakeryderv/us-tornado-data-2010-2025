@@ -1,0 +1,309 @@
+{
+  "schema_version": 1,
+  "slug": "us-tornado-data-2010-2025",
+  "file_count_scope": "Shared payload files; excludes release_manifest.json, SHA256SUMS and host metadata.",
+  "version": "v1.2.0",
+  "recorded_at": "2026-09-15T21:53:10.582225+00:00",
+  "payload_code_commit": "9a3e3df7485d08a2939f7692aa6c247cd4c29808",
+  "built_at": "2026-09-15T21:37:25.119655+00:00",
+  "source_snapshots": {
+    "noaa_completed_at": "2026-09-14T23:21:34.164064+00:00",
+    "census_completed_at": "2026-09-15T17:45:22.906523+00:00"
+  },
+  "manifest_sha256": "57676ab3b32e1ffce74b5b8c67dd25c950d69d8fbbea15b67781721bbf12a731",
+  "shared_file_count": 2876,
+  "shared_payload_bytes": 493179295,
+  "original_collection_files_unchanged_from_v1_0_0": 2858,
+  "previous_release": "v1.1.0.json",
+  "changes": [
+    "Added seven NCEI/DAT/Census consolidated tables, giving nine main tables plus an annual summary.",
+    "All 2,858 original collection files and all three v1.1.0 analysis tables remain byte-identical.",
+    "Preserved record provenance, source identifiers/sentinels, local versus UTC dates, and GeoParquet geometry; no cross-source event join."
+  ],
+  "huggingface": {
+    "url": "https://huggingface.co/datasets/jakeryderv/us-tornado-data-2010-2025",
+    "repo_id": "jakeryderv/us-tornado-data-2010-2025",
+    "commit": "813d8d7e9be0bc992ef48fe93598737cad263af3",
+    "tag": "v1.2.0",
+    "transport": "direct files",
+    "download_authentication": "authenticated",
+    "verification": {
+      "status": "passed",
+      "version": "v1.2.0",
+      "files": 2876,
+      "payload_bytes": 493179295,
+      "manifest_sha256": "57676ab3b32e1ffce74b5b8c67dd25c950d69d8fbbea15b67781721bbf12a731",
+      "analysis_loads": {
+        "tornadoes.parquet": {
+          "rows": 20164,
+          "columns": 24,
+          "geometry": null
+        },
+        "county_context.parquet": {
+          "rows": 50294,
+          "columns": 8,
+          "geometry": null
+        },
+        "annual_summary.csv": {
+          "rows": 16,
+          "columns": 18,
+          "geometry": null
+        },
+        "storm_events.parquet": {
+          "rows": 23189,
+          "columns": 57,
+          "geometry": null
+        },
+        "storm_fatalities.parquet": {
+          "rows": 1352,
+          "columns": 14,
+          "geometry": null
+        },
+        "storm_locations.parquet": {
+          "rows": 35920,
+          "columns": 14,
+          "geometry": null
+        },
+        "survey_points.parquet": {
+          "rows": 218231,
+          "columns": 34,
+          "geometry": {
+            "encoding": "WKB",
+            "geoparquet_version": "1.0.0",
+            "crs": "OGC:CRS84",
+            "types": [
+              "Point"
+            ],
+            "null_geometries": 0,
+            "empty_geometries": 2,
+            "invalid_geometries": 0
+          }
+        },
+        "survey_lines.parquet": {
+          "rows": 11585,
+          "columns": 38,
+          "geometry": {
+            "encoding": "WKB",
+            "geoparquet_version": "1.0.0",
+            "crs": "OGC:CRS84",
+            "types": [
+              "LineString"
+            ],
+            "null_geometries": 0,
+            "empty_geometries": 21,
+            "invalid_geometries": 0
+          }
+        },
+        "survey_polygons.parquet": {
+          "rows": 10009,
+          "columns": 27,
+          "geometry": {
+            "encoding": "WKB",
+            "geoparquet_version": "1.0.0",
+            "crs": "OGC:CRS84",
+            "types": [
+              "MultiPolygon",
+              "Polygon"
+            ],
+            "null_geometries": 0,
+            "empty_geometries": 174,
+            "invalid_geometries": 0
+          }
+        },
+        "county_boundaries.parquet": {
+          "rows": 3234,
+          "columns": 16,
+          "geometry": {
+            "encoding": "WKB",
+            "geoparquet_version": "1.0.0",
+            "crs": "OGC:CRS84",
+            "types": [
+              "MultiPolygon"
+            ],
+            "null_geometries": 0,
+            "empty_geometries": 0,
+            "invalid_geometries": 0
+          }
+        }
+      },
+      "annual_source_counts_reconciled": true,
+      "ncei_related_event_ids_validated": true,
+      "v1_1_0_analysis_tables_unchanged": true,
+      "platform": "huggingface",
+      "revision": "813d8d7e9be0bc992ef48fe93598737cad263af3",
+      "verified_at": "2026-09-15T21:42:14.552020+00:00",
+      "original_source_files_unchanged": 2858,
+      "sample_loads": {
+        "tornado_rows": 20164,
+        "unknown_ef_rows": 1525,
+        "county_year_rows": 50294,
+        "county_fips_preserved": true,
+        "annual_rows": 16,
+        "annual_ef_totals_reconciled": true
+      },
+      "direct_analysis_sha256": {}
+    }
+  },
+  "kaggle": {
+    "url": "https://www.kaggle.com/datasets/jakevanslyke/us-tornado-data-2010-2025/versions/4",
+    "handle": "jakevanslyke/us-tornado-data-2010-2025/versions/4",
+    "numeric_version": 4,
+    "transport": "Direct analysis/ files; full shared payload in release.zip.bin.",
+    "archive_sha256": "139f947c531ef384fb7da50e2ec839ae7d18ff03ff1801e338aae9f4ef40814d",
+    "archive_bytes": 292021822,
+    "verification": {
+      "status": "passed",
+      "version": "v1.2.0",
+      "files": 2876,
+      "payload_bytes": 493179295,
+      "manifest_sha256": "57676ab3b32e1ffce74b5b8c67dd25c950d69d8fbbea15b67781721bbf12a731",
+      "analysis_loads": {
+        "tornadoes.parquet": {
+          "rows": 20164,
+          "columns": 24,
+          "geometry": null
+        },
+        "county_context.parquet": {
+          "rows": 50294,
+          "columns": 8,
+          "geometry": null
+        },
+        "annual_summary.csv": {
+          "rows": 16,
+          "columns": 18,
+          "geometry": null
+        },
+        "storm_events.parquet": {
+          "rows": 23189,
+          "columns": 57,
+          "geometry": null
+        },
+        "storm_fatalities.parquet": {
+          "rows": 1352,
+          "columns": 14,
+          "geometry": null
+        },
+        "storm_locations.parquet": {
+          "rows": 35920,
+          "columns": 14,
+          "geometry": null
+        },
+        "survey_points.parquet": {
+          "rows": 218231,
+          "columns": 34,
+          "geometry": {
+            "encoding": "WKB",
+            "geoparquet_version": "1.0.0",
+            "crs": "OGC:CRS84",
+            "types": [
+              "Point"
+            ],
+            "null_geometries": 0,
+            "empty_geometries": 2,
+            "invalid_geometries": 0
+          }
+        },
+        "survey_lines.parquet": {
+          "rows": 11585,
+          "columns": 38,
+          "geometry": {
+            "encoding": "WKB",
+            "geoparquet_version": "1.0.0",
+            "crs": "OGC:CRS84",
+            "types": [
+              "LineString"
+            ],
+            "null_geometries": 0,
+            "empty_geometries": 21,
+            "invalid_geometries": 0
+          }
+        },
+        "survey_polygons.parquet": {
+          "rows": 10009,
+          "columns": 27,
+          "geometry": {
+            "encoding": "WKB",
+            "geoparquet_version": "1.0.0",
+            "crs": "OGC:CRS84",
+            "types": [
+              "MultiPolygon",
+              "Polygon"
+            ],
+            "null_geometries": 0,
+            "empty_geometries": 174,
+            "invalid_geometries": 0
+          }
+        },
+        "county_boundaries.parquet": {
+          "rows": 3234,
+          "columns": 16,
+          "geometry": {
+            "encoding": "WKB",
+            "geoparquet_version": "1.0.0",
+            "crs": "OGC:CRS84",
+            "types": [
+              "MultiPolygon"
+            ],
+            "null_geometries": 0,
+            "empty_geometries": 0,
+            "invalid_geometries": 0
+          }
+        }
+      },
+      "annual_source_counts_reconciled": true,
+      "ncei_related_event_ids_validated": true,
+      "v1_1_0_analysis_tables_unchanged": true,
+      "platform": "kaggle",
+      "revision": 4,
+      "verified_at": "2026-09-15T21:40:37.256595+00:00",
+      "original_source_files_unchanged": 2858,
+      "sample_loads": {
+        "tornado_rows": 20164,
+        "unknown_ef_rows": 1525,
+        "county_year_rows": 50294,
+        "county_fips_preserved": true,
+        "annual_rows": 16,
+        "annual_ef_totals_reconciled": true
+      },
+      "direct_analysis_sha256": {
+        "analysis/annual_summary.csv": "6b9b843a2169d2dd49bcd75aed546acf836fdd77022e3947bd4f92229a1ea25e",
+        "analysis/county_boundaries.parquet": "15c75f88b0568141ef26d394d7b8b3b4fc0a08324be4ce2f2f0f0ca735281570",
+        "analysis/county_context.parquet": "81ec89c844bfd480cf8a0e5033afe13e8a53f98a47ca09641cc0476acbc17afc",
+        "analysis/manifest.json": "a9c7b30c5f5cb7d6c374c5613abb2bc4e34cdec63789df512b4d662b3bc110ee",
+        "analysis/storm_events.parquet": "e0ac3bfd938a605b16a3b2abcb9f5326cdcdc4e3f0f05e9d2872fc764dce2e6c",
+        "analysis/storm_fatalities.parquet": "b7ad909ee7a62a5be9542ffd5ed35ca516ae0df2af4f1230f40c985aa92ea14d",
+        "analysis/storm_locations.parquet": "301c6624b21b19cee67bbf9fa2b9a3add97b04ac91181fd34561bdcff37f8ded",
+        "analysis/survey_lines.parquet": "914f0ff7c36e126e4709b741626706cc8bac208aac3dc41baa1819e1a1242eeb",
+        "analysis/survey_points.parquet": "702fd8572edfc7e80eabffc11785adab15fb1555724ecb11e865029b562ce130",
+        "analysis/survey_polygons.parquet": "d6242d5a6fa0e50199183bcf2d4d6714e9455a0375a8b58e3575638f1b4b4143",
+        "analysis/tornadoes.parquet": "1eca8d74d2fc36b16f92df95afcc8db2cb1bfb5ebae8a9f38f7a2f8d8d37a700"
+      }
+    },
+    "listing": {
+      "verified_at": "2026-09-15T21:53:48.696857+00:00",
+      "usability_score": 10.0,
+      "file_descriptions": 22,
+      "new_ncei_event_column_descriptions": 57,
+      "all_column_definitions_in_manifest": 250,
+      "update_frequency": "never",
+      "verification": "Updated file descriptions and NCEI event columns saved and checked in the live UI; score verified with Kaggle API."
+    }
+  },
+  "analysis": {
+    "main_tables": 9,
+    "annual_summary_rows": 16,
+    "table_bytes": 37770541,
+    "input_hashes": 1324,
+    "columns": 250,
+    "geoparquet_version": "1.0.0",
+    "geometry_crs": "OGC:CRS84",
+    "all_tables_loaded_from_both_hosts": true,
+    "source_collection_changes": false
+  },
+  "validation": {
+    "offline_tests": 18,
+    "full_inspection_notebook": "passed",
+    "implementation_ci_run": 35026607652,
+    "implementation_ci_conclusion": "success"
+  }
+}

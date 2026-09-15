@@ -32,7 +32,7 @@
     },
     {
       "path": "release_manifest.json",
-      "description": "Release v1.1.0 inventory with source snapshot dates, code commit, sizes, and SHA-256 hashes for all 2,869 shared payload files. Paths are relative to the extracted archive root."
+      "description": "Release v1.2.0 inventory with source snapshot dates, code commit, sizes, and SHA-256 hashes for all 2,876 shared payload files. Paths are relative to the extracted archive root."
     },
     {
       "path": "SHA256SUMS",
@@ -40,7 +40,7 @@
     },
     {
       "path": "release.zip.bin",
-      "description": "Complete v1.1.0 dataset: 2,869 shared files (457 MB), packaged as a 256 MB ZIP with an extra .bin suffix to prevent Kaggle from unpacking original source archives. Open with Python zipfile.ZipFile and extract once. Contains SPC tornado tracks; NCEI raw annual tables and tornado extracts; NWS DAT GeoJSON survey batches without photos; Census county population/housing estimates and a simplified 2020 county map; analysis tables; provenance, schemas, and checksums. Preserve unknown EF ratings, string FIPS codes, and source IDs. No cross-source event join or predefined model split is included."
+      "description": "Complete v1.2.0 dataset: 2,876 shared files (493 MB), packaged as a 292 MB ZIP with an extra .bin suffix to preserve original source archives. Includes all five source collections, nine consolidated Parquet/GeoParquet tables, annual summary, provenance, schemas, and checksums. The analysis tables are also downloadable separately. No cross-source event match or model split is supplied."
     },
     {
       "path": "ANALYSIS.md",
@@ -266,7 +266,849 @@
     },
     {
       "path": "analysis/manifest.json",
-      "description": "Analysis provenance: 98 input hashes, output hashes and sizes, column types, SPC field mapping, software versions, and round-trip/annual reconciliation results."
+      "description": "Analysis provenance: 1,324 input hashes, output hashes and sizes, column types, source field mappings, software versions, geometry metadata, and round-trip/annual reconciliation results."
+    },
+    {
+      "path": "analysis/storm_events.parquet",
+      "description": "23,189 NCEI tornado event/county-segment records across 2010\u20132025, with ratings, narratives, retained damage strings, source-local dates, and source-file/row provenance. NCEI event IDs are separate from SPC/DAT IDs.",
+      "columns": [
+        {
+          "name": "begin_yearmonth",
+          "description": "Retained NCEI BEGIN_YEARMONTH field (Int64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "begin_day",
+          "description": "Retained NCEI BEGIN_DAY field (Int64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "begin_time",
+          "description": "Retained NCEI BEGIN_TIME field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "end_yearmonth",
+          "description": "Retained NCEI END_YEARMONTH field (Int64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "end_day",
+          "description": "Retained NCEI END_DAY field (Int64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "end_time",
+          "description": "Retained NCEI END_TIME field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "episode_id",
+          "description": "NCEI episode identifier string; an episode can contain multiple events."
+        },
+        {
+          "name": "event_id",
+          "description": "NCEI event ID string. Related NCEI records join to storm_events through this ID; not an SPC/DAT identifier."
+        },
+        {
+          "name": "state_name",
+          "description": "Retained NCEI STATE field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "state_fips",
+          "description": "Two-character state FIPS code; preserve leading zeros."
+        },
+        {
+          "name": "year",
+          "description": "Retained NCEI YEAR field (Int64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "month_name",
+          "description": "Retained NCEI MONTH_NAME field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "event_type",
+          "description": "Retained NCEI EVENT_TYPE field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "county_zone_type",
+          "description": "NCEI geography type; county and forecast-zone codes are not interchangeable."
+        },
+        {
+          "name": "county_zone_code",
+          "description": "Three-character NCEI county/zone code; interpret together with county_zone_type."
+        },
+        {
+          "name": "county_zone_name",
+          "description": "Retained NCEI CZ_NAME field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "wfo",
+          "description": "Retained NCEI WFO field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "begin_date_time",
+          "description": "Retained NCEI BEGIN_DATE_TIME field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "source_timezone",
+          "description": "Original NCEI time-zone designation; parsed local datetimes are not UTC."
+        },
+        {
+          "name": "end_date_time",
+          "description": "Retained NCEI END_DATE_TIME field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "injuries_direct",
+          "description": "Retained NCEI INJURIES_DIRECT field (Int64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "injuries_indirect",
+          "description": "Retained NCEI INJURIES_INDIRECT field (Int64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "deaths_direct",
+          "description": "Retained NCEI DEATHS_DIRECT field (Int64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "deaths_indirect",
+          "description": "Retained NCEI DEATHS_INDIRECT field (Int64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "damage_property",
+          "description": "Retained NCEI DAMAGE_PROPERTY field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "damage_crops",
+          "description": "Retained NCEI DAMAGE_CROPS field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "source",
+          "description": "Retained NCEI SOURCE field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "magnitude",
+          "description": "Retained NCEI MAGNITUDE field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "magnitude_type",
+          "description": "Retained NCEI MAGNITUDE_TYPE field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "flood_cause",
+          "description": "Retained NCEI FLOOD_CAUSE field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "category",
+          "description": "Retained NCEI CATEGORY field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "source_ef_rating",
+          "description": "Original rating/category label, preserved alongside the nullable derived EF rating."
+        },
+        {
+          "name": "path_length_miles",
+          "description": "Source tornado/event-segment path length in miles."
+        },
+        {
+          "name": "path_width_yards",
+          "description": "Source tornado/event-segment width in yards."
+        },
+        {
+          "name": "tor_other_wfo",
+          "description": "Retained NCEI TOR_OTHER_WFO field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "tor_other_cz_state",
+          "description": "Retained NCEI TOR_OTHER_CZ_STATE field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "tor_other_cz_fips",
+          "description": "Retained NCEI TOR_OTHER_CZ_FIPS field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "tor_other_cz_name",
+          "description": "Retained NCEI TOR_OTHER_CZ_NAME field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "begin_range_miles",
+          "description": "Retained NCEI BEGIN_RANGE field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "begin_azimuth",
+          "description": "Retained NCEI BEGIN_AZIMUTH field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "begin_location",
+          "description": "Retained NCEI BEGIN_LOCATION field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "end_range_miles",
+          "description": "Retained NCEI END_RANGE field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "end_azimuth",
+          "description": "Retained NCEI END_AZIMUTH field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "end_location",
+          "description": "Retained NCEI END_LOCATION field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "begin_latitude",
+          "description": "Retained NCEI BEGIN_LAT field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "begin_longitude",
+          "description": "Retained NCEI BEGIN_LON field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "end_latitude",
+          "description": "Retained NCEI END_LAT field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "end_longitude",
+          "description": "Retained NCEI END_LON field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "episode_narrative",
+          "description": "Retained NCEI EPISODE_NARRATIVE field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "event_narrative",
+          "description": "Retained NCEI EVENT_NARRATIVE field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "data_source",
+          "description": "Retained NCEI DATA_SOURCE field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "source_file",
+          "description": "Relative path of the original retained CSV or GeoJSON batch."
+        },
+        {
+          "name": "source_year",
+          "description": "Original annual source partition; use its source date convention."
+        },
+        {
+          "name": "source_row",
+          "description": "One-based original CSV record or GeoJSON feature position; CSV header excluded."
+        },
+        {
+          "name": "begin_datetime_local",
+          "description": "Parsed original source wall-clock datetime without timezone conversion; not UTC."
+        },
+        {
+          "name": "end_datetime_local",
+          "description": "Parsed original source wall-clock datetime without timezone conversion; not UTC."
+        },
+        {
+          "name": "ef_rating",
+          "description": "Nullable integer 0\u20135 from exact EF0\u2013EF5 source labels; unknown or other categories remain null. Survey feature ratings are not tornado maxima."
+        }
+      ]
+    },
+    {
+      "path": "analysis/storm_fatalities.parquet",
+      "description": "1,352 NCEI tornado-related fatality records. Link to storm_events using event_id; multiple records can refer to one event. Retains source-local fatality time, age, sex, location, and source-file/row provenance.",
+      "columns": [
+        {
+          "name": "fat_yearmonth",
+          "description": "Retained NCEI FAT_YEARMONTH field (Int64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "fat_day",
+          "description": "Retained NCEI FAT_DAY field (Int64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "fat_time",
+          "description": "Retained NCEI FAT_TIME field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "fatality_id",
+          "description": "Source NCEI fatality-record identifier string."
+        },
+        {
+          "name": "event_id",
+          "description": "NCEI event ID string. Related NCEI records join to storm_events through this ID; not an SPC/DAT identifier."
+        },
+        {
+          "name": "fatality_type",
+          "description": "Retained NCEI FATALITY_TYPE field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "fatality_date",
+          "description": "Retained NCEI FATALITY_DATE field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "fatality_age",
+          "description": "Retained NCEI FATALITY_AGE field (Int64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "fatality_sex",
+          "description": "Retained NCEI FATALITY_SEX field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "fatality_location",
+          "description": "Retained NCEI FATALITY_LOCATION field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "source_file",
+          "description": "Relative path of the original retained CSV or GeoJSON batch."
+        },
+        {
+          "name": "source_year",
+          "description": "Original annual source partition; use its source date convention."
+        },
+        {
+          "name": "source_row",
+          "description": "One-based original CSV record or GeoJSON feature position; CSV header excluded."
+        },
+        {
+          "name": "fatality_datetime_local",
+          "description": "Parsed original source wall-clock datetime without timezone conversion; not UTC."
+        }
+      ]
+    },
+    {
+      "path": "analysis/storm_locations.parquet",
+      "description": "35,920 NCEI tornado-related location records with coordinates, range, azimuth, and event_id/location_index. Multiple locations can refer to one event. Retains all source fields and source-file/row provenance.",
+      "columns": [
+        {
+          "name": "yearmonth",
+          "description": "Retained NCEI YEARMONTH field (Int64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "episode_id",
+          "description": "NCEI episode identifier string; an episode can contain multiple events."
+        },
+        {
+          "name": "event_id",
+          "description": "NCEI event ID string. Related NCEI records join to storm_events through this ID; not an SPC/DAT identifier."
+        },
+        {
+          "name": "location_index",
+          "description": "Retained NCEI LOCATION_INDEX field (Int64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "range_miles",
+          "description": "Retained NCEI RANGE field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "azimuth",
+          "description": "Retained NCEI AZIMUTH field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "location",
+          "description": "Retained NCEI LOCATION field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "latitude",
+          "description": "Retained NCEI LATITUDE field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "longitude",
+          "description": "Retained NCEI LONGITUDE field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "lat2",
+          "description": "Retained NCEI LAT2 field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "lon2",
+          "description": "Retained NCEI LON2 field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "source_file",
+          "description": "Relative path of the original retained CSV or GeoJSON batch."
+        },
+        {
+          "name": "source_year",
+          "description": "Original annual source partition; use its source date convention."
+        },
+        {
+          "name": "source_row",
+          "description": "One-based original CSV record or GeoJSON feature position; CSV header excluded."
+        }
+      ]
+    },
+    {
+      "path": "analysis/survey_points.parquet",
+      "description": "218,231 DAT survey observations with damage indicators/degrees, original rating labels and nullable EF ratings, source attributes/sentinels, UTC date conversions, and point geometry. All collected categories retained; no photos. GeoParquet with source-file/feature references.",
+      "columns": [
+        {
+          "name": "object_id",
+          "description": "DAT objectid as a string; unique within this survey layer, not globally across layers."
+        },
+        {
+          "name": "storm_epoch_ms",
+          "description": "Original date value as nullable integer milliseconds since Unix epoch; retained alongside UTC datetime."
+        },
+        {
+          "name": "survey_epoch_ms",
+          "description": "Original date value as nullable integer milliseconds since Unix epoch; retained alongside UTC datetime."
+        },
+        {
+          "name": "survey_event_id",
+          "description": "Original DAT event_id label; not an NCEI event ID or guaranteed unique tornado key."
+        },
+        {
+          "name": "damage",
+          "description": "Retained DAT damage field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "damage_txt",
+          "description": "Retained DAT damage_txt field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "dod_txt",
+          "description": "Retained DAT dod_txt field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "source_ef_rating",
+          "description": "Original rating/category label, preserved alongside the nullable derived EF rating."
+        },
+        {
+          "name": "damage_dir",
+          "description": "Retained DAT damage_dir field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "windspeed",
+          "description": "Retained DAT windspeed field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "injuries",
+          "description": "Retained DAT injuries field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "deaths",
+          "description": "Retained DAT deaths field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "comments",
+          "description": "Retained DAT comments field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "lat",
+          "description": "Retained DAT lat field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "lon",
+          "description": "Retained DAT lon field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "office",
+          "description": "Retained DAT office field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "image",
+          "description": "Retained DAT image field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "gps_horiz_accuracy",
+          "description": "Retained DAT gps_horiz_accuracy field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "device_id",
+          "description": "Retained DAT device_id field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "qc",
+          "description": "Retained DAT qc field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "global_id",
+          "description": "Original DAT globalid string; nulls preserved."
+        },
+        {
+          "name": "dod",
+          "description": "Retained DAT dod field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "surveytype",
+          "description": "Retained DAT surveytype field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "edit_epoch_ms",
+          "description": "Original date value as nullable integer milliseconds since Unix epoch; retained alongside UTC datetime."
+        },
+        {
+          "name": "path_guid",
+          "description": "Original DAT path_guid string; nulls preserved."
+        },
+        {
+          "name": "source_feature_id",
+          "description": "Top-level GeoJSON feature ID preserved as a string, separate from property IDs."
+        },
+        {
+          "name": "source_file",
+          "description": "Relative path of the original retained CSV or GeoJSON batch."
+        },
+        {
+          "name": "source_row",
+          "description": "One-based original CSV record or GeoJSON feature position; CSV header excluded."
+        },
+        {
+          "name": "source_year",
+          "description": "Original annual source partition; use its source date convention."
+        },
+        {
+          "name": "storm_datetime_utc",
+          "description": "UTC timestamp parsed from retained source epoch milliseconds; missing values remain missing."
+        },
+        {
+          "name": "survey_datetime_utc",
+          "description": "UTC timestamp parsed from retained source epoch milliseconds; missing values remain missing."
+        },
+        {
+          "name": "edit_datetime_utc",
+          "description": "UTC timestamp parsed from retained source epoch milliseconds; missing values remain missing."
+        },
+        {
+          "name": "ef_rating",
+          "description": "Nullable integer 0\u20135 from exact EF0\u2013EF5 source labels; unknown or other categories remain null. Survey feature ratings are not tornado maxima."
+        },
+        {
+          "name": "geometry",
+          "description": "Original WKB geometry in GeoParquet 1.0; OGC:CRS84 longitude/latitude. Empty and missing geometries preserved."
+        }
+      ]
+    },
+    {
+      "path": "analysis/survey_lines.parquet",
+      "description": "11,585 DAT surveyed lines with source attributes, original rating labels and nullable EF ratings, UTC date conversions, identifiers, and source-file/feature references. GeoParquet preserves original geometry, including empty features. No cross-source event matching.",
+      "columns": [
+        {
+          "name": "office",
+          "description": "Retained DAT wfo field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "object_id",
+          "description": "DAT objectid as a string; unique within this survey layer, not globally across layers."
+        },
+        {
+          "name": "survey_event_id",
+          "description": "Original DAT event_id label; not an NCEI event ID or guaranteed unique tornado key."
+        },
+        {
+          "name": "storm_epoch_ms",
+          "description": "Original date value as nullable integer milliseconds since Unix epoch; retained alongside UTC datetime."
+        },
+        {
+          "name": "start_epoch_ms",
+          "description": "Original date value as nullable integer milliseconds since Unix epoch; retained alongside UTC datetime."
+        },
+        {
+          "name": "end_epoch_ms",
+          "description": "Original date value as nullable integer milliseconds since Unix epoch; retained alongside UTC datetime."
+        },
+        {
+          "name": "startlat",
+          "description": "Retained DAT startlat field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "startlon",
+          "description": "Retained DAT startlon field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "endlat",
+          "description": "Retained DAT endlat field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "endlon",
+          "description": "Retained DAT endlon field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "length",
+          "description": "Retained DAT length field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "width",
+          "description": "Retained DAT width field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "injuries",
+          "description": "Retained DAT injuries field (Int64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "fatalities",
+          "description": "Retained DAT fatalities field (Int64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "source_ef_rating",
+          "description": "Original rating/category label, preserved alongside the nullable derived EF rating."
+        },
+        {
+          "name": "efnum",
+          "description": "Retained DAT efnum field (Int64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "qc",
+          "description": "Retained DAT qc field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "maxwind",
+          "description": "Retained DAT maxwind field (Int64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "global_id",
+          "description": "Original DAT globalid string; nulls preserved."
+        },
+        {
+          "name": "cropdamage",
+          "description": "Retained DAT cropdamage field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "propdamage",
+          "description": "Retained DAT propdamage field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "edit_epoch_ms",
+          "description": "Original date value as nullable integer milliseconds since Unix epoch; retained alongside UTC datetime."
+        },
+        {
+          "name": "created_epoch_ms",
+          "description": "Original date value as nullable integer milliseconds since Unix epoch; retained alongside UTC datetime."
+        },
+        {
+          "name": "last_edited_epoch_ms",
+          "description": "Original date value as nullable integer milliseconds since Unix epoch; retained alongside UTC datetime."
+        },
+        {
+          "name": "comments",
+          "description": "Retained DAT comments field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "source_geometry_length",
+          "description": "Retained DAT st_length(shape) field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "source_feature_id",
+          "description": "Top-level GeoJSON feature ID preserved as a string, separate from property IDs."
+        },
+        {
+          "name": "source_file",
+          "description": "Relative path of the original retained CSV or GeoJSON batch."
+        },
+        {
+          "name": "source_row",
+          "description": "One-based original CSV record or GeoJSON feature position; CSV header excluded."
+        },
+        {
+          "name": "source_year",
+          "description": "Original annual source partition; use its source date convention."
+        },
+        {
+          "name": "storm_datetime_utc",
+          "description": "UTC timestamp parsed from retained source epoch milliseconds; missing values remain missing."
+        },
+        {
+          "name": "start_datetime_utc",
+          "description": "UTC timestamp parsed from retained source epoch milliseconds; missing values remain missing."
+        },
+        {
+          "name": "end_datetime_utc",
+          "description": "UTC timestamp parsed from retained source epoch milliseconds; missing values remain missing."
+        },
+        {
+          "name": "edit_datetime_utc",
+          "description": "UTC timestamp parsed from retained source epoch milliseconds; missing values remain missing."
+        },
+        {
+          "name": "created_datetime_utc",
+          "description": "UTC timestamp parsed from retained source epoch milliseconds; missing values remain missing."
+        },
+        {
+          "name": "last_edited_datetime_utc",
+          "description": "UTC timestamp parsed from retained source epoch milliseconds; missing values remain missing."
+        },
+        {
+          "name": "ef_rating",
+          "description": "Nullable integer 0\u20135 from exact EF0\u2013EF5 source labels; unknown or other categories remain null. Survey feature ratings are not tornado maxima."
+        },
+        {
+          "name": "geometry",
+          "description": "Original WKB geometry in GeoParquet 1.0; OGC:CRS84 longitude/latitude. Empty and missing geometries preserved."
+        }
+      ]
+    },
+    {
+      "path": "analysis/survey_polygons.parquet",
+      "description": "10,009 DAT surveyed areas with source attributes, original rating labels and nullable EF ratings, UTC date conversions, and source-file/feature references. GeoParquet preserves polygon parts/holes and empty geometries. No cross-source event matching.",
+      "columns": [
+        {
+          "name": "object_id",
+          "description": "DAT objectid as a string; unique within this survey layer, not globally across layers."
+        },
+        {
+          "name": "source_ef_rating",
+          "description": "Original rating/category label, preserved alongside the nullable derived EF rating."
+        },
+        {
+          "name": "qc",
+          "description": "Retained DAT qc field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "global_id",
+          "description": "Original DAT globalid string; nulls preserved."
+        },
+        {
+          "name": "survey_event_id",
+          "description": "Original DAT event_id label; not an NCEI event ID or guaranteed unique tornado key."
+        },
+        {
+          "name": "storm_epoch_ms",
+          "description": "Original date value as nullable integer milliseconds since Unix epoch; retained alongside UTC datetime."
+        },
+        {
+          "name": "length",
+          "description": "Retained DAT length field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "width",
+          "description": "Retained DAT width field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "injuries",
+          "description": "Retained DAT injuries field (Int64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "fatalities",
+          "description": "Retained DAT fatalities field (Int64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "edit_epoch_ms",
+          "description": "Original date value as nullable integer milliseconds since Unix epoch; retained alongside UTC datetime."
+        },
+        {
+          "name": "created_epoch_ms",
+          "description": "Original date value as nullable integer milliseconds since Unix epoch; retained alongside UTC datetime."
+        },
+        {
+          "name": "last_edited_epoch_ms",
+          "description": "Original date value as nullable integer milliseconds since Unix epoch; retained alongside UTC datetime."
+        },
+        {
+          "name": "comments",
+          "description": "Retained DAT comments field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "path_guid",
+          "description": "Original DAT path_guid string; nulls preserved."
+        },
+        {
+          "name": "source_geometry_area",
+          "description": "Retained DAT st_area(shape) field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "source_geometry_perimeter",
+          "description": "Retained DAT st_perimeter(shape) field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "source_feature_id",
+          "description": "Top-level GeoJSON feature ID preserved as a string, separate from property IDs."
+        },
+        {
+          "name": "source_file",
+          "description": "Relative path of the original retained CSV or GeoJSON batch."
+        },
+        {
+          "name": "source_row",
+          "description": "One-based original CSV record or GeoJSON feature position; CSV header excluded."
+        },
+        {
+          "name": "source_year",
+          "description": "Original annual source partition; use its source date convention."
+        },
+        {
+          "name": "storm_datetime_utc",
+          "description": "UTC timestamp parsed from retained source epoch milliseconds; missing values remain missing."
+        },
+        {
+          "name": "edit_datetime_utc",
+          "description": "UTC timestamp parsed from retained source epoch milliseconds; missing values remain missing."
+        },
+        {
+          "name": "created_datetime_utc",
+          "description": "UTC timestamp parsed from retained source epoch milliseconds; missing values remain missing."
+        },
+        {
+          "name": "last_edited_datetime_utc",
+          "description": "UTC timestamp parsed from retained source epoch milliseconds; missing values remain missing."
+        },
+        {
+          "name": "ef_rating",
+          "description": "Nullable integer 0\u20135 from exact EF0\u2013EF5 source labels; unknown or other categories remain null. Survey feature ratings are not tornado maxima."
+        },
+        {
+          "name": "geometry",
+          "description": "Original WKB geometry in GeoParquet 1.0; OGC:CRS84 longitude/latitude. Empty and missing geometries preserved."
+        }
+      ]
+    },
+    {
+      "path": "analysis/county_boundaries.parquet",
+      "description": "3,234 generalized 2020 Census county/county-equivalent geometries with string FIPS codes, names, source land/water areas, and source-file/feature references. GeoParquet preserves original multipolygons and holes; this is a fixed map, not annual boundaries.",
+      "columns": [
+        {
+          "name": "state_fips",
+          "description": "Two-character state FIPS code; preserve leading zeros."
+        },
+        {
+          "name": "county_code",
+          "description": "Retained Census COUNTYFP field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "county_gnis_id",
+          "description": "Retained Census COUNTYNS field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "census_geo_id",
+          "description": "Retained Census AFFGEOID field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "county_fips",
+          "description": "Five-character Census county FIPS code; preserve leading zeros."
+        },
+        {
+          "name": "county_name",
+          "description": "Retained Census NAME field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "county_legal_name",
+          "description": "Retained Census NAMELSAD field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "state",
+          "description": "Retained Census STUSPS field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "state_name",
+          "description": "Retained Census STATE_NAME field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "legal_area_code",
+          "description": "Retained Census LSAD field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
+        },
+        {
+          "name": "land_area_m2",
+          "description": "Original Census ALAND in square meters."
+        },
+        {
+          "name": "water_area_m2",
+          "description": "Original Census AWATER in square meters."
+        },
+        {
+          "name": "boundary_year",
+          "description": "Fixed 2020 reference year of the generalized county map."
+        },
+        {
+          "name": "source_file",
+          "description": "Relative path of the original retained CSV or GeoJSON batch."
+        },
+        {
+          "name": "source_row",
+          "description": "One-based original CSV record or GeoJSON feature position; CSV header excluded."
+        },
+        {
+          "name": "geometry",
+          "description": "Original WKB geometry in GeoParquet 1.0; OGC:CRS84 longitude/latitude. Empty and missing geometries preserved."
+        }
+      ]
     }
   ],
   "image": "dataset-cover-image.png"

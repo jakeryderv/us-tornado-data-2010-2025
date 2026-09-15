@@ -6,10 +6,10 @@ A focused **2010–2025** dataset for exploring recorded EF ratings, source agre
 damage-survey coverage, and county population/housing context. Load a frozen release
 with Python, or collect current source records and inspect them locally in Jupyter.
 
-The **v1.1.0** snapshot is published on:
+The **v1.2.0** snapshot is published on:
 
 - [Hugging Face](https://huggingface.co/datasets/jakeryderv/us-tornado-data-2010-2025): direct files, convenient for Python loading.
-- [Kaggle, version 3](https://www.kaggle.com/datasets/jakevanslyke/us-tornado-data-2010-2025/versions/3): analysis tables available directly; full sources inside `release.zip.bin`.
+- [Kaggle, version 4](https://www.kaggle.com/datasets/jakevanslyke/us-tornado-data-2010-2025/versions/4): analysis tables available directly; full sources inside `release.zip.bin`.
 
 The [public Kaggle getting-started notebook](https://www.kaggle.com/code/jakevanslyke/us-tornado-data-getting-started)
 demonstrates the original **v1.0.0 / Kaggle 2** snapshot and shows how to read
@@ -18,9 +18,9 @@ release, and inspect coverage, EF ratings, surveys, and county context. It runs
 on CPU without internet; [its source](notebooks/kaggle_getting_started.ipynb) is
 included here.
 
-The [release receipt](release/v1.1.0.json) records pinned versions, source snapshot
-dates, and verified checksums for all **2,869 shared files (457 MB)**. Kaggle's
-archive is about **256 MB**; the extracted content matches Hugging Face exactly.
+The [release receipt](release/v1.2.0.json) records pinned versions, source snapshot
+dates, and verified checksums for all **2,876 shared files (493 MB)**. Kaggle's
+archive is about **292 MB**; the extracted content matches Hugging Face exactly.
 Kaggle version 1 was superseded because its automatic archive extraction changed
 original source paths and bytes.
 
@@ -35,7 +35,7 @@ import pandas as pd
 root = Path(snapshot_download(
     "jakeryderv/us-tornado-data-2010-2025",
     repo_type="dataset",
-    revision="55a34cfc990a3ed1568f7f4fbdaad6408f1c0fd0",
+    revision="813d8d7e9be0bc992ef48fe93598737cad263af3",
     allow_patterns=["analysis/tornadoes.parquet", "ANALYSIS.md"],
 ))
 tornadoes = pd.read_parquet(root / "analysis/tornadoes.parquet")
@@ -50,7 +50,7 @@ tornado table from Kaggle with `kagglehub`:
 import kagglehub
 
 path = kagglehub.dataset_download(
-    "jakevanslyke/us-tornado-data-2010-2025/versions/3",
+    "jakevanslyke/us-tornado-data-2010-2025/versions/4",
     path="analysis/tornadoes.parquet",
 )
 tornadoes = pd.read_parquet(path)
