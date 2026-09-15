@@ -8,7 +8,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from datetime import datetime, timezone
 from html.parser import HTMLParser
-from urllib.parse import urlencode, urljoin, urlparse
+from urllib.parse import urljoin, urlparse
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 import csv
@@ -109,36 +109,28 @@ def parse_args(argv=None):
     parser.add_argument('--sources', choices=('all', 'noaa', 'census'), default='all',
                         help='Collect all sources, only NOAA records, or only the two small Census datasets')
     parser.add_argument('--refresh', action='store_true', help='Replace verified caches with fresh source data')
-    parser.add_argument('--coverage-audit', action='store_true', help='Run the local DAT audit after collection (2010–2025, repo data only)')
-    parser.add_argument('--verify-downloads', action='store_true', help='Independently check file hashes, exact extraction, and survey completeness after downloading')
-    parser.add_argument('--dat-batch-size', type=int, default=200)
+    parser.add_argument('--verify-downloads', action='store_true', help='Independently check file hashes, exact extraction, and annual footprint completeness after downloading')
     parser.add_argument('--timeout', type=int, default=120)
     parser.add_argument('--dry-run', action='store_true', help='Print configuration only; no requests, downloads, or directory creation')
     args = parser.parse_args(argv)
     args.data_dir = args.data_dir.expanduser().resolve()
-    if not 1950 <= args.start_year <= args.end_year <= datetime.now().year:
-        parser.error('Choose an inclusive year range from 1950 through the current year.')
+    if not 2010 <= args.start_year <= args.end_year <= datetime.now().year:
+        parser.error('Choose an inclusive year range from 2010 through the current year.')
     if args.sources != 'noaa' and not 2010 <= args.start_year <= args.end_year <= 2025:
         parser.error('The pinned Census releases support 2010–2025; use --sources noaa for other periods.')
-    if args.coverage_audit and args.sources == 'census':
-        parser.error('--coverage-audit requires NOAA collection.')
-    if not 1 <= args.dat_batch_size <= 200 or args.timeout <= 0:
-        parser.error('Use a DAT batch size of 1–200 and a positive timeout.')
-    if args.coverage_audit and ((args.start_year, args.end_year) != (2010, 2025) or args.data_dir != ROOT / 'data'):
-        parser.error('The DAT audit supports only 2010–2025 in this repository data/ directory.')
+    if args.timeout <= 0:
+        parser.error('Use a positive timeout.')
     return args
 
 
 def download_records(args):
-    """Collect SPC/NCEI/DAT and write their original-format manifests and quality report."""
+    """Collect SPC/NCEI/EFC and write their original-format manifests and quality report."""
     START_YEAR, END_YEAR = args.start_year, args.end_year
-    REFRESH, DAT_BATCH_SIZE, TIMEOUT_SECONDS = args.refresh, args.dat_batch_size, args.timeout
+    REFRESH, TIMEOUT_SECONDS = args.refresh, args.timeout
     DATA = args.data_dir
     YEARS = range(START_YEAR, END_YEAR + 1)
     SPC_INDEX = 'https://www.spc.noaa.gov/wcm/'
     NCEI_INDEX = 'https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/'
-    DAT_SERVICE = ('https://services.dat.noaa.gov/arcgis/rest/services/'
-                   'nws_damageassessmenttoolkit/DamageViewer/MapServer')
     print(f'Destination: {DATA} | Requested years: {START_YEAR}–{END_YEAR}', flush=True)
 
 
@@ -179,14 +171,6 @@ def download_records(args):
         parser = Links()
         parser.feed(path.read_text())
         return [urljoin(url, href) for href in parser.hrefs]
-
-
-    def fetch_json(url, path):
-        return json.loads(download(url, path, 'json').read_text())
-
-
-    def query_url(layer_url, **params):
-        return layer_url + '/query?' + urlencode(params)
 
 
     summary = []
@@ -338,68 +322,15 @@ def download_records(args):
                                 year_counts={year: count}))
             print(f'NCEI {year} {table}: {count:,} tornado-related rows.')
 
-    # NWS Damage Assessment Toolkit
-    service = fetch_json(DAT_SERVICE + '?f=json', DATA / 'nws_dat' / 'service.json')
-    layer_definitions = {0: 'points', 1: 'lines', 2: 'polygons'}
-    if not set(layer_definitions).issubset({layer['id'] for layer in service['layers']}):
-        raise RuntimeError('DAT layer IDs changed; inspect the saved service metadata.')
-
-    for layer_id, layer_name in layer_definitions.items():
-        layer_url = f'{DAT_SERVICE}/{layer_id}'
-        schema = fetch_json(layer_url + '?f=json', DATA / 'nws_dat' / f'{layer_name}_schema.json')
-        oid = next(field['name'] for field in schema['fields'] if field['type'] == 'esriFieldTypeOID')
-        if 'stormdate' not in {field['name'] for field in schema['fields']}:
-            raise RuntimeError(f'DAT {layer_name} has no stormdate field.')
-        batch_size = min(DAT_BATCH_SIZE, schema.get('maxRecordCount', DAT_BATCH_SIZE))
-        for year in YEARS:
-            folder = DATA / 'nws_dat' / str(year) / layer_name
-            folder.mkdir(parents=True, exist_ok=True)
-            # Remove the completion marker before doing any work, including a refresh.
-            (folder / 'index.json').unlink(missing_ok=True)
-            where = (f"stormdate >= timestamp '{year}-01-01 00:00:00' AND "
-                     f"stormdate < timestamp '{year + 1}-01-01 00:00:00'")
-            inventory = fetch_json(query_url(layer_url, f='json', where=where, returnIdsOnly='true'),
-                                   folder / 'object_ids.json')
-            counts = fetch_json(query_url(layer_url, f='json', where=where, returnCountOnly='true'),
-                                folder / 'count.json')
-            ids = sorted(inventory.get('objectIds') or [])
-            if len(ids) != len(set(ids)) or len(ids) != counts['count']:
-                raise RuntimeError(f'DAT inventory/count mismatch for {year} {layer_name}; rerun with --refresh.')
-            batches = []
-            for offset in range(0, len(ids), batch_size):
-                wanted = ids[offset:offset + batch_size]
-                # Include an ID digest so a changed inventory cannot reuse an unrelated batch.
-                digest = hashlib.sha256(json.dumps(wanted).encode()).hexdigest()[:16]
-                path = folder / f'batch_{offset:07d}_{digest}.geojson'
-                url = query_url(layer_url, f='geojson', objectIds=','.join(map(str, wanted)),
-                                outFields='*', returnGeometry='true', outSR=4326)
-                result = fetch_json(url, path)
-                features = result.get('features', [])
-                returned = [feature['properties'][oid] for feature in features]
-                exceeded = result.get('exceededTransferLimit') or result.get('properties', {}).get('exceededTransferLimit')
-                if (result.get('type') != 'FeatureCollection' or exceeded
-                        or len(returned) != len(wanted) or set(returned) != set(wanted)):
-                    raise RuntimeError(f'Incomplete DAT batch: {path}. Try --refresh or a smaller --dat-batch-size.')
-                for feature in features:
-                    stormdate = feature['properties'].get('stormdate')
-                    if isinstance(stormdate, bool) or not isinstance(stormdate, (int, float)):
-                        raise ValueError(f'DAT {path}: missing or invalid stormdate.')
-                    feature_year = datetime.fromtimestamp(stormdate / 1000, timezone.utc).year
-                    check_year(feature_year, f'DAT {path}', year)
-                batches.append(dict(file=path.name, features=len(features), sha256=sha256(path)))
-            index = dict(source=layer_url, year=year, layer=layer_name, where=where,
-                         completed_at=utc_now(), features=len(ids), batches=batches,
-                         object_ids_sha256=sha256(folder / 'object_ids.json'))
-            write_json(folder / 'index.json', index)
-            summary.append(dict(source='DAT', year=year, layer=layer_name, rows=len(ids),
-                                path=str((folder / 'index.json').relative_to(DATA)),
-                                date_field='stormdate', year_counts={year: len(ids)}))
-            print(f'DAT {year} {layer_name}: {len(ids):,} features in {len(batches)} batches.', flush=True)
+    # NOAA Event Footprint Catalog: generation-pinned annual snapshots.
+    from footprint_data import collect
+    footprints = collect(DATA, START_YEAR, END_YEAR, download)
+    summary.extend(footprints['outputs'])
 
     # Original-source manifest
     coverage = []
     for source, product in [('SPC', 'tracks'), *[('NCEI', t) for t in ('details', 'fatalities', 'locations')],
-                            *[('DAT', layer) for layer in layer_definitions.values()]]:
+                            ('EFC', 'footprints')]:
         records = [row for row in summary if row['source'] == source
                    and row.get('table', row.get('layer', 'tracks')) == product]
         counts = {year: 0 for year in YEARS}
@@ -421,14 +352,14 @@ def download_records(args):
 
     manifest = dict(completed_at=utc_now(), start_year=START_YEAR, end_year=END_YEAR,
                     spc_published_years=[archive_start, archive_end],
-                    missing_ncei=missing_ncei, dat_scope='All date-matching survey categories; no photos',
+                    missing_ncei=missing_ncei, footprints=footprints,
                     requested_archives_available=(not missing_ncei and START_YEAR >= archive_start
                                                   and END_YEAR <= archive_end),
                     date_validation_passed=True, year_coverage=coverage, outputs=summary)
     manifest_path = DATA / f'download_manifest_{START_YEAR}_{END_YEAR}.json'
     write_json(manifest_path, manifest)
     print(f'Manifest: {manifest_path}')
-    for source in ('SPC', 'NCEI', 'DAT'):
+    for source in ('SPC', 'NCEI', 'EFC'):
         records = [row for row in summary if row['source'] == source]
         print(f'{source}: {len(records)} outputs, {sum(row["rows"] for row in records):,} rows/features')
     print('Counts above combine different record types; they are not comparable tornado totals.')
@@ -445,22 +376,8 @@ def download_records(args):
         legacy_spc.with_name(legacy_spc.name + '.metadata.json').unlink(missing_ok=True)
         print('Removed the verified full-history SPC CSV and sidecar; source provenance is preserved.')
 
-    # Label and survey quality
+    # Label and footprint quality, retaining all source records.
     from collections import Counter
-
-
-    def missing_identifier(value):
-        return value is None or str(value).strip().upper() in {'', 'NULL', 'NONE', 'N/A', 'UNKNOWN', '-99'}
-
-
-    def dat_label_category(value):
-        label = str(value or '').strip().upper()
-        if re.fullmatch(r'EF(?:[0-5]|3\+|U)', label):
-            return 'tornado_labeled'
-        if label in {'TSTM/WIND', 'TROPICAL'}:
-            return 'non_tornado_labeled'
-        return 'unknown_other'
-
 
     spc_ratings_by_year = {year: Counter() for year in YEARS}
     with spc_filtered.open(newline='', encoding='utf-8-sig') as handle:
@@ -478,77 +395,17 @@ def download_records(args):
         print(f'{year:<6}' + ''.join(f'{counts[label]:>9,}' for label in ['0', '1', '2', '3', '4', '5', 'unknown_other']))
     print(f"{'Total':<6}" + ''.join(f'{spc_rating_totals[label]:>9,}' for label in ['0', '1', '2', '3', '4', '5', 'unknown_other']))
 
-    dat_quality = []
-    for output in manifest['outputs']:
-        if output['source'] != 'DAT':
-            continue
-        index_path = DATA / output['path']
-        index = json.loads(index_path.read_text())
-        counts = Counter({key: 0 for key in ('total', 'tornado_labeled', 'non_tornado_labeled',
-                                           'unknown_other', 'missing_geometry', 'missing_event_id',
-                                           'missing_globalid')})
-        labels = Counter()
-        if output['layer'] != 'lines':
-            counts['missing_path_guid'] = 0
-        for batch in index['batches']:
-            batch_path = index_path.parent / batch['file']
-            if sha256(batch_path) != batch['sha256']:
-                raise ValueError(f'DAT batch changed since download validation: {batch_path}')
-            features = json.loads(batch_path.read_text())['features']
-            if len(features) != batch['features']:
-                raise ValueError(f'DAT batch count mismatch: {batch_path}')
-            for feature in features:
-                properties = feature['properties']
-                geometry = feature.get('geometry')
-                label = str(properties.get('efscale') or '').strip().upper()
-                counts['total'] += 1
-                counts[dat_label_category(label)] += 1
-                labels[label] += 1
-                counts['missing_geometry'] += not bool(geometry and geometry.get('coordinates'))
-                counts['missing_event_id'] += missing_identifier(properties.get('event_id'))
-                counts['missing_globalid'] += missing_identifier(properties.get('globalid'))
-                if output['layer'] != 'lines':
-                    counts['missing_path_guid'] += missing_identifier(properties.get('path_guid'))
-        if counts['total'] != index['features'] or counts['total'] != output['rows']:
-            raise ValueError(f'DAT index/manifest count mismatch: {index_path}')
-        dat_quality.append(dict(year=output['year'], layer=output['layer'], counts=dict(counts),
-                                original_label_counts=dict(labels), index=output['path'],
-                                index_sha256=sha256(index_path)))
-
-    print('\nDAT categories and missing values (feature counts, not tornado counts)')
-    print(f"{'Layer':<10}{'Total':>10}{'Tornado':>10}{'Non-torn.':>11}{'Unknown':>10}"
-          f"{'Geometry':>10}{'Event ID':>10}{'Global ID':>10}{'Path GUID':>11}")
-    for layer in ('points', 'lines', 'polygons'):
-        counts = Counter()
-        for result in dat_quality:
-            if result['layer'] == layer:
-                counts.update(result['counts'])
-        path_missing = f"{counts['missing_path_guid']:,}" if layer != 'lines' else 'n/a'
-        print(f'{layer:<10}' + ''.join(f'{counts[key]:>10,}' if key != 'non_tornado_labeled'
-                                      else f'{counts[key]:>11,}'
-                                      for key in ('total', 'tornado_labeled', 'non_tornado_labeled',
-                                                  'unknown_other', 'missing_geometry', 'missing_event_id',
-                                                  'missing_globalid')) + f'{path_missing:>11}')
-    print('Geometry and identifier columns count missing values. Path GUID is not a line-layer field.')
-
     quality_path = DATA / f'quality_summary_{START_YEAR}_{END_YEAR}.json'
     quality_summary = dict(generated_at=utc_now(), start_year=START_YEAR, end_year=END_YEAR,
                            download_manifest=str(manifest_path.relative_to(DATA)),
                            download_manifest_sha256=sha256(manifest_path),
                            spc_file=str(spc_filtered.relative_to(DATA)), spc_sha256=sha256(spc_filtered),
                            spc_ratings_by_year={year: dict(counts) for year, counts in spc_ratings_by_year.items()},
-                           spc_rating_totals=dict(spc_rating_totals), dat_by_year_layer=dat_quality)
+                           spc_rating_totals=dict(spc_rating_totals), footprints_by_year=[{'year':o['year'], 'source_counts':o['source_counts'], **o['quality']} for o in footprints['outputs']])
     write_json(quality_path, quality_summary)
     print(f'\nDetailed annual quality summary: {quality_path}')
     print('All records are retained. Event matching and training-label selection belong in dataset preparation.')
     return manifest_path, manifest, spc_filtered
-
-
-def run_audit():
-    import subprocess
-    subprocess.run([sys.executable, str(ROOT / 'scripts' / 'audit_dat_coverage.py')],
-                   cwd=ROOT, check=True)
-    print('DAT metrics and candidate files updated; written report and charts require review.')
 
 
 def main(argv=None):
@@ -568,8 +425,6 @@ def main(argv=None):
         from census_data import collect
         collect(args.data_dir, args.start_year, args.end_year,
                 lambda url, path, kind: download_file(url, path, kind, refresh=args.refresh, timeout=args.timeout))
-    if args.coverage_audit:
-        run_audit()
     if args.verify_downloads:
         from scripts.verify_downloads import verify
         print('Download finished; independently verifying saved data...', flush=True)

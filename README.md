@@ -2,220 +2,139 @@
 
 [![Tests](https://github.com/jakeryderv/us-tornado-data-2010-2025/actions/workflows/tests.yml/badge.svg)](https://github.com/jakeryderv/us-tornado-data-2010-2025/actions/workflows/tests.yml)
 
-A focused **2010–2025** dataset for exploring recorded EF ratings, source agreement,
-damage-survey coverage, and county population/housing context. Load a frozen release
-with Python, or collect current source records and inspect them locally in Jupyter.
+NOAA tornado records and damage footprints with Census county population/housing
+context. Load a frozen release with Python, or collect sources and inspect them
+locally in Jupyter. **v2.0.0** replaces standalone DAT surveys with NOAA's Event
+Footprint Catalog. Earlier releases retain the detailed survey data.
 
-The **v1.2.0** snapshot is published on:
+- [Hugging Face dataset](https://huggingface.co/datasets/jakeryderv/us-tornado-data-2010-2025)
+- [Kaggle dataset](https://www.kaggle.com/datasets/jakevanslyke/us-tornado-data-2010-2025)
+- [v2.0.0 release receipt](release/v2.0.0.json): pinned revisions and verified checksums.
 
-- [Hugging Face](https://huggingface.co/datasets/jakeryderv/us-tornado-data-2010-2025): direct files, convenient for Python loading.
-- [Kaggle, version 4](https://www.kaggle.com/datasets/jakevanslyke/us-tornado-data-2010-2025/versions/4): analysis tables available directly; full sources inside `release.zip.bin`.
+## Download and load
 
-The [public Kaggle getting-started notebook](https://www.kaggle.com/code/jakevanslyke/us-tornado-data-getting-started)
-demonstrates the original **v1.0.0 / Kaggle 2** snapshot and shows how to read
-tables directly from the archive without extraction, verify the
-release, and inspect coverage, EF ratings, surveys, and county context. It runs
-on CPU without internet; [its source](notebooks/kaggle_getting_started.ipynb) is
-included here.
-
-The [release receipt](release/v1.2.0.json) records pinned versions, source snapshot
-dates, and verified checksums for all **2,876 shared files (493 MB)**. Kaggle's
-archive is about **292 MB**; the extracted content matches Hugging Face exactly.
-Kaggle version 1 was superseded because its automatic archive extraction changed
-original source paths and bytes.
-
-For example, with `huggingface-hub`, `pandas`, and `pyarrow` installed in your project
-(`uv sync --locked --group publish` installs the clients in this repository):
+Install `pandas`, `pyarrow`, and either `huggingface-hub` or `kagglehub` in your
+project. Fetch only the 0.9 MB SPC table to begin:
 
 ```python
-from pathlib import Path
-from huggingface_hub import snapshot_download
 import pandas as pd
+from huggingface_hub import hf_hub_download
 
-root = Path(snapshot_download(
-    "jakeryderv/us-tornado-data-2010-2025",
-    repo_type="dataset",
-    revision="813d8d7e9be0bc992ef48fe93598737cad263af3",
-    allow_patterns=["analysis/tornadoes.parquet", "ANALYSIS.md"],
-))
-tornadoes = pd.read_parquet(root / "analysis/tornadoes.parquet")
+path = hf_hub_download(
+    "jakeryderv/us-tornado-data-2010-2025", repo_type="dataset",
+    revision="v2.0.0", filename="analysis/tornadoes.parquet",
+)
+tornadoes = pd.read_parquet(path)
 ```
 
-This downloads only the **0.9 MB tornado table** and its documentation. Use
-`allow_patterns=["analysis/*", "ANALYSIS.md"]` to fetch all consolidated tables
-(about **38 MB** in v1.2.0), or remove the filter for the complete source collection. To fetch just the
-tornado table from Kaggle with `kagglehub`:
+Or use the equivalent Kaggle release:
 
 ```python
+import pandas as pd
 import kagglehub
 
 path = kagglehub.dataset_download(
-    "jakevanslyke/us-tornado-data-2010-2025/versions/4",
+    "jakevanslyke/us-tornado-data-2010-2025/versions/5",
     path="analysis/tornadoes.parquet",
 )
 tornadoes = pd.read_parquet(path)
 ```
 
-See [Kaggle download, extraction, and integrity checks](docs/RELEASING.md#verify-consumer-downloads)
-for the alternative client workflow. Both downloads use local caches. These are
-separate source tables and survey files; loading them does not perform event joins.
+Change the filename to download another table. To download all analysis files on
+HF, use `snapshot_download(..., repo_type="dataset", revision="v2.0.0",
+allow_patterns=["analysis/*", "ANALYSIS.md"])`. Both clients reuse local caches.
+Full sources are direct files on HF and inside `release.zip.bin` on Kaggle.
+See [release/download verification](docs/RELEASING.md) for full-collection checks.
 
-To collect from NOAA and Census yourself instead:
+## Tables
+
+| Source | Files under analysis/ |
+|---|---|
+| SPC | `tornadoes.parquet` — 20,164 tracks, including unknown EF ratings |
+| NCEI Storm Events | `storm_events.parquet`, `storm_fatalities.parquet`, `storm_locations.parquet` |
+| NOAA Event Footprint Catalog | `tornado_footprints.parquet` — 24,858 damage regions from DAT/Storm Events |
+| Census | `county_context.parquet`, `county_boundaries.parquet` |
+| Summary/provenance | `annual_summary.csv`, `manifest.json` |
+
+There are **seven main tables**, plus the annual summary, totaling **24.1 MB**. Use `pandas.read_parquet`
+for ordinary tables and `geopandas.read_parquet` for footprints and boundaries.
+The [field dictionary](docs/ANALYSIS.md) covers types, units, and missing values.
+
+Footprints are not unique tornadoes and have not been matched to SPC. Some are
+nested regions or reconstructed paths. Raw placeholder widths and unknown ratings
+remain explicit; a separate usable-width column marks unusable widths as null.
+The catalog does not include individual DAT damage-indicator points. See the
+[scope migration and limitations](docs/DATASET_CARD.md) and [audit](reports/footprints/catalog_audit.md).
+
+## Collect and inspect locally
+
+Python 3.12 is pinned in `.python-version`; dependencies are locked in `uv.lock`.
+The downloader and source verifier use the standard library. Notebook/analysis
+packages are pandas, matplotlib, Jupyter/ipykernel, pyarrow, and GeoPandas.
 
 ```sh
 uv sync --locked
 uv run python download_data.py --dry-run
 uv run python download_data.py --verify-downloads
+uv run python scripts/build_analysis.py
 uv run jupyter notebook notebooks/tornado_dataset.ipynb
 ```
 
-The consolidated analysis layer provides a simple starting point:
+Downloads resume using verified caches; `--refresh` fetches revised source bytes.
+`--sources noaa` collects SPC/NCEI/EFC; `--sources census` collects only context.
+The default is all five sources for 2010–2025. Census supports that fixed range;
+NOAA-only periods must start in 2010 or later. EFC uses source annual partitions,
+which can cross UTC New Year. Use `--help` for destination and timeout settings.
 
-```sh
-uv run python scripts/build_analysis.py
-```
-
-```python
-tornadoes = pd.read_parquet("data/analysis/tornadoes.parquet")
-```
-
-Start with the 20,164 SPC tracks. Add the following tables as your work needs them:
-
-| Source | Files under `analysis/` |
-|---|---|
-| SPC | `tornadoes.parquet` |
-| Census | `county_context.parquet`, `county_boundaries.parquet` |
-| NCEI | `storm_events.parquet`, `storm_fatalities.parquet`, `storm_locations.parquet` |
-| DAT | `survey_points.parquet`, `survey_lines.parquet`, `survey_polygons.parquet` |
-| Summary/provenance | `annual_summary.csv`, `manifest.json` |
-
-These nine main tables plus the annual summary total about **38 MB**. Ordinary
-tables load with `pandas.read_parquet`; survey and boundary tables use
-`geopandas.read_parquet` to restore their geometry and coordinate reference system.
-Identifiers and missing values are preserved. New consolidated rows carry source
-file/record references. NCEI related tables support explicit event-ID joins;
-SPC/NCEI/DAT event matching remains separate research work. See the
-[analysis field dictionary](docs/ANALYSIS.md) for examples, units, mappings, and
-limitations. After refreshing source downloads, rebuild the analysis layer.
-
-The dataset contains:
-
-- **SPC:** historical tornado tracks and EF labels.
-- **NCEI Storm Events:** annual details, fatalities, and locations, with tornado extracts.
-- **NWS DAT:** survey points, lines, and polygons; no photographs.
-- **Census Population Estimates Program:** annual county population and housing units.
-- **Census Cartographic Boundary Files:** one simplified 2020 national county map.
-
-All SPC events in the requested period are retained, including unknown EF ratings.
-The full data directory currently occupies roughly **470 MiB (493 MB)**. The Census
-additions required 8.8 MB of source downloads and occupy about 17 MiB including
-the derived county/year CSV and GeoJSON map. Counts across
-sources describe different record types and must not be added to count tornadoes.
-
-Rerun the download command after interruption to reuse verified files. Use
-`--refresh` to deliberately fetch revised upstream data, and `--help` to view year,
-destination, batch-size, and timeout settings. Changing settings can leave older
-files on disk; manifests define the active selection.
-
-`--verify-downloads` independently checks checksums, exact NCEI tornado extraction,
-DAT object IDs, counts, and dates, plus Census source-to-output reconciliation after collection. Its report is saved as
-`data/download_verification_2010_2025.json`; `pending_download` means it has not run yet.
-The report states its scope (`all`, `noaa`, or `census`); a subset pass does not
-verify the other sources. To verify the full existing dataset without downloading anything (writes
-`reports/verification/latest.json`, leaving `data/` untouched):
+`--verify-downloads` saves a scope-specific report in `data/`. A full release needs
+an all-source pass. To verify existing sources without downloading:
 
 ```sh
 uv run python scripts/verify_downloads.py
 ```
 
-To add or update only the small Census sources while keeping the NOAA snapshot:
+The inspection notebook is read-only and detects stale analysis files. After any
+source refresh, rebuild the analysis tables. A successful build removes the three
+superseded generated `survey_*.parquet` files. Existing v1 users can use a fresh
+`data/` directory, or move `data/nws_dat/` outside it after verifying v2. Releases
+select manifest-backed sources and exclude old DAT caches.
 
-```sh
-uv run python download_data.py --sources census --verify-downloads
-uv run python scripts/verify_downloads.py
-```
+Census supplies annual county population/housing estimates and one fixed 2020
+simplified county map. These are context, not exact people/buildings struck.
+No radar, photos, building footprints, geographic crosswalk, cross-source event
+join, or model split is provided.
 
-The default `--sources all` collects all five sources. `--sources noaa` collects
-SPC/NCEI/DAT only and permits years outside the pinned Census range of 2010–2025.
-Census estimates use vintage 2020 for 2010–2019 and vintage 2025 for 2020–2025.
-The map is a fixed 2020 display layer. Geographic differences are flagged;
-no tornado-to-Census joins or building-footprint downloads are performed.
-
-`--coverage-audit` additionally regenerates local DAT audit metrics under
-`reports/dat_coverage/` for 2010–2025 in the repository's default `data/`. It does not update
-the written audit interpretation or chart.
-
-`notebooks/tornado_dataset.ipynb` only reads local files. It shows collection status, source
-inventory, annual coverage, EF-label balance, survey quality, county estimates,
-record samples, and a county map with tornado start locations.
-It can be opened while downloads are incomplete. Event matching, feature preparation,
-and modeling remain separate work.
-
-Repository layout:
+## Repository
 
 ```text
-README.md                       Setup and usage
-pyproject.toml / uv.lock         Python dependencies
-download_data.py                Download CLI (at repository root)
-census_data.py                  Census collection helpers
-dataset_inspection.py           Read-only loading helpers
-notebooks/                      Dataset inspection notebook
-scripts/                        Verification, coverage audit, plotting
-tests/                          Offline regression tests
-docs/DATASET.md                 Source definitions and limitations
-docs/DATASET_CARD.md            Shared public dataset description
-release/                       Release configuration and publication receipts
-dist/                          Local release staging; ignored by Git
-reports/
-  dat_coverage/                 Coverage report, figures, metrics, candidates
-  verification/latest.json      Most recent standalone verification
-  verification/history/         Preserved earlier NOAA-only checks
-data/                           Local source collection; ignored by Git
+download_data.py          Collection CLI and HTTP/cache helpers
+footprint_data.py         EFC inventory, generation-pinned download, validation
+census_data.py            Pinned Census sources and derivations
+dataset_inspection.py     Read-only inspection helpers
+notebooks/               Local inspection and historical Kaggle example
+scripts/                 Analysis build, verification, release packaging
+tests/                   Offline regression tests
+docs/                    Dataset card, field dictionary, collection/release notes
+release/                 Configuration and immutable publication receipts
+reports/                 Current verification and historical source audits
+data/                    Local active dataset, ignored by Git
+dist/                    Local staged releases, ignored by Git
 ```
 
-See [reports/README.md](reports/README.md) for snapshot dates and the distinction
-between current verification and historical findings. Commands above run from the
-repository root; the inspection notebook also resolves the root from `notebooks/`.
-
-Implementation files:
-
-- `download_data.py`: command-line collection and download validation.
-- `census_data.py`: pinned Census sources, table parsing, and KML-to-GeoJSON conversion.
-- `dataset_inspection.py`: local loading helpers used by the notebook.
-- `scripts/verify_downloads.py`: independent local integrity and completeness checks.
-- [DATASET.md](docs/DATASET.md): source definitions, collection rules, and interpretation limits.
-
-`data/download_manifest_<start>_<end>.json` covers the three NOAA sources, and
-`data/quality_summary_<start>_<end>.json` describes label and survey quality.
-`data/census_manifest_<start>_<end>.json` covers both Census sources, their raw
-files, derived outputs, and map coverage flags.
-Successful retrieval does not establish complete historical survey coverage or
-verified event joins.
-
-Dependencies are locked in `uv.lock`: Jupyter/ipykernel for notebooks, pandas
-for tables, matplotlib for inspection plots, pyarrow for Parquet, and GeoPandas for the spatial analysis tables. The downloader and source
-verification script use only the Python standard library. Analysis/release builds
-also use pandas and pyarrow.
-
-Offline regression checks:
+[Reports](reports/README.md) distinguish current verification from the historical
+DAT study. The [public Kaggle example](https://www.kaggle.com/code/jakevanslyke/us-tornado-data-getting-started)
+is intentionally pinned to the original v1.0.0 / Kaggle 2 snapshot; use the examples
+above and the local inspection notebook for v2.
 
 ```sh
 uv run python -m unittest discover -s tests -v
 ```
 
-GitHub Actions runs the offline tests and download dry run on Python 3.12 with
-locked dependencies. CI installs Python packages but does not fetch NOAA/Census
-sources or require the local dataset. Full snapshot verification is a separate
-local command documented above.
+GitHub Actions runs offline tests and a download dry run with locked dependencies.
+Full source/host verification is performed separately for each published release.
+Publishing clients live in the optional `publish` dependency group.
 
-The source code and original project documentation are licensed under the
-[MIT License](LICENSE). NOAA/NWS and Census source material is credited separately
-in [data sources and reuse](docs/DATA_SOURCES.md); the code license does not
-relicense government records or third-party material. `data/` is excluded from
-Git. This repository provides the collection workflow and reports; hosted
-dataset releases are versioned separately from the code repository.
-
-The [shared dataset card](docs/DATASET_CARD.md) documents contents, schemas, and
-limitations for both hosts. See [release instructions](docs/RELEASING.md) for
-verified packaging, platform metadata, authentication, and download checks.
-Publishing clients are isolated in the optional `publish` dependency group.
+[MIT](LICENSE) covers project code and original text. NOAA and Census records have
+separate [attribution and reuse notices](docs/DATA_SOURCES.md). This compilation is
+not endorsed by the source agencies. See the [dataset card](docs/DATASET_CARD.md)
+and [release workflow](docs/RELEASING.md) for reproducible citation and packaging.

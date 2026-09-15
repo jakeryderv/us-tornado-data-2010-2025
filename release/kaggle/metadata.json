@@ -1,6 +1,6 @@
 {
   "expectedUpdateFrequency": "never",
-  "userSpecifiedSources": "Independent compilation of five U.S. government sources:\n\n- NOAA/NWS SPC historical tornado database: https://www.spc.noaa.gov/wcm/#data\n- NOAA NCEI Storm Events bulk tables: https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/\n- NOAA/NWS Damage Assessment Toolkit: https://services.dat.noaa.gov/arcgis/rest/services/nws_damageassessmenttoolkit/DamageViewer/MapServer\n- U.S. Census Bureau Population Estimates Program: https://www.census.gov/programs-surveys/popest.html\n- U.S. Census Bureau 2020 Cartographic Boundary Files: https://www.census.gov/geographies/mapping-files/2020/geo/carto-boundary-file.html\n\nNOAA snapshot collected September 14, 2026; Census snapshot collected September 15, 2026. Each source file retains its URL, retrieval time, and checksum in the archive. Population/housing estimates use vintage 2020 for 2010\u20132019 and vintage 2025 for 2020\u20132025; the county map is fixed at 2020.\n\nCollection code, source notices, and release receipt: https://github.com/jakeryderv/us-tornado-data-2010-2025\n\nThis is a fixed 2010\u20132025 research snapshot with no scheduled refresh. Any deliberate corrections will be a separately versioned release.",
+  "userSpecifiedSources": "Independent compilation of five U.S. government products:\n\n- NOAA/NWS SPC tornado database: https://www.spc.noaa.gov/wcm/#data\n- NOAA NCEI Storm Events: https://www.ncei.noaa.gov/stormevents/\n- NOAA Event Footprint Catalog (derived from DAT and Storm Events): https://www.ncei.noaa.gov/products/event-footprint-catalog\n- Census Population Estimates Program: https://www.census.gov/programs-surveys/popest.html\n- Census 2020 Cartographic Boundary Files: https://www.census.gov/geographies/mapping-files/2020/geo/carto-boundary-file.html\n\nv2 replaces the standalone DAT survey collection with annual footprint files. Footprints are damage regions, sometimes reconstructed or nested, not unique tornadoes or independent radar observations. Source URLs, retrieval times, generations, hashes, and original files are retained. Census estimates use vintage 2020 for 2010–2019 and vintage 2025 for 2020–2025 with a fixed 2020 map.\n\nFixed 2010–2025 study snapshot; no scheduled refresh. Code, limitations, and release receipts: https://github.com/jakeryderv/us-tornado-data-2010-2025",
   "resources": [
     {
       "path": "README.md",
@@ -28,11 +28,11 @@
     },
     {
       "path": "schema.json",
-      "description": "Machine-readable schema inventory: complete CSV headers, saved DAT layer field definitions, and typed analysis tables. Describes files inside the extracted release archive."
+      "description": "Original CSV headers, EFC source field types, and complete consolidated table schemas. Field definitions and caveats are in ANALYSIS.md and NOAA source README."
     },
     {
       "path": "release_manifest.json",
-      "description": "Release v1.2.0 inventory with source snapshot dates, code commit, sizes, and SHA-256 hashes for all 2,876 shared payload files. Paths are relative to the extracted archive root."
+      "description": "Frozen v2.0.0 shared payload inventory: source snapshots, code revision, paths, byte sizes, and SHA-256. Use with SHA256SUMS to verify either host."
     },
     {
       "path": "SHA256SUMS",
@@ -40,15 +40,15 @@
     },
     {
       "path": "release.zip.bin",
-      "description": "Complete v1.2.0 dataset: 2,876 shared files (493 MB), packaged as a 292 MB ZIP with an extra .bin suffix to preserve original source archives. Includes all five source collections, nine consolidated Parquet/GeoParquet tables, annual summary, provenance, schemas, and checksums. The analysis tables are also downloadable separately. No cross-source event match or model split is supplied."
+      "description": "Complete v2.0.0 dataset as a ZIP archive with an extra .bin suffix to retain original compressed files. Includes SPC/NCEI, annual NOAA footprints, Census, seven analysis tables, annual summary, and provenance. Extract with Python zipfile. Standalone DAT batches are absent."
     },
     {
       "path": "ANALYSIS.md",
-      "description": "Field dictionary, transformations, units, nullable types, annual aggregation rules, rebuild instructions, and EF-classification limitations for the compact analysis layer."
+      "description": "Field dictionary for seven main tables plus annual summary; source IDs, types, geometry, timestamp conventions, placeholder widths, and EF/modeling limitations."
     },
     {
       "path": "analysis/tornadoes.parquet",
-      "description": "20,164 retained SPC tornado tracks, 2010\u20132025. Descriptive field names, string identifiers, nullable EF ratings, explicit units, and coordinate plausibility flags. Unknown EF labels remain null; no cross-source joins or model split.",
+      "description": "20,164 retained SPC tornado tracks, 2010–2025. Descriptive field names, string identifiers, nullable EF ratings, explicit units, and coordinate plausibility flags. Unknown EF labels remain null; no cross-source joins or model split.",
       "columns": [
         {
           "name": "tornado_id",
@@ -60,7 +60,7 @@
         },
         {
           "name": "year",
-          "description": "Calendar year, 2010\u20132025."
+          "description": "Calendar year, 2010–2025."
         },
         {
           "name": "start_date",
@@ -132,7 +132,7 @@
         },
         {
           "name": "ef_rating",
-          "description": "Nullable integer 0\u20135; -9 becomes null"
+          "description": "Nullable integer 0–5; -9 becomes null"
         },
         {
           "name": "ef_rating_known",
@@ -140,11 +140,11 @@
         },
         {
           "name": "start_coordinates_valid",
-          "description": "Both coordinates present, latitude within \u00b190, longitude within \u00b1180, and neither zero"
+          "description": "Both coordinates present, latitude within ±90, longitude within ±180, and neither zero"
         },
         {
           "name": "end_coordinates_valid",
-          "description": "Both coordinates present, latitude within \u00b190, longitude within \u00b1180, and neither zero"
+          "description": "Both coordinates present, latitude within ±90, longitude within ±180, and neither zero"
         }
       ]
     },
@@ -154,7 +154,7 @@
       "columns": [
         {
           "name": "year",
-          "description": "Calendar year, 2010\u20132025."
+          "description": "Calendar year, 2010–2025."
         },
         {
           "name": "county_fips",
@@ -178,7 +178,7 @@
         },
         {
           "name": "estimate_vintage",
-          "description": "Census estimate vintage: 2020 for 2010\u20132019, 2025 for 2020\u20132025."
+          "description": "Census estimate vintage: 2020 for 2010–2019, 2025 for 2020–2025."
         },
         {
           "name": "map_2020_fips_present",
@@ -188,11 +188,11 @@
     },
     {
       "path": "analysis/annual_summary.csv",
-      "description": "16 yearly summaries with SPC EF-label counts, separate NCEI row counts, DAT feature counts, and Census map coverage. Source units differ; never sum these columns to count tornadoes.",
+      "description": "16 source-year rows: SPC EF counts, NCEI record counts, EFC DAT/SED footprint counts, and Census map/context coverage. Sources count different units; do not sum them as tornado totals.",
       "columns": [
         {
           "name": "year",
-          "description": "Calendar year, 2010\u20132025."
+          "description": "Calendar year, 2010–2025."
         },
         {
           "name": "spc_tracks",
@@ -243,34 +243,30 @@
           "description": "Rows in the NCEI tornado locations extract for its source year; not matched to SPC events."
         },
         {
-          "name": "dat_points",
-          "description": "DAT points features in annual indexes, including unknown and non-tornado categories; not tornado counts."
-        },
-        {
-          "name": "dat_lines",
-          "description": "DAT lines features in annual indexes, including unknown and non-tornado categories; not tornado counts."
-        },
-        {
-          "name": "dat_polygons",
-          "description": "DAT polygons features in annual indexes, including unknown and non-tornado categories; not tornado counts."
-        },
-        {
           "name": "census_county_rows",
           "description": "County context rows in the year."
         },
         {
           "name": "census_counties_without_2020_map",
           "description": "County/year rows whose saved 2020-map code-presence flag is false."
+        },
+        {
+          "name": "efc_dat_footprints",
+          "description": "DAT-derived damage regions in the EFC annual file, including nested regions; not unique tornadoes."
+        },
+        {
+          "name": "efc_sed_footprints",
+          "description": "Storm Events-derived damage regions supplementing DAT in EFC; generated IDs, not original NCEI event IDs."
         }
       ]
     },
     {
       "path": "analysis/manifest.json",
-      "description": "Analysis provenance: 1,324 input hashes, output hashes and sizes, column types, source field mappings, software versions, geometry metadata, and round-trip/annual reconciliation results."
+      "description": "Input/output checksums, types, source field mappings, software versions, and reconciliation for seven main tables plus annual summary (schema version 3)."
     },
     {
       "path": "analysis/storm_events.parquet",
-      "description": "23,189 NCEI tornado event/county-segment records across 2010\u20132025, with ratings, narratives, retained damage strings, source-local dates, and source-file/row provenance. NCEI event IDs are separate from SPC/DAT IDs.",
+      "description": "23,189 NCEI tornado event/county-segment records across 2010–2025, with ratings, narratives, retained damage strings, source-local dates, and source-file/row provenance. NCEI event IDs are separate from SPC/DAT IDs.",
       "columns": [
         {
           "name": "begin_yearmonth",
@@ -498,7 +494,7 @@
         },
         {
           "name": "ef_rating",
-          "description": "Nullable integer 0\u20135 from exact EF0\u2013EF5 source labels; unknown or other categories remain null. Survey feature ratings are not tornado maxima."
+          "description": "Nullable integer 0–5 from exact EF0–EF5 source labels; unknown or other categories remain null. Survey feature ratings are not tornado maxima."
         }
       ]
     },
@@ -627,420 +623,6 @@
       ]
     },
     {
-      "path": "analysis/survey_points.parquet",
-      "description": "218,231 DAT survey observations with damage indicators/degrees, original rating labels and nullable EF ratings, source attributes/sentinels, UTC date conversions, and point geometry. All collected categories retained; no photos. GeoParquet with source-file/feature references.",
-      "columns": [
-        {
-          "name": "object_id",
-          "description": "DAT objectid as a string; unique within this survey layer, not globally across layers."
-        },
-        {
-          "name": "storm_epoch_ms",
-          "description": "Original date value as nullable integer milliseconds since Unix epoch; retained alongside UTC datetime."
-        },
-        {
-          "name": "survey_epoch_ms",
-          "description": "Original date value as nullable integer milliseconds since Unix epoch; retained alongside UTC datetime."
-        },
-        {
-          "name": "survey_event_id",
-          "description": "Original DAT event_id label; not an NCEI event ID or guaranteed unique tornado key."
-        },
-        {
-          "name": "damage",
-          "description": "Retained DAT damage field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "damage_txt",
-          "description": "Retained DAT damage_txt field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "dod_txt",
-          "description": "Retained DAT dod_txt field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "source_ef_rating",
-          "description": "Original rating/category label, preserved alongside the nullable derived EF rating."
-        },
-        {
-          "name": "damage_dir",
-          "description": "Retained DAT damage_dir field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "windspeed",
-          "description": "Retained DAT windspeed field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "injuries",
-          "description": "Retained DAT injuries field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "deaths",
-          "description": "Retained DAT deaths field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "comments",
-          "description": "Retained DAT comments field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "lat",
-          "description": "Retained DAT lat field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "lon",
-          "description": "Retained DAT lon field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "office",
-          "description": "Retained DAT office field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "image",
-          "description": "Retained DAT image field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "gps_horiz_accuracy",
-          "description": "Retained DAT gps_horiz_accuracy field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "device_id",
-          "description": "Retained DAT device_id field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "qc",
-          "description": "Retained DAT qc field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "global_id",
-          "description": "Original DAT globalid string; nulls preserved."
-        },
-        {
-          "name": "dod",
-          "description": "Retained DAT dod field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "surveytype",
-          "description": "Retained DAT surveytype field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "edit_epoch_ms",
-          "description": "Original date value as nullable integer milliseconds since Unix epoch; retained alongside UTC datetime."
-        },
-        {
-          "name": "path_guid",
-          "description": "Original DAT path_guid string; nulls preserved."
-        },
-        {
-          "name": "source_feature_id",
-          "description": "Top-level GeoJSON feature ID preserved as a string, separate from property IDs."
-        },
-        {
-          "name": "source_file",
-          "description": "Relative path of the original retained CSV or GeoJSON batch."
-        },
-        {
-          "name": "source_row",
-          "description": "One-based original CSV record or GeoJSON feature position; CSV header excluded."
-        },
-        {
-          "name": "source_year",
-          "description": "Original annual source partition; use its source date convention."
-        },
-        {
-          "name": "storm_datetime_utc",
-          "description": "UTC timestamp parsed from retained source epoch milliseconds; missing values remain missing."
-        },
-        {
-          "name": "survey_datetime_utc",
-          "description": "UTC timestamp parsed from retained source epoch milliseconds; missing values remain missing."
-        },
-        {
-          "name": "edit_datetime_utc",
-          "description": "UTC timestamp parsed from retained source epoch milliseconds; missing values remain missing."
-        },
-        {
-          "name": "ef_rating",
-          "description": "Nullable integer 0\u20135 from exact EF0\u2013EF5 source labels; unknown or other categories remain null. Survey feature ratings are not tornado maxima."
-        },
-        {
-          "name": "geometry",
-          "description": "Original WKB geometry in GeoParquet 1.0; OGC:CRS84 longitude/latitude. Empty and missing geometries preserved."
-        }
-      ]
-    },
-    {
-      "path": "analysis/survey_lines.parquet",
-      "description": "11,585 DAT surveyed lines with source attributes, original rating labels and nullable EF ratings, UTC date conversions, identifiers, and source-file/feature references. GeoParquet preserves original geometry, including empty features. No cross-source event matching.",
-      "columns": [
-        {
-          "name": "office",
-          "description": "Retained DAT wfo field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "object_id",
-          "description": "DAT objectid as a string; unique within this survey layer, not globally across layers."
-        },
-        {
-          "name": "survey_event_id",
-          "description": "Original DAT event_id label; not an NCEI event ID or guaranteed unique tornado key."
-        },
-        {
-          "name": "storm_epoch_ms",
-          "description": "Original date value as nullable integer milliseconds since Unix epoch; retained alongside UTC datetime."
-        },
-        {
-          "name": "start_epoch_ms",
-          "description": "Original date value as nullable integer milliseconds since Unix epoch; retained alongside UTC datetime."
-        },
-        {
-          "name": "end_epoch_ms",
-          "description": "Original date value as nullable integer milliseconds since Unix epoch; retained alongside UTC datetime."
-        },
-        {
-          "name": "startlat",
-          "description": "Retained DAT startlat field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "startlon",
-          "description": "Retained DAT startlon field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "endlat",
-          "description": "Retained DAT endlat field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "endlon",
-          "description": "Retained DAT endlon field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "length",
-          "description": "Retained DAT length field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "width",
-          "description": "Retained DAT width field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "injuries",
-          "description": "Retained DAT injuries field (Int64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "fatalities",
-          "description": "Retained DAT fatalities field (Int64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "source_ef_rating",
-          "description": "Original rating/category label, preserved alongside the nullable derived EF rating."
-        },
-        {
-          "name": "efnum",
-          "description": "Retained DAT efnum field (Int64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "qc",
-          "description": "Retained DAT qc field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "maxwind",
-          "description": "Retained DAT maxwind field (Int64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "global_id",
-          "description": "Original DAT globalid string; nulls preserved."
-        },
-        {
-          "name": "cropdamage",
-          "description": "Retained DAT cropdamage field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "propdamage",
-          "description": "Retained DAT propdamage field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "edit_epoch_ms",
-          "description": "Original date value as nullable integer milliseconds since Unix epoch; retained alongside UTC datetime."
-        },
-        {
-          "name": "created_epoch_ms",
-          "description": "Original date value as nullable integer milliseconds since Unix epoch; retained alongside UTC datetime."
-        },
-        {
-          "name": "last_edited_epoch_ms",
-          "description": "Original date value as nullable integer milliseconds since Unix epoch; retained alongside UTC datetime."
-        },
-        {
-          "name": "comments",
-          "description": "Retained DAT comments field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "source_geometry_length",
-          "description": "Retained DAT st_length(shape) field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "source_feature_id",
-          "description": "Top-level GeoJSON feature ID preserved as a string, separate from property IDs."
-        },
-        {
-          "name": "source_file",
-          "description": "Relative path of the original retained CSV or GeoJSON batch."
-        },
-        {
-          "name": "source_row",
-          "description": "One-based original CSV record or GeoJSON feature position; CSV header excluded."
-        },
-        {
-          "name": "source_year",
-          "description": "Original annual source partition; use its source date convention."
-        },
-        {
-          "name": "storm_datetime_utc",
-          "description": "UTC timestamp parsed from retained source epoch milliseconds; missing values remain missing."
-        },
-        {
-          "name": "start_datetime_utc",
-          "description": "UTC timestamp parsed from retained source epoch milliseconds; missing values remain missing."
-        },
-        {
-          "name": "end_datetime_utc",
-          "description": "UTC timestamp parsed from retained source epoch milliseconds; missing values remain missing."
-        },
-        {
-          "name": "edit_datetime_utc",
-          "description": "UTC timestamp parsed from retained source epoch milliseconds; missing values remain missing."
-        },
-        {
-          "name": "created_datetime_utc",
-          "description": "UTC timestamp parsed from retained source epoch milliseconds; missing values remain missing."
-        },
-        {
-          "name": "last_edited_datetime_utc",
-          "description": "UTC timestamp parsed from retained source epoch milliseconds; missing values remain missing."
-        },
-        {
-          "name": "ef_rating",
-          "description": "Nullable integer 0\u20135 from exact EF0\u2013EF5 source labels; unknown or other categories remain null. Survey feature ratings are not tornado maxima."
-        },
-        {
-          "name": "geometry",
-          "description": "Original WKB geometry in GeoParquet 1.0; OGC:CRS84 longitude/latitude. Empty and missing geometries preserved."
-        }
-      ]
-    },
-    {
-      "path": "analysis/survey_polygons.parquet",
-      "description": "10,009 DAT surveyed areas with source attributes, original rating labels and nullable EF ratings, UTC date conversions, and source-file/feature references. GeoParquet preserves polygon parts/holes and empty geometries. No cross-source event matching.",
-      "columns": [
-        {
-          "name": "object_id",
-          "description": "DAT objectid as a string; unique within this survey layer, not globally across layers."
-        },
-        {
-          "name": "source_ef_rating",
-          "description": "Original rating/category label, preserved alongside the nullable derived EF rating."
-        },
-        {
-          "name": "qc",
-          "description": "Retained DAT qc field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "global_id",
-          "description": "Original DAT globalid string; nulls preserved."
-        },
-        {
-          "name": "survey_event_id",
-          "description": "Original DAT event_id label; not an NCEI event ID or guaranteed unique tornado key."
-        },
-        {
-          "name": "storm_epoch_ms",
-          "description": "Original date value as nullable integer milliseconds since Unix epoch; retained alongside UTC datetime."
-        },
-        {
-          "name": "length",
-          "description": "Retained DAT length field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "width",
-          "description": "Retained DAT width field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "injuries",
-          "description": "Retained DAT injuries field (Int64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "fatalities",
-          "description": "Retained DAT fatalities field (Int64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "edit_epoch_ms",
-          "description": "Original date value as nullable integer milliseconds since Unix epoch; retained alongside UTC datetime."
-        },
-        {
-          "name": "created_epoch_ms",
-          "description": "Original date value as nullable integer milliseconds since Unix epoch; retained alongside UTC datetime."
-        },
-        {
-          "name": "last_edited_epoch_ms",
-          "description": "Original date value as nullable integer milliseconds since Unix epoch; retained alongside UTC datetime."
-        },
-        {
-          "name": "comments",
-          "description": "Retained DAT comments field (string); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "path_guid",
-          "description": "Original DAT path_guid string; nulls preserved."
-        },
-        {
-          "name": "source_geometry_area",
-          "description": "Retained DAT st_area(shape) field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "source_geometry_perimeter",
-          "description": "Retained DAT st_perimeter(shape) field (Float64); see ANALYSIS.md and saved source schema for interpretation. Missing values and source sentinel codes are preserved."
-        },
-        {
-          "name": "source_feature_id",
-          "description": "Top-level GeoJSON feature ID preserved as a string, separate from property IDs."
-        },
-        {
-          "name": "source_file",
-          "description": "Relative path of the original retained CSV or GeoJSON batch."
-        },
-        {
-          "name": "source_row",
-          "description": "One-based original CSV record or GeoJSON feature position; CSV header excluded."
-        },
-        {
-          "name": "source_year",
-          "description": "Original annual source partition; use its source date convention."
-        },
-        {
-          "name": "storm_datetime_utc",
-          "description": "UTC timestamp parsed from retained source epoch milliseconds; missing values remain missing."
-        },
-        {
-          "name": "edit_datetime_utc",
-          "description": "UTC timestamp parsed from retained source epoch milliseconds; missing values remain missing."
-        },
-        {
-          "name": "created_datetime_utc",
-          "description": "UTC timestamp parsed from retained source epoch milliseconds; missing values remain missing."
-        },
-        {
-          "name": "last_edited_datetime_utc",
-          "description": "UTC timestamp parsed from retained source epoch milliseconds; missing values remain missing."
-        },
-        {
-          "name": "ef_rating",
-          "description": "Nullable integer 0\u20135 from exact EF0\u2013EF5 source labels; unknown or other categories remain null. Survey feature ratings are not tornado maxima."
-        },
-        {
-          "name": "geometry",
-          "description": "Original WKB geometry in GeoParquet 1.0; OGC:CRS84 longitude/latitude. Empty and missing geometries preserved."
-        }
-      ]
-    },
-    {
       "path": "analysis/county_boundaries.parquet",
       "description": "3,234 generalized 2020 Census county/county-equivalent geometries with string FIPS codes, names, source land/water areas, and source-file/feature references. GeoParquet preserves original multipolygons and holes; this is a fixed map, not annual boundaries.",
       "columns": [
@@ -1107,6 +689,368 @@
         {
           "name": "geometry",
           "description": "Original WKB geometry in GeoParquet 1.0; OGC:CRS84 longitude/latitude. Empty and missing geometries preserved."
+        }
+      ]
+    },
+    {
+      "path": "analysis/tornado_footprints.parquet",
+      "description": "24,858 NOAA Event Footprint Catalog damage regions for annual files 2010–2025: 16,465 DAT and 8,393 Storm Events. Original geometry, source attributes, parent/child arrays, and sentinels retained; nullable EF/width helpers added. Regions are not independent tornadoes; no SPC/NCEI join. GeoParquet, WGS84 longitude/latitude.",
+      "columns": [
+        {
+          "name": "footprint_id",
+          "description": "Project key efc:source_year:source:objectid; identifies a damage region, not a unique tornado."
+        },
+        {
+          "name": "objectid",
+          "description": "Unique identifier assigned to each tornado polygon. SED data is 8 digits, the leading 4 are the year, and the trailing 4 are incremental."
+        },
+        {
+          "name": "objectid_line",
+          "description": "Unique identifier assigned to each tornado polygon. Data from SED may have matching ids across years."
+        },
+        {
+          "name": "event_id",
+          "description": "Name of the tornado"
+        },
+        {
+          "name": "CZ_TIMEZONE",
+          "description": "Time zone for the location of the tornado"
+        },
+        {
+          "name": "efscale",
+          "description": "Enhanced Fujita rating of the tornado"
+        },
+        {
+          "name": "qc",
+          "description": "Indicator if the tornado data has been quality controlled by the Damage Assessment Toolkit"
+        },
+        {
+          "name": "globalid",
+          "description": "UUID of the tornado"
+        },
+        {
+          "name": "cropdamage",
+          "description": "Total amount of crop damage in dollars"
+        },
+        {
+          "name": "propdamage",
+          "description": "Total amount of property damage in dollars"
+        },
+        {
+          "name": "created_user",
+          "description": "Information about the user who created the entry in the Damage Assessment Toolkit"
+        },
+        {
+          "name": "last_edited_user",
+          "description": "Information about the user who most recently edited the entry in the Damage Assessment Toolkit"
+        },
+        {
+          "name": "comments",
+          "description": "Event narrative associated with the tornado"
+        },
+        {
+          "name": "wfo",
+          "description": "Weather forecasting office"
+        },
+        {
+          "name": "path_guid",
+          "description": "UUID attached to a path"
+        },
+        {
+          "name": "source",
+          "description": "Source of the data"
+        },
+        {
+          "name": "edit_user",
+          "description": "Information about the user who edited the tornado data"
+        },
+        {
+          "name": "max_efscale",
+          "description": "Maximum Enhanced Fujita rating for all damage regions"
+        },
+        {
+          "name": "event_id_line",
+          "description": "Name of the tornado"
+        },
+        {
+          "name": "efscale_line",
+          "description": "Enhanced Fujita rating of the tornado"
+        },
+        {
+          "name": "qc_line",
+          "description": "Indicator if the tornado data has been quality controlled by the Damage Assessment Toolkit"
+        },
+        {
+          "name": "globalid_line",
+          "description": "UUID of the storm"
+        },
+        {
+          "name": "cropdamage_line",
+          "description": "Total amount of crop damage in dollars"
+        },
+        {
+          "name": "propdamage_line",
+          "description": "Total amount of property damage in dollars"
+        },
+        {
+          "name": "edit_user_line",
+          "description": "Information about the user who edited the tornado data"
+        },
+        {
+          "name": "created_user_line",
+          "description": "Information about the user who created the entry in the Damage Assessment Toolkit"
+        },
+        {
+          "name": "last_edited_user_line",
+          "description": "Information about the user who most recently edited the entry in the Damage Assessment Toolkit"
+        },
+        {
+          "name": "comments_line",
+          "description": "Event narrative associated with the tornado"
+        },
+        {
+          "name": "wfo_line",
+          "description": "Weather forecasting office"
+        },
+        {
+          "name": "source_line",
+          "description": "Source of the data"
+        },
+        {
+          "name": "convective_day",
+          "description": "The convective day on which the storm occurred. A convective day is from 12:00 UTC on one day until 11:59 UTC on the next calendar day."
+        },
+        {
+          "name": "stormdate",
+          "description": "Time at which the tornado occurred (UTC)"
+        },
+        {
+          "name": "starttime",
+          "description": "Time the tornado started (UTC)"
+        },
+        {
+          "name": "endtime",
+          "description": "Time the tornado ended (UTC)"
+        },
+        {
+          "name": "created_date",
+          "description": "Date the entry was created in the Damage Assessment Toolkit (UTC)"
+        },
+        {
+          "name": "last_edited_date",
+          "description": "Date the entry was last edited in the Damage Assessment Toolkit (UTC)"
+        },
+        {
+          "name": "edit_time",
+          "description": "Time the tornado data was last edited (UTC)"
+        },
+        {
+          "name": "stormdate_line",
+          "description": "Time at which the tornado occurred (UTC)"
+        },
+        {
+          "name": "starttime_line",
+          "description": "Time the tornado started (UTC)"
+        },
+        {
+          "name": "endtime_line",
+          "description": "Time the tornado ended (UTC)"
+        },
+        {
+          "name": "edit_time_line",
+          "description": "Linked-line counterpart: Time the tornado data was last edited (UTC)"
+        },
+        {
+          "name": "created_date_line",
+          "description": "Date the entry was created in the Damage Assessment Toolkit (UTC)"
+        },
+        {
+          "name": "last_edited_date_line",
+          "description": "Date the entry was last edited in the Damage Assessment Toolkit (UTC)"
+        },
+        {
+          "name": "injuries",
+          "description": "The total number of injuries due to the tornado"
+        },
+        {
+          "name": "fatalities",
+          "description": "The total number of deaths due to the tornado"
+        },
+        {
+          "name": "efnum",
+          "description": "Enhanced Fujita rating of the tornado without \"EF\""
+        },
+        {
+          "name": "injuries_line",
+          "description": "The total number of injuries due to the tornado"
+        },
+        {
+          "name": "fatalities_line",
+          "description": "The total number of deaths due to the tornado"
+        },
+        {
+          "name": "efnum_line",
+          "description": "Enhanced Fujita rating of the tornado without \"EF\""
+        },
+        {
+          "name": "startlat",
+          "description": "Latitude where the tornado started"
+        },
+        {
+          "name": "startlon",
+          "description": "Longitude where the tornado started"
+        },
+        {
+          "name": "endlat",
+          "description": "Latitude where the tornado ended"
+        },
+        {
+          "name": "endlon",
+          "description": "Longitude where the tornado ended"
+        },
+        {
+          "name": "length",
+          "description": "Total length of the tornado path (miles)"
+        },
+        {
+          "name": "width",
+          "description": "Maximum width of the tornado path (yards)"
+        },
+        {
+          "name": "maxwind",
+          "description": "Maximum windspeed (mph)"
+        },
+        {
+          "name": "Shape__Length",
+          "description": "Length of the tornado polygon (miles)"
+        },
+        {
+          "name": "Shape__Area",
+          "description": "Area of the tornado polygon (sq mi)"
+        },
+        {
+          "name": "area_acres",
+          "description": "Computed area of the damage region (acres)"
+        },
+        {
+          "name": "startlat_line",
+          "description": "Latitude where the tornado started"
+        },
+        {
+          "name": "startlon_line",
+          "description": "Longitude where the tornado started"
+        },
+        {
+          "name": "endlat_line",
+          "description": "Latitude where the tornado ended"
+        },
+        {
+          "name": "endlon_line",
+          "description": "Longitude where the tornado ended"
+        },
+        {
+          "name": "length_line",
+          "description": "Total length of the tornado path (miles)"
+        },
+        {
+          "name": "width_line",
+          "description": "Total width of the tornado path (yards)"
+        },
+        {
+          "name": "maxwind_line",
+          "description": "Maximum windspeed (mph)"
+        },
+        {
+          "name": "Shape__Length_line",
+          "description": "Length of the tornado polygon (miles)"
+        },
+        {
+          "name": "parents",
+          "description": "Damage region that encloses all other damage regions"
+        },
+        {
+          "name": "children",
+          "description": "List of damage regions that are enclosed by another damage region"
+        },
+        {
+          "name": "source_file",
+          "description": "Relative path of the original annual GeoJSON file."
+        },
+        {
+          "name": "source_row",
+          "description": "One-based feature position in its annual GeoJSON file."
+        },
+        {
+          "name": "source_year",
+          "description": "Source annual file year; can differ from UTC storm year at New Year."
+        },
+        {
+          "name": "ef_rating",
+          "description": "Nullable exact EF0–EF5 regional rating; EFU/EF3+ remain null. Raw efscale is preserved."
+        },
+        {
+          "name": "max_ef_rating",
+          "description": "Nullable exact EF0–EF5 catalog maximum among associated regions; not a reconciled SPC label."
+        },
+        {
+          "name": "width_is_placeholder",
+          "description": "True when raw width is 0.99, the upstream missing-width display placeholder."
+        },
+        {
+          "name": "path_width_yards",
+          "description": "Positive source path width in yards; placeholder 0.99, zero, negatives, and missing become null. Original width is preserved."
+        },
+        {
+          "name": "stormdate_datetime_utc",
+          "description": "Parsed UTC timestamp; blank/-99 sentinels become null; ISO and explicit epoch-ms source values supported. Original field retained."
+        },
+        {
+          "name": "starttime_datetime_utc",
+          "description": "Parsed UTC timestamp; blank/-99 sentinels become null; ISO and explicit epoch-ms source values supported. Original field retained."
+        },
+        {
+          "name": "endtime_datetime_utc",
+          "description": "Parsed UTC timestamp; blank/-99 sentinels become null; ISO and explicit epoch-ms source values supported. Original field retained."
+        },
+        {
+          "name": "created_date_datetime_utc",
+          "description": "Parsed UTC timestamp; blank/-99 sentinels become null; ISO and explicit epoch-ms source values supported. Original field retained."
+        },
+        {
+          "name": "last_edited_date_datetime_utc",
+          "description": "Parsed UTC timestamp; blank/-99 sentinels become null; ISO and explicit epoch-ms source values supported. Original field retained."
+        },
+        {
+          "name": "edit_time_datetime_utc",
+          "description": "Parsed UTC timestamp; blank/-99 sentinels become null; ISO and explicit epoch-ms source values supported. Original field retained."
+        },
+        {
+          "name": "stormdate_line_datetime_utc",
+          "description": "Parsed UTC timestamp; blank/-99 sentinels become null; ISO and explicit epoch-ms source values supported. Original field retained."
+        },
+        {
+          "name": "starttime_line_datetime_utc",
+          "description": "Parsed UTC timestamp; blank/-99 sentinels become null; ISO and explicit epoch-ms source values supported. Original field retained."
+        },
+        {
+          "name": "endtime_line_datetime_utc",
+          "description": "Parsed UTC timestamp; blank/-99 sentinels become null; ISO and explicit epoch-ms source values supported. Original field retained."
+        },
+        {
+          "name": "edit_time_line_datetime_utc",
+          "description": "Parsed UTC timestamp; blank/-99 sentinels become null; ISO and explicit epoch-ms source values supported. Original field retained."
+        },
+        {
+          "name": "created_date_line_datetime_utc",
+          "description": "Parsed UTC timestamp; blank/-99 sentinels become null; ISO and explicit epoch-ms source values supported. Original field retained."
+        },
+        {
+          "name": "last_edited_date_line_datetime_utc",
+          "description": "Parsed UTC timestamp; blank/-99 sentinels become null; ISO and explicit epoch-ms source values supported. Original field retained."
+        },
+        {
+          "name": "geometry",
+          "description": "Original catalog Polygon/MultiPolygon WKB in GeoParquet, OGC:CRS84 longitude/latitude; surveyed or reconstructed footprint."
         }
       ]
     }

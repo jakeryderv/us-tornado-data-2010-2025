@@ -1,0 +1,248 @@
+{
+  "audited_at": "2026-09-15T23:13:08.122021+00:00",
+  "source_counts": {
+    "DAT": 16465,
+    "SED": 8393
+  },
+  "quality": {
+    "width_placeholder": 2682,
+    "width_zero": 4114,
+    "missing_geometry": 0,
+    "utc_year_differs": 1,
+    "with_parents": 4402,
+    "with_children": 3157
+  },
+  "source_bytes": 70204056,
+  "retained_source_payloads_checked": 104,
+  "changed_retained_source_payloads": [],
+  "annual_counts": [
+    [
+      2010,
+      69,
+      1186
+    ],
+    [
+      2011,
+      456,
+      1514
+    ],
+    [
+      2012,
+      214,
+      907
+    ],
+    [
+      2013,
+      495,
+      581
+    ],
+    [
+      2014,
+      657,
+      508
+    ],
+    [
+      2015,
+      931,
+      505
+    ],
+    [
+      2016,
+      717,
+      369
+    ],
+    [
+      2017,
+      1331,
+      504
+    ],
+    [
+      2018,
+      908,
+      394
+    ],
+    [
+      2019,
+      1389,
+      427
+    ],
+    [
+      2020,
+      1074,
+      293
+    ],
+    [
+      2021,
+      1341,
+      354
+    ],
+    [
+      2022,
+      1358,
+      233
+    ],
+    [
+      2023,
+      1526,
+      257
+    ],
+    [
+      2024,
+      2331,
+      220
+    ],
+    [
+      2025,
+      1668,
+      141
+    ]
+  ],
+  "source_files": [
+    {
+      "path": "event_footprints/2010_tornado_footprint.geojson",
+      "sha256": "92480117871b76c9638fe2ee42af92fb0b98f9e71c25896534d437f6839f5c44",
+      "bytes": 2981751,
+      "generation": "1787167579088713",
+      "md5_base64": "rdlIywGHqECpTKzNu1cMuw==",
+      "upstream_updated_at": "2026-08-19T19:26:19.214Z"
+    },
+    {
+      "path": "event_footprints/2011_tornado_footprint.geojson",
+      "sha256": "a6573c165fde341c09de7bb98d38c2dc24217007da4c368a3b3f6e293e75c8ee",
+      "bytes": 5443844,
+      "generation": "1786734623580212",
+      "md5_base64": "4+55S+yUpgFwJfLxndEaYw==",
+      "upstream_updated_at": "2026-08-14T19:10:23.720Z"
+    },
+    {
+      "path": "event_footprints/2012_tornado_footprint.geojson",
+      "sha256": "1b1e77285d88d2e67b438d6ed5e45dbb131591cdcf29dce0c77330073a58b954",
+      "bytes": 2663866,
+      "generation": "1786734623491252",
+      "md5_base64": "Jt3UoCyihVm0JeCOlLoE9A==",
+      "upstream_updated_at": "2026-08-14T19:10:23.647Z"
+    },
+    {
+      "path": "event_footprints/2013_tornado_footprint.geojson",
+      "sha256": "c18bb935b7fe865a01bb4baa71248dabb87fb0f49545c880d2c11a91e0dba05c",
+      "bytes": 2684667,
+      "generation": "1786734623491117",
+      "md5_base64": "nsXckToAdaSEoUhRvrKKXA==",
+      "upstream_updated_at": "2026-08-14T19:10:23.634Z"
+    },
+    {
+      "path": "event_footprints/2014_tornado_footprint.geojson",
+      "sha256": "0e0d38831f7e20ab53572779629d9c6eb0ec721c488e7d5ed6e7ed4946501572",
+      "bytes": 3135818,
+      "generation": "1786734623491392",
+      "md5_base64": "Q05CEKbUYMwX9YUbzhFpzg==",
+      "upstream_updated_at": "2026-08-14T19:10:23.635Z"
+    },
+    {
+      "path": "event_footprints/2015_tornado_footprint.geojson",
+      "sha256": "72924548e7b8bdd465c2a061ab2a4ec58788853b1c22b340eab3b29933423084",
+      "bytes": 3601823,
+      "generation": "1786734623587004",
+      "md5_base64": "TaGorWY9VtFbIWlyqUtMew==",
+      "upstream_updated_at": "2026-08-14T19:10:23.721Z"
+    },
+    {
+      "path": "event_footprints/2016_tornado_footprint.geojson",
+      "sha256": "a36f6d659ee8d1c547764b819ef9536b58755e4d8caba276680c8c4d2eaf653e",
+      "bytes": 2721303,
+      "generation": "1786734623491205",
+      "md5_base64": "dztK4HtambFCClgEVzKkjA==",
+      "upstream_updated_at": "2026-08-14T19:10:23.644Z"
+    },
+    {
+      "path": "event_footprints/2017_tornado_footprint.geojson",
+      "sha256": "c0f93b88313bf0d07818f73b16f5e88d1a97b39d7298710731ef1b7de7e14507",
+      "bytes": 4787765,
+      "generation": "1786734623491187",
+      "md5_base64": "NOfLYc69Zu1LX288lQx9Nw==",
+      "upstream_updated_at": "2026-08-14T19:10:23.634Z"
+    },
+    {
+      "path": "event_footprints/2018_tornado_footprint.geojson",
+      "sha256": "711ce21b78ec06b4d4e5c27c4a70154b80a86c9a7f4382bc71ace3665efc9ebf",
+      "bytes": 3387417,
+      "generation": "1786734623506928",
+      "md5_base64": "iVVNaq+x3g9B7Ek28PfMCQ==",
+      "upstream_updated_at": "2026-08-14T19:10:23.644Z"
+    },
+    {
+      "path": "event_footprints/2019_tornado_footprint.geojson",
+      "sha256": "bfe69580b19073358e15d198c559d21a136ae5c5052c555219bf3aba06fbd837",
+      "bytes": 4974300,
+      "generation": "1786734623491429",
+      "md5_base64": "IwUrwoii8NQJPWcsi7FrKA==",
+      "upstream_updated_at": "2026-08-14T19:10:23.635Z"
+    },
+    {
+      "path": "event_footprints/2020_tornado_footprint.geojson",
+      "sha256": "51eaffdb28adadd22e5d4c86bb0411745822b4e5f21091049463779a4113853c",
+      "bytes": 4076145,
+      "generation": "1786734623494159",
+      "md5_base64": "tRRNMx48JsTyyyZbdLsKyw==",
+      "upstream_updated_at": "2026-08-14T19:10:23.646Z"
+    },
+    {
+      "path": "event_footprints/2021_tornado_footprint.geojson",
+      "sha256": "c0ca4a01e00bb8473d4ac305f3aabdbb9008ce5e85681be0f80a2018fc2e0bd7",
+      "bytes": 5061598,
+      "generation": "1786734623525994",
+      "md5_base64": "0Fn2bJRlkfntg8QgxJKWJg==",
+      "upstream_updated_at": "2026-08-14T19:10:23.662Z"
+    },
+    {
+      "path": "event_footprints/2022_tornado_footprint.geojson",
+      "sha256": "581491b181ff04234dcc2d391d87ff6762e254574dfca0807710dd980d1d4b2e",
+      "bytes": 4800875,
+      "generation": "1786734623491308",
+      "md5_base64": "9JlZMzzBsa3oyRXhWWS0pg==",
+      "upstream_updated_at": "2026-08-14T19:10:23.633Z"
+    },
+    {
+      "path": "event_footprints/2023_tornado_footprint.geojson",
+      "sha256": "c647e31567f3b84e11b3cdcb0fe3f149ccde79139581d89f879656f5234f0fc8",
+      "bytes": 5789248,
+      "generation": "1786734623580109",
+      "md5_base64": "We2NYUiwTRMDXiwjsCFmvA==",
+      "upstream_updated_at": "2026-08-14T19:10:23.701Z"
+    },
+    {
+      "path": "event_footprints/2024_tornado_footprint.geojson",
+      "sha256": "0788022c5c8866dc54a13801beba761c81aebf542cf503bfd6c8aeb65ce54df9",
+      "bytes": 7952962,
+      "generation": "1786734623491674",
+      "md5_base64": "9s2jVmWyJh9FPJPQtFKzLA==",
+      "upstream_updated_at": "2026-08-14T19:10:23.635Z"
+    },
+    {
+      "path": "event_footprints/2025_tornado_footprint.geojson",
+      "sha256": "9b836b7dc1c089a7e6edb64dd2b1023b0ec94f8bd17e53dee50edf053a3b776f",
+      "bytes": 6140674,
+      "generation": "1786734623491666",
+      "md5_base64": "wniamvvLSZMSBsfR43kPXw==",
+      "upstream_updated_at": "2026-08-14T19:10:23.635Z"
+    }
+  ],
+  "dat_guid_matches": 16424,
+  "dat_guid_total": 16465,
+  "footprint_parquet_bytes": 11651740,
+  "analysis_table_bytes": 24104783,
+  "unchanged_analysis_tables": [
+    "tornadoes.parquet",
+    "county_context.parquet",
+    "storm_events.parquet",
+    "storm_fatalities.parquet",
+    "storm_locations.parquet",
+    "county_boundaries.parquet"
+  ],
+  "geometry_types": {
+    "Polygon": 24831,
+    "MultiPolygon": 27
+  },
+  "nullable_width_rows": 6796,
+  "geometry_invalid": 0
+}

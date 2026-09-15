@@ -1,22 +1,17 @@
 # US Tornado Data, 2010–2025
 
-A reproducible collection of U.S. tornado records, damage surveys, and county
-population/housing context from NOAA and the U.S. Census Bureau. It supports
-exploratory research on recorded tornado intensity, survey coverage, and exposure.
-This is an independent compilation, not an official government product.
+A focused collection of NOAA tornado records and damage footprints with Census
+county population/housing context. It supports retrospective exploration of
+recorded EF ratings, geographic patterns, and source coverage. This is an
+independent compilation, not an official government product.
 
 ## Start with the analysis tables
 
-Release **v1.2.0** provides nine consolidated tables, an annual summary, and a
-provenance manifest under `analysis/`, totaling about **38 MB** of table data.
-Start with **`tornadoes.parquet`**: 20,164 SPC tracks in about 0.9 MB. Additional
-files provide NCEI tornado details/fatalities/locations, DAT points/lines/polygons,
-Census county/year estimates, and county boundaries. Original source files remain
-intact. These tables retain separate record types and do not imply verified
-cross-source matches. See [ANALYSIS.md](ANALYSIS.md) for the complete source-to-file
-mapping, loading examples, field definitions, and aggregation rules.
-
-With `pandas`, `pyarrow`, and `huggingface-hub` installed:
+**v2.0.0** provides seven main Parquet tables, an annual summary, and a provenance
+manifest under `analysis/`. The tables total **24.1 MB**. Start with `tornadoes.parquet`: 20,164 SPC tracks in
+about 0.9 MB. The footprint and county boundary tables are GeoParquet; use GeoPandas
+for geometry. Other tables load with pandas. See [ANALYSIS.md](ANALYSIS.md) for
+all fields, units, missing-value conventions, and loading examples.
 
 ```python
 from pathlib import Path
@@ -25,155 +20,109 @@ import pandas as pd
 
 root = Path(snapshot_download(
     "jakeryderv/us-tornado-data-2010-2025", repo_type="dataset",
-    revision="v1.2.0", allow_patterns=["analysis/tornadoes.parquet", "ANALYSIS.md"],
+    revision="v2.0.0", allow_patterns=["analysis/tornadoes.parquet", "ANALYSIS.md"],
 ))
 tornadoes = pd.read_parquet(root / "analysis/tornadoes.parquet")
 ```
 
-Use `allow_patterns=["analysis/*", "ANALYSIS.md"]` to fetch all consolidated
-tables. The four geometry tables use GeoParquet and load with
-`geopandas.read_parquet`; ordinary tables load with `pandas.read_parquet`.
+Use `allow_patterns=["analysis/*", "ANALYSIS.md"]` to fetch all analysis tables.
+Remove the filter for the complete source collection. Both hosts expose analysis
+files directly. Kaggle additionally packages complete sources in `release.zip.bin`,
+a ZIP archive whose extra suffix preserves original compressed source files.
+The two hosts' shared payload bytes and checksums are identical after extraction.
 
-The [Kaggle mirror](https://www.kaggle.com/datasets/jakevanslyke/us-tornado-data-2010-2025)
-also exposes these analysis files directly. The complete original-source collection
-is supplied in `release.zip.bin` on Kaggle and as direct files on Hugging Face.
-The [public getting-started notebook](https://www.kaggle.com/code/jakevanslyke/us-tornado-data-getting-started)
-demonstrates inspecting the original v1.0.0 snapshot; its older release pins are
-intentional. Use this card's v1.2.0 analysis paths for the newer convenience layer.
+## Tables and units
 
-This is a fixed 2010–2025 study snapshot with no scheduled refresh. Deliberate
-corrections or additions receive a new release version. Pin a host revision and
-retain the matching release receipt when reproducing an analysis.
+| File under analysis/ | Source | Rows | Unit |
+|---|---|---:|---|
+| `tornadoes.parquet` | SPC | 20,164 | Historical track, including 1,525 unknown EF ratings |
+| `storm_events.parquet` | NCEI Storm Events | 23,189 | Tornado event/county segment |
+| `storm_fatalities.parquet` | NCEI Storm Events | 1,352 | Related fatality record |
+| `storm_locations.parquet` | NCEI Storm Events | 35,920 | Related location record |
+| `tornado_footprints.parquet` | NOAA Event Footprint Catalog | 24,858 | Damage region; not a unique tornado |
+| `county_context.parquet` | Census estimates | 50,294 | County/year population and housing |
+| `county_boundaries.parquet` | Census cartographic map | 3,234 | Fixed 2020 county polygon |
+| `annual_summary.csv` | Source counts | 16 | Year |
 
-## Contents and units of observation
+NCEI's 48 original annual all-hazard gzip tables are retained alongside exact
+tornado extracts: 1,037,691 details, 14,711 fatalities, and 950,862 locations rows.
+Counts across sources describe different units and must not be added to count
+tornadoes. No cross-source tornado join, train/test split, or model is supplied.
 
-| Source | Unit | Snapshot contents |
-|---|---|---|
-| SPC historical tornado database | Historical single-track record | 20,164 tracks, including 1,525 unknown ratings |
-| NCEI Storm Events | County/event segment and related records | 23,189 tornado detail rows, 1,352 fatalities rows, 35,920 locations rows |
-| NWS Damage Assessment Toolkit (DAT) | Survey feature | 218,231 points, 11,585 lines, 10,009 polygons |
-| Census Population Estimates Program | County/year | 50,294 population/housing rows across 2010–2025 |
-| Census Cartographic Boundary Files | County/county-equivalent geometry | 3,234 simplified map features from 2020 |
+## What changed in v2
 
-NCEI's 48 original annual compressed tables are also retained. These contain all
-hazards: 1,037,691 details rows, 14,711 fatalities rows, and 950,862 location rows.
-Their tornado extracts are provided separately. **Counts across sources must not
-be added to count tornadoes.** No cross-source event join, deduplication, or model
-train/test split has been performed.
+The three standalone DAT survey tables and original DAT batches have been replaced
+by one Footprint Catalog table and 16 annual source GeoJSON files. EFC prioritizes
+DAT geometry and supplements it with Storm Events records. It contains 16,465
+DAT-derived and 8,393 SED-derived footprint regions in this snapshot.
 
-## Time and geographic scope
+Detailed survey points, damage indicators/degrees, and original standalone DAT
+lines/polygons are no longer included. Earlier v1.2.0 / Kaggle 4 remains available
+for that survey detail. SPC, NCEI, and Census table schemas are unchanged. The
+annual summary replaces DAT point/line/polygon counts with EFC DAT/SED footprint
+counts. The historical public Kaggle example notebook is pinned to v1.0.0; use
+this card and the repository inspection notebook for v2.
 
-Events and survey features are selected for **2010–2025 inclusive**. This fixed
-study window lies within the Enhanced Fujita era; 2010 is not the EF transition
-date or a demonstrated DAT-completeness threshold. Census estimates are July 1
-values, using vintage 2020 for 2010–2019 and vintage 2025 for 2020–2025. The county
-map is a fixed **2020**, **1:5,000,000** display layer, not an annual boundary series.
+## Scope, provenance, and limitations
 
-The NOAA collection uses the source's geographic scope without an additional
-state filter. Census estimates cover the 50 states and DC; the map additionally
-contains Puerto Rico and other U.S. territories. DAT coverage is geographically
-and temporally uneven. Dataset availability is not evidence that every tornado
-or damage observation was recorded.
+The study period is 2010–2025. SPC uses its source start year/date; NCEI uses
+source annual record dates; EFC uses annual file years. One 2010 EFC record has a
+2011-01-01 UTC timestamp. Local/convective year and UTC year can differ at New Year.
+2010 is a scope choice and EFC's first year, not the EF transition (February 2007)
+or a completeness threshold.
 
-## File layout
+Census July 1 estimates use vintage 2020 for 2010–2019 and vintage 2025 for
+2020–2025. They cover the 50 states and DC. The fixed 2020 map also contains
+territories and is generalized at 1:5,000,000. Nine newer Connecticut county codes
+are absent from it. This is not a historical boundary series or a precise exposure
+map. County housing counts are residences, not buildings directly struck.
 
-Paths below are relative to the Hugging Face dataset root or the extracted Kaggle archive:
+EFC footprints remain damage-survey/report derived; some are reconstructed from
+lines/endpoints. Multiple nested damage regions can belong to the same tornado.
+The catalog uses proximity rules to supplement DAT, not verified SPC event joins.
+Its generated SED IDs are not original NCEI EVENT_IDs. Keep source/year/ID provenance
+and reconcile associations before modeling or combining records.
 
-- `analysis/`: nine main tables, an annual summary, and an input/output checksum manifest.
-- `ANALYSIS.md`: field dictionary, units, missingness, and aggregation rules.
-- `spc/tornadoes_2010_2025.csv`: primary historical track catalog.
-- `ncei_storm_events/raw/*.csv.gz`: original annual all-hazard archives.
-- `ncei_storm_events/tornado/<year>_<table>.csv`: details/fatalities/locations extracts.
-- `nws_dat/<year>/<points|lines|polygons>/index.json`: complete batch inventory;
-  read all listed GeoJSON batches, not one sample batch.
-- `nws_dat/*_schema.json`: source field definitions; `service.json`: service metadata.
-- `census_population/raw/`: four pinned population/housing CSV/XLSX sources.
-- `census_population/county_context_2010_2025.csv`: combined county/year context.
-- `census_boundaries/raw/`: original Census KML ZIP.
-- `census_boundaries/counties_2020_5m.geojson`: converted county map.
-- `download_manifest_2010_2025.json`, `census_manifest_2010_2025.json`,
-  `quality_summary_2010_2025.json`, and `download_verification_2010_2025.json`:
-  collection provenance and saved verification.
-- `release_manifest.json`: version, code revision, source snapshots, file sizes,
-  and SHA-256 for every shared release file except the manifest itself.
-- `SHA256SUMS`: checksums for those files plus the release manifest.
-- `schema.json`: complete CSV headers and preserved DAT field definitions.
+The footprint table preserves raw values, including EFU, EF3+, -99, nulls, and
+blank strings. Nullable `ef_rating`/`max_ef_rating` accept only exact EF0–EF5 labels.
+`width=0.99` is a missing-width display placeholder (2,682 rows); 4,114 other
+widths are zero. `path_width_yards` makes placeholder, nonpositive, and missing
+widths null without altering original `width`. Valid polygons are not proof of
+accurate observed surface paths. Footprint area is not automatically a reliable
+exposure measurement.
 
-A release contains the active files named by the collection manifests plus their
-supporting metadata. Unreferenced cache files, incomplete transfers, and local
-credentials are excluded. The release manifest supplies the exact file count and
-size; the full local collection is approximately 493 MB including the consolidated tables before host compression.
+Keep EF-revealing narratives, rating codes, and survey-derived wind estimates out
+of predictors. Post-event dimensions/impacts support retrospective classification,
+not advance forecasting. Rare EF classes, related records, geographic differences,
+and reporting/survey biases need explicit treatment in modeling.
 
-## Fields and interpretation
+## Files and reproducibility
 
-**SPC:** `(yr, om)` identifies a track within this snapshot. `mag` retains the
-published rating code; `-9` is unknown and must not become EF0. `slat/slon` and
-`elat/elon` are endpoints, `len` is path length in miles, and `wid` is maximum
-width in yards. `inj/fat` record injuries/fatalities. Preserve `date`, `time`,
-and `tz`; do not assume times are UTC. The schema also retains source damage and
-segment flags. See the SPC specification linked below for all fields.
+```text
+analysis/                  Seven Parquet tables, annual summary, manifest
+spc/                       Selected tornado CSV and full-archive provenance
+ncei_storm_events/raw/      Original annual all-hazard gzip CSVs
+ncei_storm_events/tornado/  Exact tornado extracts by year/table
+event_footprints/          Annual GeoJSON, cloud inventory, NOAA docs, sidecars
+census_population/         Source estimates and combined county/year CSV
+census_boundaries/         Source KML ZIP and converted GeoJSON
+```
 
-**NCEI:** `EVENT_ID` and `EPISODE_ID` identify source records/episodes, not SPC IDs.
-`EVENT_TYPE` selects the tornado details; related tables are retained by matching
-`EVENT_ID`. `TOR_F_SCALE`, start/end times, `STATE_FIPS`, `CZ_TYPE`, `CZ_FIPS`,
-coordinates, casualties, damage strings, and narratives remain source-native.
-Check geography type and code vintage before county joins. Source damage strings
-are not converted into numeric dollars by this collection.
+Collection/quality/verification manifests accompany these folders. Every download
+has source URL, retrieval time, byte size, and SHA-256. EFC data URLs additionally
+pin GCS object generations and are checked against upstream MD5. `schema.json`
+and `analysis/manifest.json` document fields, types, mappings, and derived outputs.
+`release_manifest.json` and `SHA256SUMS` inventory the frozen shared payload.
 
-**DAT:** GeoJSON geometry uses WGS84 longitude/latitude; date attributes such as
-`stormdate` remain epoch milliseconds. Fields include `objectid`, `globalid`,
-`event_id`, `efscale`, damage indicator/degree fields, and available wind estimates.
-Fields differ by layer; the saved schemas are authoritative. DAT `event_id` is
-not NCEI's numeric `EVENT_ID`, and a point rating is not necessarily the maximum
-rating of its parent tornado. Track geometry is surveyed/estimated, not a claim
-of exact nationwide paths. Connecting SPC endpoints only approximates a track.
+Source verification checks exact NCEI extraction, EFC annual completeness and
+checksums, and Census reconciliation; Parquet round trips check values/types and
+geometry bytes. Retrieval completeness does not establish historical tornado
+completeness. Unreferenced caches and credentials are excluded from releases.
 
-**Census context:** `county_fips` is a five-character string; preserve leading
-zeros. `population` and `housing_units` are counts. Housing units are residences,
-not buildings, households, occupancy, or actual storm exposure. `estimate_vintage`
-identifies the release. `map_2020_fips_present` indicates only code presence in the
-map. Nine newer Connecticut planning regions are absent from the fixed map;
-matching codes elsewhere do not prove unchanged boundaries. No geographic
-crosswalk or spatial exposure estimate is supplied. Map `ALAND/AWATER` attributes
-retain source area in square meters.
-
-## Collection and transformations
-
-SPC's full archive is temporarily read and filtered by year; its full-archive
-provenance is retained, but the full archive is not packaged. NCEI selects the
-newest published creation date per requested year/table, retaining raw gzip files
-and exact tornado extracts. DAT collects every date-matching feature in all three
-layers, including unknown and non-tornado categories, through complete object-ID
-inventories and verified batches. Photos are not downloaded.
-
-Census files are pinned by release. Population and housing are reconciled by
-FIPS/name inventories, with explicit release years. KML is converted to GeoJSON
-while preserving polygon parts and holes. Unknown ratings and geographic gaps
-are preserved rather than zero-filled. No weather radar, forecast model,
-satellite, building-footprint, ACS tract, or land-cover data is included.
-
-## Quality, limitations, and intended use
-
-The collection has been locally checked for hashes, lengths, year selection,
-exact NCEI filtering, DAT object-ID completeness, and Census source-to-output
-agreement. Release verification independently checks the packaged bytes.
-These checks establish retrieval and transformation integrity, not historical
-completeness or verified associations between sources. Source agencies may
-revise records after the saved snapshot; use a pinned host revision/version.
-
-SPC has 18,639 known EF ratings: EF0 9,197; EF1 7,149; EF2 1,776; EF3 426;
-EF4 83; EF5 8. Class imbalance and unequal DAT adoption materially affect analysis.
-Do not use DAT presence as an inclusion requirement for a representative master
-catalog. The DAT service describes survey data as preliminary.
-
-The dataset suits retrospective descriptive research and carefully designed
-experiments predicting recorded EF ratings. Damage, casualties, wind estimates,
-and narratives can encode the rating process and leak the target. Establish
-feature eligibility and group related events before train/test splitting. It
-contains no predefined benchmark split and does not provide atmospheric inputs
-for forecasting tornado intensity before damage occurs. County averages cannot
-identify the people or buildings actually struck. Fixed generalized boundaries
-are unsuitable for precise path/building intersections.
+NOAA overwrites upstream EFC files as they change. Our releases retain snapshots;
+this fixed study dataset has no scheduled refresh. Pin a host revision and use its
+release receipt for reproducibility. Version identifiers need not match between
+Hugging Face tags and Kaggle's automatic numeric versions.
 
 ## Sources, reuse, and citation
 
@@ -181,7 +130,7 @@ are unsuitable for precise path/building intersections.
   [field specification](https://www.spc.noaa.gov/wcm/data/SPC_severe_database_description.pdf).
 - [NOAA NCEI Storm Events](https://www.ncei.noaa.gov/stormevents/) and
   [bulk archive](https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/).
-- [NOAA/NWS DAT service](https://services.dat.noaa.gov/arcgis/rest/services/nws_damageassessmenttoolkit/DamageViewer/MapServer).
+- [NOAA Event Footprint Catalog](https://www.ncei.noaa.gov/products/event-footprint-catalog), derived from NWS DAT and NCEI Storm Events.
 - [U.S. Census Bureau population estimates](https://www.census.gov/programs-surveys/popest.html).
 - [U.S. Census Bureau 2020 cartographic boundaries](https://www.census.gov/geographies/mapping-files/2020/geo/carto-boundary-file.html).
 

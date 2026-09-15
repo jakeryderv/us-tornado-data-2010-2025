@@ -38,7 +38,7 @@ arbitrary caches from `data/`. The source collection is read-only.
 
 ```sh
 uv run python scripts/release_data.py build
-uv run python scripts/release_data.py verify dist/v1.2.0/payload
+uv run python scripts/release_data.py verify dist/v2.0.0/payload
 ```
 
 The build copies sources, re-verifies the staged collection, regenerates the
@@ -53,8 +53,8 @@ updates should receive a new release version. `dist/` is ignored by Git.
 Replace the example account names with the authenticated owners when needed:
 
 ```sh
-uv run python scripts/release_data.py stage huggingface --owner jakeryderv --payload dist/v1.2.0/payload --output dist/v1.2.0/huggingface
-uv run python scripts/release_data.py stage kaggle --owner jakevanslyke --payload dist/v1.2.0/payload --output dist/v1.2.0/kaggle
+uv run python scripts/release_data.py stage huggingface --owner jakeryderv --payload dist/v2.0.0/payload --output dist/v2.0.0/huggingface
+uv run python scripts/release_data.py stage kaggle --owner jakevanslyke --payload dist/v2.0.0/payload --output dist/v2.0.0/kaggle
 ```
 
 All shared payload files, `release_manifest.json`, and `SHA256SUMS` are identical
@@ -77,11 +77,14 @@ managed separately from the data version. See the
 verified update commands, and notebook publishing instructions.
 
 ```sh
-uv run --group publish hf upload jakeryderv/us-tornado-data-2010-2025 dist/v1.2.0/huggingface . --repo-type dataset --commit-message 'Release v1.2.0'
-uv run --group publish kaggle datasets version -p dist/v1.2.0/kaggle --keep-tabular --dir-mode zip -m "Release v1.2.0: compact analysis tables"
+uv run --group publish hf upload jakeryderv/us-tornado-data-2010-2025 dist/v2.0.0/huggingface . --repo-type dataset --delete 'nws_dat/*' --delete 'analysis/survey_*.parquet' --commit-message 'Release v2.0.0'
+uv run --group publish kaggle datasets version -p dist/v2.0.0/kaggle --keep-tabular --dir-mode zip -m "Release v2.0.0: replace DAT surveys with NOAA footprints"
 ```
 
-These commands update the existing public datasets. Run them only for an authorized
+These commands update the existing public datasets. The v2 HF upload must delete
+only the retired `nws_dat/` paths and three survey tables from the new revision;
+prior commits and tags remain available. Verify the resulting remote file inventory.
+ Run them only for an authorized
 release. On Kaggle, `--dir-mode zip` transports the direct `analysis/` folder, which
 Kaggle expands. The complete `release.zip.bin` archive remains a single file.
 Wait for processing to complete before calling the release published. For later Kaggle releases, use
@@ -97,8 +100,8 @@ code commit is separate from the two data-host revisions.
 ## Verify consumer downloads
 
 Use an empty cache or new output location, then validate against the trusted
-manifest SHA-256 from the [release receipt](../release/v1.2.0.json).
-These examples pin the published `v1.2.0` revisions:
+manifest SHA-256 from the [release receipt](../release/v2.0.0.json).
+These examples pin the published `v2.0.0` revisions:
 
 ```python
 from pathlib import Path
@@ -107,10 +110,10 @@ import kagglehub
 
 hf_root = Path(snapshot_download(
     "jakeryderv/us-tornado-data-2010-2025",
-    repo_type="dataset", revision="813d8d7e9be0bc992ef48fe93598737cad263af3",
+    repo_type="dataset", revision="v2.0.0",
 ))
 kg_archive = Path(kagglehub.dataset_download(
-    "jakevanslyke/us-tornado-data-2010-2025/versions/4",
+    "jakevanslyke/us-tornado-data-2010-2025/versions/5",
     path="release.zip.bin",
 ))
 ```
@@ -122,8 +125,8 @@ receipt (the ordinary Python `zipfile` module can also extract the archive):
 uv run python scripts/release_data.py unpack /path/to/kaggle/download/release.zip.bin /path/to/extracted-data --manifest-sha256 TRUSTED_MANIFEST_SHA256 --archive-sha256 TRUSTED_ARCHIVE_SHA256
 ```
 
-Set `kg_root = Path("/path/to/extracted-data")`. Use Kaggle version 4 for
-`v1.2.0`; v1.1.0 maps to Kaggle version 3 and v1.0.0 maps to version 2.
+Set `kg_root = Path("/path/to/extracted-data")`. Use Kaggle version 5 for
+`v2.0.0`; v1.2.0 maps to Kaggle version 4, v1.1.0 maps to Kaggle version 3 and v1.0.0 maps to version 2.
 Kaggle version 1 is retained as upload history but failed original
 archive integrity checks and is superseded. Hugging Face and Kaggle version numbers
 do not need to match; the receipt maps both to the shared release.
@@ -136,9 +139,9 @@ from zipfile import ZipFile
 
 with kg_archive.open("rb") as handle:
     assert hashlib.file_digest(handle, "sha256").hexdigest() == (
-        "139f947c531ef384fb7da50e2ec839ae7d18ff03ff1801e338aae9f4ef40814d"
-    )  # v1.2.0 archive hash from the receipt
-kg_root = Path("tornado-data-v1.2.0")
+        "TRUSTED_ARCHIVE_SHA256"
+    )  # v2.0.0 archive hash from the receipt
+kg_root = Path("tornado-data-v2.0.0")
 kg_root.mkdir(exist_ok=False)  # Extract once into a new folder; reuse it afterward.
 with ZipFile(kg_archive) as archive:
     archive.extractall(kg_root)
@@ -160,8 +163,7 @@ counties = pd.read_csv(
 ```
 
 Use the extracted `kg_root` in place of `hf_root` for Kaggle. Loading a table does not join it
-with the other sources. Inspect `nws_dat/<year>/<layer>/index.json` to load all
-survey batches. Record successful checksum verification and sample loading in
+with the other sources. Read `event_footprints/<year>_tornado_footprint.geojson` for original annual footprints. Record successful checksum verification and sample loading in
 the release receipt before updating README download links as available.
 
 For the small analysis-only download and direct Kaggle Parquet example, see the

@@ -65,19 +65,12 @@ def active_files(data, start, end):
     census = read_json(data / f'census_manifest_{start}_{end}.json')
     for folder in ['spc', 'ncei_storm_events']:
         add(f'{folder}/catalog.html', True)
-    for filename in ['service.json', 'points_schema.json', 'lines_schema.json', 'polygons_schema.json']:
-        add(f'nws_dat/{filename}', True)
+    for entry in [noaa['footprints']['inventory'], *noaa['footprints']['documents']]:
+        add(entry['path'], True)
     for output in noaa['outputs']:
-        add(output['path'], output['source'] == 'SPC')
+        add(output['path'], output['source'] in ('SPC', 'EFC'))
         if output['source'] == 'NCEI':
             add(output['input'], True)
-        elif output['source'] == 'DAT':
-            folder = PurePosixPath(output['path']).parent
-            for name in ['object_ids.json', 'count.json']:
-                add(str(folder / name), True)
-            index = read_json(data / output['path'])
-            for batch in index['batches']:
-                add(str(folder / batch['file']), True)
     for entry in census['sources']:
         add(entry['path'], True)
     add(census['context']['path'])
@@ -96,9 +89,9 @@ def schema(data, start, end):
         with path.open(encoding='utf-8-sig', newline='') as handle:
             tables[name] = {'path': str(path.relative_to(data)), 'columns': next(csv.reader(handle)),
                             'note': 'Source-native CSV fields; preserve identifiers as strings.'}
-    dat = {name: read_json(data / f'nws_dat/{name}_schema.json')['fields'] for name in ['points', 'lines', 'polygons']}
-    result = {'csv_tables': tables, 'dat_source_fields': dat,
-              'geometry': 'DAT and county GeoJSON coordinates are WGS84 longitude/latitude.'}
+    from scripts.build_analysis import EFC_TYPES
+    result = {'csv_tables': tables, 'efc_source_fields': EFC_TYPES,
+              'geometry': 'Footprint and county GeoJSON coordinates are WGS84 longitude/latitude.'}
     if (data / 'analysis/manifest.json').is_file():
         result['analysis_tables'] = read_json(data / 'analysis/manifest.json')['files']
     return result

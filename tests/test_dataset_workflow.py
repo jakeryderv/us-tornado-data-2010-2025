@@ -12,7 +12,7 @@ import json
 import unittest
 
 import download_data
-from dataset_inspection import (csv_preview, dat_preview, inventory,
+from dataset_inspection import (csv_preview, footprint_preview, inventory,
                                 load_json, local_path, reference_check)
 
 
@@ -32,7 +32,7 @@ class Workflow(unittest.TestCase):
             self.assertFalse(target.exists())
 
     def test_help_and_invalid_arguments_do_not_download(self):
-        for args in [['--help'], ['--dat-batch-size','0'], ['--timeout','0'],
+        for args in [['--help'], ['--start-year','2009'], ['--timeout','0'],
                      ['--start-year','2025','--end-year','2020']]:
             with self.subTest(args=args), patch('download_data.urlopen', side_effect=AssertionError('network')),\
                  redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
@@ -51,7 +51,7 @@ class Workflow(unittest.TestCase):
         }
         def response(request, **kwargs):
             url = request.full_url
-            self.assertIn(urlparse(url).hostname, {'www.spc.noaa.gov', 'www.ncei.noaa.gov', 'services.dat.noaa.gov'})
+            self.assertIn(urlparse(url).hostname, {'www.spc.noaa.gov', 'www.ncei.noaa.gov', 'storage.googleapis.com'})
             if url == 'https://www.spc.noaa.gov/wcm/':
                 body = b'<a href="1950-2020_actual_tornadoes.csv">csv</a>'
             elif url.endswith('actual_tornadoes.csv'):
@@ -61,39 +61,37 @@ class Workflow(unittest.TestCase):
             elif url.endswith('.csv.gz'):
                 table = next(t for t in tables if f'StormEvents_{t}-' in url)
                 body = gzip.compress(tables[table].encode())
+            elif 'storage.googleapis.com' in url:
+                from footprint_data import INVENTORY_URL, BASE
+                import base64,hashlib
+                value={'type':'FeatureCollection','features':[dict(type='Feature',properties=dict(
+                    objectid=1,source='DAT',stormdate='2020-05-01T12:00:00Z',efscale='EF1',width=50,
+                    parents=[],children=[]),geometry={'type':'Polygon','coordinates':[[[-97,35],[-96,35],[-96,36],[-97,35]]]})]}
+                body=json.dumps(value).encode()
+                if url==INVENTORY_URL:
+                    body=json.dumps({'items':[dict(name='datasets/event-catalog/tornado/2020_tornado_footprint.geojson',
+                        generation='123',size=str(len(body)),md5Hash=base64.b64encode(hashlib.md5(body).digest()).decode(),
+                        updated='2026-09-15T00:00:00Z')]}).encode()
+                elif url in [BASE+'README.md',BASE+'DOWNLOAD.md']:
+                    body=b'Official source documentation'
             else:
-                parsed = urlparse(url);query = parse_qs(parsed.query)
-                if parsed.path.endswith('MapServer'):
-                    value = {'layers':[{'id':i} for i in (0,1,2)]}
-                elif not parsed.path.endswith('/query'):
-                    value = {'fields':[{'name':'objectid','type':'esriFieldTypeOID'},
-                                       {'name':'stormdate','type':'esriFieldTypeDate'}], 'maxRecordCount':200}
-                elif 'returnIdsOnly' in query:
-                    value = {'objectIdFieldName':'objectid','objectIds':[1]}
-                elif 'returnCountOnly' in query:
-                    value = {'count':1}
-                else:
-                    value = {'type':'FeatureCollection','features':[{
-                        'type':'Feature','properties':{'objectid':1,'stormdate':1588352400000,
-                                                      'efscale':'EF1','globalid':'g','event_id':'e'},
-                        'geometry':{'type':'Point','coordinates':[-97,35]}}]}
-                body = json.dumps(value).encode()
+                raise AssertionError(url)
             return Response(url,body)
         with TemporaryDirectory() as d, patch('download_data.urlopen',side_effect=response), redirect_stdout(io.StringIO()):
             self.assertEqual(download_data.main(['--sources','noaa','--verify-downloads','--start-year','2020','--end-year','2020','--data-dir',d]),0)
             data = Path(d)
             manifest = load_json(data/'download_manifest_2020_2020.json')
             self.assertTrue(manifest['requested_archives_available'])
-            self.assertEqual(len(manifest['outputs']),7)
+            self.assertEqual(len(manifest['outputs']),5)
             self.assertEqual(csv_preview(data/'spc/tornadoes_2020_2020.csv')[0]['yr'],'2020')
             self.assertEqual(len(csv_preview(data/'spc/tornadoes_2020_2020.csv')),1)
             for table in tables:
                 rows = csv_preview(data/f'ncei_storm_events/tornado/2020_{table}.csv')
                 self.assertEqual([r['EVENT_ID'] for r in rows],['1'])
-            self.assertEqual(dat_preview(data,manifest)[0]['efscale'],'EF1')
+            self.assertEqual(footprint_preview(data,manifest)[0]['efscale'],'EF1')
             self.assertEqual(load_json(data/'quality_summary_2020_2020.json')['spc_rating_totals'],{'1':1})
             self.assertEqual(load_json(data/'download_verification_2020_2020.json')['status'],'passed')
-            self.assertEqual({p.name for p in data.iterdir() if p.is_dir()}, {'spc','ncei_storm_events','nws_dat'})
+            self.assertEqual({p.name for p in data.iterdir() if p.is_dir()}, {'spc','ncei_storm_events','event_footprints'})
 
     def test_inspection_handles_empty_partial_and_stale_files(self):
         with TemporaryDirectory() as d:

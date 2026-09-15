@@ -71,14 +71,14 @@ def verify(root, start=2010, end=2025, sources="all"):
             require((manifest['start_year'], manifest['end_year']) == (start, end), 'Period mismatch')
             years = set(range(start, end+1))
             outputs = manifest['outputs']
-            require(len(outputs) == 1+6*len(years), 'Unexpected number of original source outputs')
+            require(len(outputs) == 1+4*len(years), 'Unexpected number of original source outputs')
             walk(manifest)
             spc = read_rows(path(f'spc/tornadoes_{start}_{end}.csv'))
             require(all(int(r['yr']) in years and r['date'].startswith(r['yr']) for r in spc), 'SPC date mismatch')
             require(len({(r['yr'], r['om']) for r in spc}) == len(spc), 'SPC duplicate tornado identifiers')
             report['counts']['spc_tracks'] = len(spc)
             report['counts']['spc_ratings'] = dict(Counter(r['mag'] for r in spc))
-            raw_totals, tornado_totals, dat_totals = Counter(), Counter(), Counter()
+            raw_totals, tornado_totals = Counter(), Counter()
             for year in sorted(years):
                 entries = {o['table']: o for o in outputs if o['source'] == 'NCEI' and o['year'] == year}
                 require(set(entries) == {'details','fatalities','locations'}, f'NCEI missing table: {year}')
@@ -95,27 +95,36 @@ def verify(root, start=2010, end=2025, sources="all"):
                     require(all(int(r[entry['date_field']][:4]) == year for r in raw), f'NCEI date mismatch: {year}/{table}')
                     raw_totals[table] += len(raw)
                     tornado_totals[table] += len(actual)
-                for layer in ('points','lines','polygons'):
-                    folder = f'nws_dat/{year}/{layer}/'
-                    index = json.loads(path(folder+'index.json').read_text())
-                    ids_path = path(folder+'object_ids.json')
-                    require(sha(ids_path) == index['object_ids_sha256'], 'DAT object ID hash mismatch')
-                    catalog = json.loads(ids_path.read_text())
-                    object_field = catalog['objectIdFieldName'].lower()
-                    actual_ids = []
-                    for batch in index['batches']:
-                        p = path(folder+batch['file'])
-                        require(sha(p) == batch['sha256'], f'DAT batch hash mismatch: {p}')
-                        features = json.loads(p.read_text())['features']
-                        require(len(features) == batch['features'], f'DAT batch count mismatch: {p}')
-                        for feature in features:
-                            props = feature['properties']
-                            actual_ids.append(props[object_field])
-                            require(datetime.fromtimestamp(props['stormdate']/1000, timezone.utc).year == year, 'DAT date mismatch')
-                    require(len(actual_ids) == index['features'] and len(actual_ids) == len(set(actual_ids)), 'DAT duplicate/count mismatch')
-                    require(set(actual_ids) == set(catalog['objectIds']), 'DAT query object IDs differ from downloaded features')
-                    dat_totals[layer] += len(actual_ids)
-            report['counts'].update(ncei_raw=dict(raw_totals), ncei_tornado=dict(tornado_totals), dat=dict(dat_totals))
+            from footprint_data import validate_collection, verify_object, PREFIX, BUCKET, INVENTORY_URL
+            footprints = manifest['footprints']
+            require(footprints['status'] == 'complete', 'Footprint collection incomplete')
+            require((footprints['start_year'], footprints['end_year']) == (start,end), 'Footprint period mismatch')
+            inv_path = path(footprints['inventory']['path'])
+            inv = json.loads(inv_path.read_text())
+            require(not inv.get('nextPageToken'), 'Incomplete EFC inventory')
+            inv_meta = json.loads(path(str(inv_path.relative_to(root))+'.metadata.json').read_text())
+            require(inv_meta['url'] == INVENTORY_URL, 'EFC inventory URL mismatch')
+            inventory = {i['name']:i for i in inv['items']}
+            entries = [o for o in outputs if o['source'] == 'EFC']
+            require(entries == footprints['outputs'], 'Footprint manifests disagree')
+            require(len(entries) == len(years) and {o['year'] for o in entries} == years, 'Missing/duplicate EFC year')
+            totals = Counter()
+            for entry in entries:
+                name = f"{PREFIX}tornado/{entry['year']}_tornado_footprint.geojson"
+                item = inventory[name]
+                expected_url = f"https://storage.googleapis.com/{BUCKET}/{name}?generation={item['generation']}"
+                require(entry['object_name'] == name and entry['url'] == expected_url
+                        and entry['generation'] == item['generation'] and entry['md5_base64'] == item['md5Hash'],
+                        'EFC generation/source mismatch')
+                p = path(entry['path']); verify_object(p,item)
+                require(json.loads(path(entry['path']+'.metadata.json').read_text())['url'] == expected_url,
+                        'EFC cached URL mismatch')
+                actual = validate_collection(json.loads(p.read_text()),entry['year'])
+                require(all(actual[k] == entry[k] for k in actual), 'EFC counts/quality mismatch')
+                totals.update(actual['source_counts'])
+            report['counts'].update(ncei_raw=dict(raw_totals), ncei_tornado=dict(tornado_totals),
+                                    footprints=dict(totals), footprint_features=sum(totals.values()))
+            report['checks']['efc_annual_inventory_generations_md5_and_counts'] = 'passed'
             report['checks']['original_sources'] = 'passed'
             report['manifest'] = dict(path=str(manifest_path.relative_to(root)), sha256=sha(manifest_path))
 
@@ -154,9 +163,9 @@ def verify(root, start=2010, end=2025, sources="all"):
                                     census_map_unmatched_fips=missing)
             report['checks']['census_sources_and_derivations'] = 'passed'
 
-        folders = (['spc', 'ncei_storm_events', 'nws_dat'] if sources == 'noaa' else
+        folders = (['spc', 'ncei_storm_events', 'event_footprints'] if sources == 'noaa' else
                    ['census_population', 'census_boundaries'] if sources == 'census' else
-                   ['spc', 'ncei_storm_events', 'nws_dat', 'census_population', 'census_boundaries'])
+                   ['spc', 'ncei_storm_events', 'event_footprints', 'census_population', 'census_boundaries'])
         sidecars = [p for folder in folders for p in (root / folder).rglob('*.metadata.json')]
         for p in sidecars:
             relative = p.relative_to(root)

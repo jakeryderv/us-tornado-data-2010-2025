@@ -19,7 +19,7 @@ travels with the dataset. Both kinds of report identify their checked manifests;
 a later collection can make an earlier verification stale. The notebook displays
 the collection's saved verification, not the standalone report in this directory.
 
-## DAT coverage study
+## Historical DAT coverage study (v1 releases)
 
 [`dat_coverage/dat_coverage_report.md`](dat_coverage/dat_coverage_report.md) describes
 the NOAA snapshot collected on **2026-09-14**, with its exact timestamp and source
@@ -27,14 +27,15 @@ hashes recorded in the report and metrics. It is a coverage study, not a current
 five-source completeness certificate. The colocated PNG/SVG figures, metrics JSON,
 and compressed candidate-match files support that study.
 
-```sh
-uv run python scripts/audit_dat_coverage.py
-uv run python scripts/plot_dat_coverage.py
-```
+The standalone DAT collector and audit commands were retired in v2. These saved
+results remain historical evidence; reproducing them requires the v1.2.0 code and
+source release. Candidate matches are not verified event joins.
 
-The audit regenerates metrics and candidates under `dat_coverage/`; the plotting
-command reads those metrics and regenerates the figures. The report prose must be
-reviewed if inputs change. Candidate matches are not verified event joins.
+## Footprint Catalog audit
+
+[Catalog audit](footprints/catalog_audit.md) records the September 15, 2026 source
+comparison that motivated the replacement. Its observations do not establish
+complete cross-source event matching.
 
 ## Historical verification
 

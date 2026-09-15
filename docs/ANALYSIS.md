@@ -1,11 +1,10 @@
 # Analysis tables
 
-Release **v1.2.0** provides **nine main tables**, a 16-row annual summary, and
-one manifest under `analysis/`. The tables total about **38 MB**. Start with
+Release **v2.0.0** provides **seven main tables**, a 16-row annual summary, and
+one manifest under `analysis/`. The tables total about **24 MB**. Start with
 `tornadoes.parquet` (0.9 MB); download the additional tables as needed.
 These preserve separate units of observation; no cross-source joined training
-dataset is implied. The three original convenience tables from v1.1.0 retain
-identical bytes.
+dataset is implied. The SPC, NCEI, and Census tables retain their existing schemas. Version 2 replaces the three DAT survey tables with one footprint table.
 
 | Source | File | Rows | Unit |
 |---|---|---:|---|
@@ -15,9 +14,7 @@ identical bytes.
 | NCEI | `storm_events.parquet` | 23,189 | Tornado event/county segment |
 | NCEI | `storm_fatalities.parquet` | 1,352 | Related fatality record |
 | NCEI | `storm_locations.parquet` | 35,920 | Related location record |
-| DAT | `survey_points.parquet` | 218,231 | Survey observation |
-| DAT | `survey_lines.parquet` | 11,585 | Survey line |
-| DAT | `survey_polygons.parquet` | 10,009 | Survey area |
+| NOAA Event Footprint Catalog | `tornado_footprints.parquet` | 24,858 | Damage footprint region; not a unique tornado |
 | Cross-source counts | `annual_summary.csv` | 16 | Year, 2010–2025 |
 
 `analysis/manifest.json` records input hashes, output hashes, field types, the SPC
@@ -39,7 +36,7 @@ events = pd.read_parquet(root / "analysis/storm_events.parquet")
 annual_summary = pd.read_csv(root / "analysis/annual_summary.csv")
 
 import geopandas as gpd
-survey_points = gpd.read_parquet(root / "analysis/survey_points.parquet")
+footprints = gpd.read_parquet(root / "analysis/tornado_footprints.parquet")
 county_map = gpd.read_parquet(root / "analysis/county_boundaries.parquet")
 ```
 
@@ -147,42 +144,61 @@ The [NCEI bulk format documentation](https://www.ncei.noaa.gov/pub/data/swdi/sto
 defines the retained source fields. `manifest.json` supplies every output column's
 type and the complete source-to-output name mapping.
 
-## DAT consolidated surveys
+## Tornado footprints (v2.0.0)
 
-`survey_points.parquet`, `survey_lines.parquet`, and `survey_polygons.parquet`
-include every feature from every listed annual batch, retaining unknown and
-non-tornado categories. No photos are fetched; retained image-reference fields
-are text only. No survey-to-tornado association is inferred.
+`tornado_footprints.parquet` retains every feature from the 16 annual NOAA Event
+Footprint Catalog GeoJSON files. `source` distinguishes DAT (16,465 regions) from
+SED / Storm Events (8,393). These are **24,858 footprints, not 24,858 tornadoes**.
+Nested damage regions and multiple polygons for a track remain separate.
+Individual DAT damage-indicator survey points and original standalone line/polygon
+layers are no longer part of this release; use v1.2.0 if those are needed.
 
-| Fields | Meaning / conversion |
+All original property names are preserved, including case. Source column types
+are listed in the analysis manifest and source-to-output mappings are identities.
+The downloaded `event_footprints/README.md` supplies NOAA's complete field dictionary.
+
+| Fields | Meaning / handling |
 |---|---|
-| `object_id` | Source `objectid` as a string; verified unique within each layer |
-| `survey_event_id` | Source `event_id` label; not an NCEI event ID or guaranteed unique tornado key |
-| `global_id`, `path_guid` | Source GUID strings, including missing values |
-| `source_ef_rating`, `ef_rating` | Original `efscale` plus nullable integer for exact `EF0`–`EF5` labels; a point rating is not a tornado maximum |
-| `office` | Source `office` or `wfo` |
-| `damage`, `damage_txt`, `dod`, `dod_txt` | Retained damage-indicator/degree fields; inspect the saved point schema and category before interpreting |
-| `windspeed`, `maxwind`, `efnum` | Retained source values/types; text and numeric sentinel codes are not converted into measured winds or EF labels |
-| `length`, `width`, `cropdamage`, `propdamage` | Retained source measurements/amounts; units and sentinel interpretation are not newly inferred |
-| `injuries`, `deaths`, `fatalities` | Retained survey attributes; not aggregated to tornado totals |
-| `comments`, `qc`, other source attributes | Retained values typed using the saved layer schema |
-| `source_geometry_length`, `source_geometry_area`, `source_geometry_perimeter` | Renamed ArcGIS `st_*(shape)` fields; not recomputed metric distances/areas |
-| `geometry` | Original feature geometry encoded as WKB in GeoParquet |
+| `footprint_id` | Project key `efc:<source_year>:<source>:<objectid>`; unique in this snapshot, not a tornado key |
+| `objectid`, `objectid_line` | Source object identifiers represented as strings; missing linked-line `-99` is retained |
+| `source`, `source_line` | Catalog origins DAT or SED; blank/null linked-line source remains missing |
+| `event_id`, `event_id_line` | Human-readable names, not original NCEI EVENT_ID; SED names are blank in this snapshot |
+| `globalid`, `globalid_line`, `path_guid` | Original survey GUIDs where available; SED records have generated object IDs and no original NCEI ID column |
+| `efscale`, `max_efscale`, `efnum`, `efscale_line`, `efnum_line` | Original labels/codes, including EFU, EF3+, and sentinels |
+| `ef_rating`, `max_ef_rating` | Nullable Int8 for exact EF0–EF5 labels only; regional EF and catalog maximum respectively, not reconciled SPC targets |
+| `parents`, `children` | Original arrays of footprint object IDs describing damage-region relationships; use year/source context, not an automatic event grouping |
+| `width`, `length`, `width_line`, `length_line` | Original catalog path width in yards and length in miles; values/sentinels unchanged |
+| `width_is_placeholder` | True when original `width == 0.99`, NOAA's missing-width display value |
+| `path_width_yards` | Nullable positive width; 0.99, zero, negative, or missing widths become null; raw `width` remains intact |
+| `startlat`, `startlon`, `endlat`, `endlon` and `_line` variants | Original coordinates; -99 sentinels retained, no coordinate imputation |
+| `injuries`, `fatalities`, `maxwind`, `cropdamage`, `propdamage` and `_line` variants | Source impacts and estimated winds; -99 remains a sentinel and monetary strings are not converted |
+| `area_acres`, `Shape__Area`, `Shape__Length` | Source geometry measurements; not recomputed or treated as independently observed areas |
+| `stormdate`, `starttime`, `endtime`, `created_date`, `last_edited_date`, `edit_time` and `_line` variants | Original timestamp values represented as strings (including numeric sentinels/epoch milliseconds); each gains a `<original_name>_datetime_utc` parsed UTC column |
+| `CZ_TIMEZONE`, `convective_day` | Source timezone designation and 12Z-to-next-12Z day label; retained as strings |
+| `comments`, `qc`, `wfo`, creator/editor fields and `_line` variants | Retained narratives, survey quality flag, forecast office, and provenance |
+| `source_year`, `source_file`, `source_row` | Annual file year, relative GeoJSON path, and one-based feature position |
+| `geometry` | Original catalog polygon/multipolygon geometry, encoded as WKB GeoParquet |
 
-Date fields get paired columns: `stormdate` becomes `storm_epoch_ms` and
-`storm_datetime_utc`; `surveydate`, `starttime`, `endtime`, `edit_time`,
-`created_date`, and `last_edited_date` similarly use the prefixes `survey`,
-`start`, `end`, `edit`, `created`, and `last_edited` where present. Nullable
-integer milliseconds are retained, and the corresponding datetimes are explicitly
-UTC. Storm years must agree with the saved source partitions. This timestamp
-conversion does not align DAT's event-date definitions with other sources.
+Parsed timestamp columns map blank/-99/-99.0 to null, accept ISO timestamps and
+explicit 12–13 digit epoch-millisecond values, and reject other invalid formats.
+One live `edit_time` uses epoch milliseconds; the original value is retained as text.
 
-`source_file`, `source_year`, and `source_row` trace each feature to its batch;
-`source_row` is the one-based feature position. `source_feature_id` retains the
-top-level GeoJSON feature ID as a string, separate from the property IDs.
-Original strings, including empty strings and `Null`, remain unchanged; JSON null
-becomes a nullable value. Numeric sentinels such as `-99` are preserved. All fields,
-types, and mappings are listed in the analysis manifest and saved layer schemas.
+Annual selection uses **source file years 2010–2025**. One 2010-file event has a
+2011-01-01 UTC timestamp; source/local/convective year and UTC year can differ.
+Validation allows at most one day beyond either annual boundary and does not
+silently discard such records. Other later survey/edit dates do not define scope.
+
+All 2,682 placeholder widths and 4,114 zero widths remain explicit. A valid polygon
+does not establish observed ground-path accuracy: some catalog shapes come from
+lines/endpoints, including lines with missing-width display values. Do not use
+those areas as precise exposure measurements. The catalog omits original SED
+EVENT_IDs; joining to NCEI/SPC requires a separate, ambiguity-aware matching study.
+
+The catalog uses DAT first and supplements with SED according to proximity rules
+(two hours / 1,000 meters in the published method). We preserve NOAA's output;
+we do not repeat its matching, deduplicate regions, or claim complete tornado
+coverage. See the [NOAA methodology](https://www.ncei.noaa.gov/sites/default/files/2026-08/EFC%20Data%20Information%20Sheet_v6.pdf)
+and [audit](../reports/footprints/catalog_audit.md).
 
 ## County boundaries and geometry
 
@@ -200,7 +216,7 @@ types, and mappings are listed in the analysis manifest and saved layer schemas.
 | `source_file`, `source_row` | Source GeoJSON path and one-based feature position |
 | `geometry` | Original Polygon/MultiPolygon geometry |
 
-All four geometry tables use **GeoParquet 1.0, WKB, OGC:CRS84** (WGS84 longitude,
+Both geometry tables use **GeoParquet 1.0, WKB, OGC:CRS84** (WGS84 longitude,
 latitude). Polygon parts, holes, coordinates, missing geometries, and source
 geometry validity are preserved. No reprojection, simplification, repair, or
 spatial join occurs. The manifest reports geometry types and null/empty/invalid
@@ -224,9 +240,8 @@ fixed map. Map-code agreement does not prove stable boundaries across years.
   `ncei_tornado_locations_rows`: row counts of the corresponding tornado extracts,
   grouped by their existing source-year files. Fatalities *rows* are not a sum of
   people killed. These records are not aligned to SPC tornado identities.
-- `dat_points`, `dat_lines`, `dat_polygons`: feature counts from complete annual
-  DAT indexes, including unknown and non-tornado categories. They are not tornado
-  counts, and are not divided by SPC counts to claim matching coverage.
+- `efc_dat_footprints`, `efc_sed_footprints`: catalog feature counts by original
+  annual file and catalog source. These are damage regions, not tornado counts.
 - `census_county_rows`: rows of county context for that year.
 - `census_counties_without_2020_map`: county/year rows whose saved map-code flag
   is false; not a count of tornadoes with missing geography.
@@ -251,8 +266,8 @@ analysis results. The inspection notebook detects stale analysis inputs.
 
 Release builds regenerate this layer from their freshly copied, verified source
 snapshot. Parquet round-trip checks verify values and types, while annual totals
-reconcile with all consolidated source tables. NCEI child references, DAT batch
-checksums/counts and layer IDs, and geometry WKB round trips are checked. Tests cover unknown labels,
+reconcile with all consolidated source tables. NCEI child references, EFC annual
+checksums/counts and footprint IDs, and geometry WKB round trips are checked. Tests cover unknown labels,
 opaque identifiers, leading-zero FIPS, missing counts, and missing partitions.
 
 For EF classification, establish eligible predictors and grouping before splitting

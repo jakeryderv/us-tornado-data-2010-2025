@@ -1,14 +1,15 @@
 {
-  "checked_at": "2026-09-15T18:00:57.914817+00:00",
+  "checked_at": "2026-09-15T23:21:48.380326+00:00",
   "scope": "all",
   "start_year": 2010,
   "end_year": 2025,
   "errors": [],
   "checks": {
+    "efc_annual_inventory_generations_md5_and_counts": "passed",
     "original_sources": "passed",
     "census_sources_and_derivations": "passed",
     "hashes_sizes_and_payloads": "passed",
-    "unique_files_hashed": 1382
+    "unique_files_hashed": 79
   },
   "counts": {
     "spc_tracks": 20164,
@@ -31,11 +32,11 @@
       "fatalities": 1352,
       "locations": 35920
     },
-    "dat": {
-      "points": 218231,
-      "lines": 11585,
-      "polygons": 10009
+    "footprints": {
+      "DAT": 16465,
+      "SED": 8393
     },
+    "footprint_features": 24858,
     "census_county_years": 50294,
     "county_map_features": 3234,
     "census_map_unmatched_fips": [
@@ -52,11 +53,11 @@
   },
   "manifest": {
     "path": "download_manifest_2010_2025.json",
-    "sha256": "2d6cb2a5ed7d2ff9933c944713bb8168c7c02423f249d3afc5a981ce05c65c74"
+    "sha256": "b36685901d23a920724713d7fe4ea2b555161d68bb0162245ec0ff1f51c9eb42"
   },
   "census_manifest": {
     "path": "census_manifest_2010_2025.json",
-    "sha256": "b95a05be113792da897116bb5095ef884a4be11b4c62970a2e47cc794b24c073"
+    "sha256": "d72bd5b7a5a1c6108f49cf2db1114bcb7f92a9ca785108d9699f911149a56ec3"
   },
   "status": "passed"
 }

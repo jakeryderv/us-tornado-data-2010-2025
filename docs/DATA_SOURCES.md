@@ -14,7 +14,7 @@ source attribution when using those outputs.
 |---|---|---|
 | NOAA / NWS Storm Prediction Center | Historical tornado tracks and ratings | [SPC severe weather database](https://www.spc.noaa.gov/wcm/#data) |
 | NOAA National Centers for Environmental Information | Storm Events details, fatalities, locations, and tornado extracts | [NCEI Storm Events](https://www.ncei.noaa.gov/stormevents/) |
-| NOAA National Weather Service | DAT survey points, lines, and polygons; no photos | [DAT service](https://services.dat.noaa.gov/arcgis/rest/services/nws_damageassessmenttoolkit/DamageViewer/MapServer) |
+| NOAA National Centers for Environmental Information / NWS | Event Footprint Catalog: DAT/Storm Events tornado damage footprints | [EFC source and methodology](https://www.ncei.noaa.gov/products/event-footprint-catalog) |
 | U.S. Census Bureau, Population Division | County population and housing-unit estimates, vintages 2020 and 2025 | [Population and housing estimates](https://www.census.gov/programs-surveys/popest.html) |
 | U.S. Census Bureau | Generalized 2020 county boundaries at 1:5,000,000 | [2020 cartographic boundary files](https://www.census.gov/geographies/mapping-files/2020/geo/carto-boundary-file.html) |
 
@@ -29,10 +29,7 @@ subject to the project's copyright claim. Third-party content can have separate
 terms; preserve source notices. This project does not collect DAT photos or
 commercial basemap imagery.
 
-The saved DAT service description identifies the survey data as preliminary and
-points to NCEI Storm Data for official severe-weather statistics. Successful
-retrieval and local validation do not change that status. Refer to the respective
-source pages and retained metadata for product-specific notices.
+The Footprint Catalog derives tornado footprints from NWS DAT surveys and NCEI Storm Events. Credit those underlying sources as well as the catalog. Its transformations and our format conversions do not create independent observations or establish complete historical coverage. Retained NOAA documentation describes source limitations and missing-value conventions.
 
 ## Census material
 
@@ -61,5 +58,5 @@ The GitHub repository is the code and methodology reference:
 The frozen data is available on
 [Hugging Face](https://huggingface.co/datasets/jakeryderv/us-tornado-data-2010-2025)
 and [Kaggle](https://www.kaggle.com/datasets/jakevanslyke/us-tornado-data-2010-2025).
-Use the revisions and checksums in the [v1.0.0 release receipt](../release/v1.0.0.json)
+Use the revisions and checksums in the [v2.0.0 release receipt](https://github.com/jakeryderv/us-tornado-data-2010-2025/blob/main/release/v2.0.0.json)
 and the `CITATION.cff` included with the snapshot when citing this collection.

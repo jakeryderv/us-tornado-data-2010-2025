@@ -87,7 +87,7 @@ def county_table(source):
     return result.sort_values(['year', 'county_fips']).reset_index(drop=True)
 
 
-def annual_table(tornadoes, counties, start, end, ncei_counts, dat_counts):
+def annual_table(tornadoes, counties, start, end, ncei_counts, footprint_counts):
     rows = []
     for year in range(start, end + 1):
         tracks = tornadoes[tornadoes.year.eq(year)]
@@ -97,7 +97,7 @@ def annual_table(tornadoes, counties, start, end, ncei_counts, dat_counts):
         row['spc_known_ef_fraction'] = tracks.ef_rating.notna().mean() if len(tracks) else float('nan')
         # Missing partitions raise rather than becoming fabricated zero counts.
         row.update({f'ncei_tornado_{table}_rows': ncei_counts[year, table] for table in ['details', 'fatalities', 'locations']})
-        row.update({f'dat_{layer}': dat_counts[year, layer] for layer in ['points', 'lines', 'polygons']})
+        row.update({f'efc_{source.lower()}_footprints': footprint_counts[year, source] for source in ['DAT', 'SED']})
         row.update(census_county_rows=len(county), census_counties_without_2020_map=int(county.map_2020_fips_present.eq(False).sum()))
         rows.append(row)
     result = pd.DataFrame(rows)
@@ -122,12 +122,19 @@ NCEI_INTS = {'BEGIN_YEARMONTH','BEGIN_DAY','END_YEARMONTH','END_DAY','YEAR',
              'FAT_YEARMONTH','FAT_DAY','FATALITY_AGE','YEARMONTH','LOCATION_INDEX'}
 NCEI_FLOATS = {'MAGNITUDE','TOR_LENGTH','TOR_WIDTH','BEGIN_RANGE','END_RANGE','BEGIN_LAT',
                'BEGIN_LON','END_LAT','END_LON','RANGE','LATITUDE','LONGITUDE'}
-DAT_RENAMES = {'objectid':'object_id','event_id':'survey_event_id','globalid':'global_id',
-               'path_guid':'path_guid','efscale':'source_ef_rating','wfo':'office',
-               'st_length(shape)':'source_geometry_length','st_area(shape)':'source_geometry_area',
-               'st_perimeter(shape)':'source_geometry_perimeter'}
-DAT_DATES = {'stormdate':'storm','surveydate':'survey','starttime':'start','endtime':'end',
-             'edit_time':'edit','created_date':'created','last_edited_date':'last_edited'}
+# Preserve source column names and sentinels; add explicit analysis helpers.
+EFC_TYPES = {}
+for names, dtype in [
+    ('objectid objectid_line', 'string'),
+    ('event_id CZ_TIMEZONE efscale qc globalid cropdamage propdamage created_user last_edited_user comments wfo path_guid source edit_user max_efscale event_id_line efscale_line qc_line globalid_line cropdamage_line propdamage_line edit_user_line created_user_line last_edited_user_line comments_line wfo_line source_line convective_day', 'string'),
+    ('stormdate starttime endtime created_date last_edited_date edit_time stormdate_line starttime_line endtime_line edit_time_line created_date_line last_edited_date_line', 'string'),
+    ('injuries fatalities efnum injuries_line fatalities_line efnum_line', 'Int64'),
+    ('startlat startlon endlat endlon length width maxwind Shape__Length Shape__Area area_acres startlat_line startlon_line endlat_line endlon_line length_line width_line maxwind_line Shape__Length_line', 'Float64'),
+    ('parents children', 'object'),
+]:
+    EFC_TYPES.update({name:dtype for name in names.split()})
+EFC_DATES = ['stormdate','starttime','endtime','created_date','last_edited_date','edit_time',
+             'stormdate_line','starttime_line','endtime_line','edit_time_line','created_date_line','last_edited_date_line']
 
 
 def nullable_ef(values):
@@ -167,48 +174,42 @@ def ncei_table(parts):
     return result, mapping
 
 
-def survey_table(features, schema):
-    """Use saved ArcGIS types, preserving every feature and unnormalized sentinel."""
+def footprint_table(features):
+    """Retain each EFC damage region, raw properties, relationships, and geometry."""
     props = [f['properties'] for f in features]
-    definitions = {f['name']:f for f in schema['fields'] if f['type'] != 'esriFieldTypeGeometry'}
-    added = {'source_file','source_row','source_year','source_feature_id'}
-    unexpected = set().union(*(set(p) for p in props)) - set(definitions) - added
+    added = {'source_file','source_year','source_row'}
+    unexpected = set().union(*(set(p) for p in props)) - set(EFC_TYPES) - added
     if unexpected:
-        raise ValueError(f'DAT properties absent from saved schema: {sorted(unexpected)}')
-    frame = pd.DataFrame(props, columns=[*definitions,*sorted(added)])
-    mapping = {}
-    for name, definition in definitions.items():
-        kind = definition['type']
-        new = DAT_RENAMES.get(name,name)
-        if kind == 'esriFieldTypeDate':
-            if name not in DAT_DATES:
-                raise ValueError(f'Unmapped DAT date field: {name}')
-            new = DAT_DATES[name] + '_epoch_ms'
-            frame[name] = pd.to_numeric(frame[name],errors='raise').astype('Int64')
-            frame[DAT_DATES[name]+'_datetime_utc'] = pd.to_datetime(frame[name],unit='ms',utc=True,errors='raise')
-        elif kind in ['esriFieldTypeOID','esriFieldTypeString','esriFieldTypeGUID','esriFieldTypeGlobalID']:
-            frame[name] = frame[name].astype('string')
-        elif kind in ['esriFieldTypeSmallInteger','esriFieldTypeInteger']:
-            frame[name] = pd.to_numeric(frame[name],errors='raise').astype('Int64')
-        elif kind in ['esriFieldTypeDouble','esriFieldTypeSingle']:
-            frame[name] = pd.to_numeric(frame[name],errors='raise').astype('Float64')
+        raise ValueError(f'EFC properties absent from supported schema: {sorted(unexpected)}')
+    frame = pd.DataFrame(props,columns=[*EFC_TYPES,*sorted(added)])
+    for name,dtype in EFC_TYPES.items():
+        if name in ('parents','children'):
+            frame[name] = frame[name].map(lambda x: x if isinstance(x,list) else [])
         else:
-            raise ValueError(f'Unsupported DAT field type: {kind}')
-        mapping[name] = new
-    frame = frame.rename(columns=mapping)
-    for name in ['source_file','source_feature_id']:
-        frame[name] = frame[name].astype('string')
+            frame[name] = frame[name].astype(dtype)
     for name in ['source_year','source_row']:
         frame[name] = frame[name].astype('Int64')
-    if frame.object_id.isna().any() or frame.object_id.duplicated().any():
-        raise ValueError('DAT object IDs must be present and unique within a layer')
-    frame['ef_rating'] = nullable_ef(frame.source_ef_rating)
+    frame['source_file'] = frame.source_file.astype('string')
+    if (frame.objectid.isna().any() or not frame.source.isin(['DAT','SED']).all()
+            or frame.duplicated(['source_year','source','objectid']).any()):
+        raise ValueError('EFC source/year/object IDs must be present and unique')
+    frame.insert(0,'footprint_id','efc:'+frame.source_year.astype('string')+':'+frame.source+':'+frame.objectid)
+    frame['ef_rating'] = nullable_ef(frame.efscale)
+    frame['max_ef_rating'] = nullable_ef(frame.max_efscale)
+    frame['width_is_placeholder'] = frame.width.eq(0.99).fillna(False).astype('boolean')
+    frame['path_width_yards'] = frame.width.where(frame.width.gt(0) & ~frame.width_is_placeholder)
+    for name in EFC_DATES:
+        values = frame[name].replace({'':pd.NA,'-99':pd.NA,'-99.0':pd.NA})
+        # The live catalog mixes ISO timestamps with inherited ArcGIS epoch-ms
+        # edit times. Preserve original text and parse only this explicit format.
+        epoch = values.str.fullmatch(r'\d{12,13}(?:\.0)?',na=False)
+        parsed = pd.to_datetime(values.mask(epoch),utc=True,format='ISO8601',errors='raise').astype('datetime64[ns, UTC]')
+        parsed.loc[epoch] = pd.to_datetime(pd.to_numeric(values[epoch]),unit='ms',utc=True)
+        frame[name+'_datetime_utc'] = parsed
+    # Identifier fields and record references are not SPC or NCEI event keys.
     geometry = gpd.GeoSeries([shape(f['geometry']) if f.get('geometry') is not None else None
                              for f in features],crs='OGC:CRS84')
-    frame = gpd.GeoDataFrame(frame,geometry=geometry)
-    if not frame.storm_datetime_utc.dt.year.eq(frame.source_year).all():
-        raise ValueError('DAT dates disagree with source-year partitions')
-    return frame, mapping
+    return gpd.GeoDataFrame(frame,geometry=geometry), {name:name for name in EFC_TYPES}
 
 
 def boundary_table(collection, source_file):
@@ -233,7 +234,7 @@ def boundary_table(collection, source_file):
 
 
 def consolidate_sources(input_path, start, end):
-    tables, mappings, ncei_counts, dat_counts = {}, {}, {}, {}
+    tables, mappings, ncei_counts, footprint_counts = {}, {}, {}, {}
     for table, filename in NCEI_TABLES.items():
         parts = []
         for year in range(start,end+1):
@@ -257,42 +258,34 @@ def consolidate_sources(input_path, start, end):
         child = tables[NCEI_TABLES[table]]
         if not set(zip(child.source_year,child.event_id)) <= parents:
             raise ValueError(f'Orphan NCEI {table} event reference')
-    for layer in ['points','lines','polygons']:
-        definitions = json.loads(input_path(f'nws_dat/{layer}_schema.json').read_text())
-        features = []
-        for year in range(start,end+1):
-            relative = f'nws_dat/{year}/{layer}/index.json'
-            index = json.loads(input_path(relative).read_text())
-            count = 0
-            for batch in index['batches']:
-                name = (Path(relative).parent/batch['file']).as_posix()
-                path = input_path(name)
-                if sha(path) != batch['sha256']:
-                    raise ValueError(f'DAT batch checksum mismatch: {name}')
-                items = json.loads(path.read_text())['features']
-                if len(items) != batch['features']:
-                    raise ValueError(f'DAT batch count mismatch: {name}')
-                for row, f in enumerate(items,1):
-                    f['properties'].update(source_file=name,source_year=year,source_row=row,
-                                           source_feature_id=str(f['id']) if f.get('id') is not None else None)
-                features.extend(items)
-                count += len(items)
-            if count != index['features']:
-                raise ValueError(f'DAT index counts do not reconcile: {relative}')
-            dat_counts[year,layer] = count
-        filename = f'survey_{layer}.parquet'
-        tables[filename], mappings[filename] = survey_table(features,definitions)
+    from footprint_data import validate_collection
+    features = []
+    for year in range(start,end+1):
+        name = f'event_footprints/{year}_tornado_footprint.geojson'
+        path = input_path(name)
+        metadata = json.loads(input_path(name+'.metadata.json').read_text())
+        if sha(path) != metadata['sha256']:
+            raise ValueError(f'EFC source checksum mismatch: {name}')
+        value = json.loads(path.read_text())
+        checked = validate_collection(value,year)
+        for source,count in checked['source_counts'].items():
+            footprint_counts[year,source] = count
+        for row,feature in enumerate(value['features'],1):
+            feature['properties'].update(source_file=name,source_year=year,source_row=row)
+        features.extend(value['features'])
+    name = 'tornado_footprints.parquet'
+    tables[name], mappings[name] = footprint_table(features)
     name = 'census_boundaries/counties_2020_5m.geojson'
     tables['county_boundaries.parquet'], mappings['county_boundaries.parquet'] = boundary_table(
         json.loads(input_path(name).read_text()), name)
-    return tables,mappings,ncei_counts,dat_counts
+    return tables,mappings,ncei_counts,footprint_counts
 
 
 def build_analysis(data, output=None, start=2010, end=2025):
     """Generate files and reconciliation metadata; caller verifies source collection."""
     data = Path(data).resolve()
     output = Path(output).resolve() if output else data/'analysis'
-    if output == data or any(output.is_relative_to(data/x) for x in ['spc','ncei_storm_events','nws_dat','census_population','census_boundaries']):
+    if output == data or any(output.is_relative_to(data/x) for x in ['spc','ncei_storm_events','event_footprints','census_population','census_boundaries']):
         raise ValueError('Analysis output must not overwrite a source directory')
     inputs = []
     def input_path(relative):
@@ -306,8 +299,8 @@ def build_analysis(data, output=None, start=2010, end=2025):
     tornadoes, counties = tornado_table(spc_source), county_table(county_source)
     if not tornadoes.year.between(start,end).all() or not counties.year.between(start,end).all():
         raise ValueError('Source rows fall outside the selected years')
-    consolidated, mappings, ncei_counts, dat_counts = consolidate_sources(input_path,start,end)
-    annual = annual_table(tornadoes, counties, start, end, ncei_counts, dat_counts)
+    consolidated, mappings, ncei_counts, footprint_counts = consolidate_sources(input_path,start,end)
+    annual = annual_table(tornadoes, counties, start, end, ncei_counts, footprint_counts)
     assert annual.spc_tracks.sum() == len(tornadoes)
     assert annual.filter(regex=r'^spc_ef[0-5]$').to_numpy().sum() + annual.spc_ef_unknown.sum() == len(tornadoes)
     assert annual.census_county_rows.sum() == len(counties)
@@ -336,8 +329,8 @@ def build_analysis(data, output=None, start=2010, end=2025):
                 entries[-1]['geometry'] = {'encoding':'WKB','geoparquet_version':'1.0.0','crs':frame.crs.to_string(),
                     'types':sorted(frame.geometry.geom_type.dropna().unique().tolist()),
                     'null_geometries':int(frame.geometry.isna().sum()),'empty_geometries':int(frame.geometry.is_empty.sum()),
-                    'invalid_geometries':int((frame.geometry.notna() & ~frame.geometry.is_valid).sum())}
-        manifest = {'schema_version':2,'generated_at':datetime.now(timezone.utc).isoformat(),
+                    'invalid_geometries':int((~frame.geometry.isna() & ~frame.geometry.is_valid).sum())}
+        manifest = {'schema_version':3,'generated_at':datetime.now(timezone.utc).isoformat(),
                     'start_year':start,'end_year':end,'inputs':inputs,'files':entries,
                     'software':{'pandas':pd.__version__,'pyarrow':pyarrow.__version__,'geopandas':gpd.__version__},
                     'source_field_mappings':mappings,
@@ -345,11 +338,14 @@ def build_analysis(data, output=None, start=2010, end=2025):
                     'verification':{'status':'passed','spc_rows_preserved':len(tornadoes),'unknown_ef_preserved':int(tornadoes.ef_rating.isna().sum()),
                                     'county_rows_preserved':len(counties),'annual_rows':len(annual),'parquet_roundtrip':'passed',
                                     'consolidated_rows':{name:len(frame) for name,frame in consolidated.items()},
-                                    'ncei_related_event_ids':'passed','dat_batch_counts_hashes_and_layer_ids':'passed',
+                                    'ncei_related_event_ids':'passed','efc_annual_counts_hashes_and_footprint_ids':'passed',
                                     'geometry_wkb_roundtrip':'passed'}}
         (temp/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
         for filename in [*tables,'manifest.json']:
             os.replace(temp/filename,output/filename)
+    # Remove only the three superseded generated tables after a successful build.
+    for layer in ['points','lines','polygons']:
+        (output/f'survey_{layer}.parquet').unlink(missing_ok=True)
     return manifest
 
 

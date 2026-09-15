@@ -1,34 +1,31 @@
 # Dataset collection notes
 
-`download_data.py` owns all network requests, raw downloads, derived extracts, provenance,
-quality summaries, and optional DAT audit execution. `notebooks/tornado_dataset.ipynb` is read-only.
-See [README.md](../README.md) for commands. The default event period is 2010–2025.
+`download_data.py` collects SPC, NCEI Storm Events, NOAA Event Footprint Catalog,
+and two Census context products. `notebooks/tornado_dataset.ipynb` only reads data.
+The default period is 2010–2025. Use [README.md](../README.md) for commands.
 
-## Why 2010–2025, and how the sources will be used
+## Scope and intended use
 
-The default **2010–2025** window is a fixed, manageable project scope within the U.S. Enhanced Fujita (EF) scale era. The EF scale became operational on **February 1, 2007**; 2008 is the first full calendar year under it. **2010 is neither the scale-transition date nor an established DAT-completeness threshold.** [NWS EF-scale explanation](https://www.weather.gov/mob/aboutEFScale)
+SPC is the primary tornado catalog. NCEI provides event details and related records;
+EFC supplies optional survey/report-derived footprints. Neither footprint presence
+nor a known EF rating is required for inclusion in the original SPC table.
+2010 is a manageable scope choice and EFC's first available year, not a completeness
+threshold or the EF transition. The EF scale began February 1, 2007.
+[NWS explanation](https://www.weather.gov/mob/aboutEFScale)
 
-DAT adoption expanded unevenly across NWS regions, including experimental use since 2009. A common date range does not establish common coverage. [NWS development-team history](https://ams.confex.com/ams/97Annual/webprogram/Paper312451.html)
+Version 2 replaces the standalone DAT collection and its three analysis tables
+with the Footprint Catalog. Earlier releases retain the detailed surveys.
+No cross-source event matching, model splits, or exposure estimates are supplied.
+Unknown ratings must not become EF0; exclude rating-revealing fields from predictors.
 
-| Source | Intended role in the EF-rating project |
-|---|---|
-| SPC | Tornado-level records for the primary dataset, with one record per track and a rating to be checked during preparation. |
-| NCEI Storm Events | Event context and label reconciliation after linking county/event segments correctly. |
-| NWS DAT | Optional survey detail, with event associations and feature quality reviewed before use. |
-| Census Population Estimates | Annual county population and housing context; no event joins yet. |
-| Census Cartographic Boundaries | Fixed 2020 simplified county map for display. |
+## Downloads and provenance
 
-**DAT availability must not determine which tornadoes enter the primary EF-rating dataset.** The [saved coverage evaluation](../reports/dat_coverage/dat_coverage_report.md) found strong differences by year, geography, and intensity. It describes a particular snapshot; use `--coverage-audit` to regenerate numeric results after fresh downloads. That option does not rewrite the report or regenerate its chart.
-
-The download script retains unknown ratings and non-tornado DAT surveys. A separate preparation notebook should handle event matching, label filtering, feature selection, and train/test splitting. Unknown ratings must not become EF0. EF labels, derived wind estimates, and narratives revealing the rating must not leak into predictors. A local damage point's rating is not necessarily the maximum rating of its tornado.
-
-## Download and provenance helpers
-
-Each downloaded file has a `.metadata.json` sidecar containing its source URL, UTC retrieval time, byte size, and SHA-256 checksum. Files are written through a temporary path; an interrupted transfer cannot become a valid cached file. The script retries transient network/server errors, rejects HTML masquerading as CSV, and checks ArcGIS error responses.
-
-Catalog pages are fetched anew to discover current filenames. Cached DAT inventories and batches represent an earlier snapshot until refreshed. NOAA can revise a live service while a download is running; batch checks catch missing IDs, but do not provide a transactionally frozen snapshot.
-
-SPC is a derived subset: its sidecar preserves the original archive metadata under `source`, along with the selection and the retained CSV checksum. The full archive is used temporarily and is not retained. Changing the year settings creates new outputs; it does not automatically delete unrelated outputs from earlier runs.
+Downloads use atomic temporary files, retries for transient failures, and sidecars
+with URL, retrieval time, byte size, and SHA-256. Verified caches are reused;
+`--refresh` deliberately fetches revised data. SPC/NCEI catalog pages are refreshed
+to discover published files. Manifests define the active selection, not arbitrary
+leftover files from previous runs. The downloader and source verifier use the
+Python standard library; analysis and notebooks use the locked table/GIS libraries.
 
 ## SPC: historical tornado tracks
 
@@ -44,34 +41,41 @@ The [bulk archive](https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/
 
 Every raw row is checked against the requested years and its annual partition using `BEGIN_YEARMONTH` (details), `YEARMONTH` (locations), or `FAT_YEARMONTH` (fatalities). The same checks therefore cover the tornado extracts. These are the source-native record dates; end times and later survey/edit timestamps are not used to define the study period.
 
-## NWS DAT: damage points, lines, and polygons
+## NOAA Event Footprint Catalog
 
-Download every date-matching feature from each layer, including unknown and non-tornado categories. **Do not interpret a point's EF rating as the maximum rating of its parent tornado.** DAT's `surveytype` field may be empty; a simple filter on that field would lose records. Photos are not fetched.
+Read the public GCS inventory for `noaa-ncei-ipg/datasets/event-catalog/tornado/`.
+Require one annual GeoJSON for every requested year. Save the inventory and NOAA's
+README/download documentation. Pin each data URL to the listed object generation,
+then check its byte size and upstream MD5 as well as local SHA-256. A truncated
+inventory, missing annual file, invalid source, duplicate annual source/object ID,
+or invalid partition timestamp fails collection. Anonymous HTTPS works; no cloud
+account or additional client dependency is required.
 
-For each year/layer, first save the complete object-ID inventory and compare its size with the server's count. Then request small batches by ID, check every returned ID, and preserve each batch as a WGS84 (`EPSG:4326`) GeoJSON FeatureCollection. This avoids silently accepting the first page of a capped API response. A completed `index.json` lists the batches and checksums. Dates in attributes remain ArcGIS epoch milliseconds; selection uses `stormdate` from January 1 inclusive through the following January 1 exclusive. Undated records are excluded.
+Files live under `data/event_footprints/<year>_tornado_footprint.geojson`. They
+remain byte-for-byte NOAA outputs. All features are retained, including nested
+regions and unknown labels. EFC source annual years select scope; UTC storm dates
+may cross New Year by at most one day. Later edit/survey dates do not select events.
 
-Files live under `data/nws_dat/<year>/<points|lines|polygons>/`. Read all batch files listed in the index, rather than treating one batch as the whole layer. Empty years have an index with zero features. Preserved schemas describe field meanings and service time-reference metadata.
+NOAA prioritizes DAT and fills gaps with SED (Storm Events). These remain damage
+survey/report-derived footprints; they are not continuous radar-observed tornado
+paths. Raw `width=0.99` means missing width filled for display; zero and negative
+values also require explicit handling. Original SED EVENT_ID is not included.
+The analysis layer preserves source values and adds a nullable usable-width field.
+See [ANALYSIS.md](ANALYSIS.md) and the [audit](../reports/footprints/catalog_audit.md).
 
-Each saved feature's `stormdate` is also checked locally against the requested period and annual partition, including when batches are reused from cache. An out-of-range or undated feature fails validation. Years with zero returned features are reported separately from unavailable data.
+The upstream catalog overwrites files on updates and does not maintain a historical
+catalog archive. Our hosted releases freeze exact source bytes and checksums.
+[NOAA catalog and methodology](https://www.ncei.noaa.gov/products/event-footprint-catalog)
 
-## Label and survey-quality summary
+## Completion and quality
 
-The script reads the retained SPC CSV and only the DAT batches listed in **the current run's manifest and indexes**. It reports rating counts by year, DAT label categories, missing/empty geometry, and missing identifiers. Detailed annual counts are saved to `data/quality_summary_<start>_<end>.json`.
-
-DAT category names below describe the exported `efscale` field: `EF0`–`EF5`, `EF3+`, and `EFU` are counted as **tornado-labeled**; `TSTM/WIND` and `TROPICAL` as **non-tornado-labeled**; remaining values as **unknown/other**. These are field-level categories, not independently verified event types. `EFU` is unknown intensity even though it is tornado-labeled. Original label frequencies are preserved in the summary.
-
-`event_id` is generally a human-readable DAT label, not NCEI's numeric `EVENT_ID`. `globalid` identifies a feature, while `path_guid` is a potential association field on points/polygons. Presence of an identifier does not prove that it resolves to an event or that a join is correct. Missing geometry means a null geometry or empty coordinates; this is not a full topology validation.
-
-**Successful downloads establish retrieval completeness for the requested queries, not complete historical survey coverage.** Warnings and counts here do not filter or delete records. Label, category, identifier, and geometry limitations need review during dataset preparation.
-
-## Completion and verification
-
-`data/download_manifest_<start>_<end>.json` records the requested SPC, NCEI, and
-DAT outputs, source provenance, and yearly coverage. The quality summary reports
-labels and survey-field completeness. Use `--verify-downloads` to independently
-check saved checksums, exact NCEI tornado extraction, DAT object-ID coverage,
-counts, and dates. The verification report records the manifest hash so a later
-collection can be distinguished from the verified snapshot.
+`download_manifest_<start>_<end>.json` contains all three NOAA sources and the
+nested EFC inventory, documentation references, generations, counts, and quality
+checks. `quality_summary_<start>_<end>.json` records SPC EF counts and annual EFC
+source/placeholder-width/relationship counts. `--verify-downloads` checks the
+selected sources and saves `download_verification_<start>_<end>.json`; inspect both
+scope and status. A full release requires a current all-source verification.
+Successful retrieval does not prove that every tornado has an accurate footprint.
 
 ## Census Population Estimates Program: county context
 
@@ -124,8 +128,7 @@ the population/housing estimates cover only the 50 states and DC.
 This is one fixed display layer, not annual full-resolution TIGER boundaries.
 Generalization makes it unsuitable for precise tornado-path/building intersections.
 The notebook previews contiguous-US counties and SPC start locations without a
-spatial join. Surveyed path lines and damage polygons remain available in DAT
-where surveys exist; an SPC line between endpoints is only an approximate track.
+spatial join. Surveyed/reconstructed damage regions are available in the Footprint Catalog; an SPC line between endpoints is only an approximate track.
 
 ## Census completeness and storage
 
@@ -135,7 +138,7 @@ It records pinned URLs, hashes, sizes, row counts, map feature counts, release r
 and county codes missing from the map. `--refresh` fetches those same pinned
 releases again; it does not silently switch to a newer release or map vintage.
 Census collection supports subsets of 2010–2025 and fetches only the relevant decade
-files plus the fixed map. Use `--sources noaa` for other NOAA date ranges.
+files plus the fixed map. Use `--sources noaa` for NOAA-only ranges starting in 2010.
 
 The local verifier checks the selected raw source inventory and checksums, then
 reconciles the complete derived table and GeoJSON against the saved CSV/XLSX/KML
@@ -151,14 +154,13 @@ read-only and uses the existing pandas/matplotlib dependencies.
 
 ## Consolidated analysis layer
 
-`scripts/build_analysis.py` generates nine Parquet tables and an annual CSV summary
-under `data/analysis/`, totaling about 38 MB. Start with `tornadoes.parquet`, then
-add Census context/map tables, NCEI event/fatality/location records, or DAT
-point/line/polygon surveys as needed. GeoParquet preserves geometry, coordinate
-reference metadata, polygon parts, and holes. Every new consolidated row carries
-a source-file reference and original record position. The analysis manifest lists
-all input/output hashes, types, mappings, and reconciliation results.
+`scripts/build_analysis.py` verifies the sources and writes seven Parquet tables
+plus an annual summary under `data/analysis/`. Start with `tornadoes.parquet`.
+Optional tables supply NCEI details/fatalities/locations, EFC footprints, and Census
+context/boundaries. Both spatial tables use GeoParquet with original geometry.
+The manifest records input/output hashes, field types, mappings, and reconciliation.
 
-Original files are retained. No records are multiplied by a cross-source join,
-no damage values are imputed, and DAT sentinels/categories remain explicit.
-See [ANALYSIS.md](ANALYSIS.md) for every table, field conventions, and examples.
+A successful rebuild removes only the three superseded generated `survey_*.parquet`
+files. It does not delete source collections. Existing v1 users should use a fresh
+data directory or move `data/nws_dat/` out of the active collection after verifying
+v2. The release packager excludes it even if a local historical cache remains.

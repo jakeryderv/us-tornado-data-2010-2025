@@ -55,16 +55,10 @@ def reference_check(data, reference):
     return dict(path=reference['path'], status='matches' if actual == reference.get('sha256') else 'changed')
 
 
-def dat_preview(data, manifest, layer='points', limit=10):
-    data = Path(data).resolve()
+def footprint_preview(data, manifest, limit=10):
     for output in manifest.get('outputs', []):
-        if output.get('source') != 'DAT' or output.get('layer') != layer:
-            continue
-        index_path = local_path(data, output['path'])
-        index = load_json(index_path, {})
-        for batch in index.get('batches', []):
-            batch_path = local_path(data, str(index_path.parent.relative_to(data) / batch['file']))
-            value = load_json(batch_path, {})
+        if output.get('source') == 'EFC':
+            value = load_json(local_path(data, output['path']), {})
             if value.get('features'):
                 return [dict(**f['properties'], geometry_type=(f.get('geometry') or {}).get('type'))
                         for f in value['features'][:limit]]
