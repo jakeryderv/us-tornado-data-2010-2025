@@ -1,0 +1,184 @@
+{
+  "schema_version": 1,
+  "slug": "us-tornado-data-2010-2025",
+  "file_count_scope": "Shared payload files; excludes release_manifest.json, SHA256SUMS and host metadata.",
+  "version": "v2.0.0",
+  "recorded_at": "2026-09-15T23:38:23.320073+00:00",
+  "payload_code_commit": "a84ca6f4f8382788b7952e4b63d151696684ea59",
+  "built_at": "2026-09-15T23:24:11.185367+00:00",
+  "source_snapshots": {
+    "noaa_completed_at": "2026-09-15T23:13:08.122184+00:00",
+    "census_completed_at": "2026-09-15T23:13:08.850471+00:00"
+  },
+  "manifest_sha256": "d6cf2577f31663c568878e9047e70ec0e26aa4c38f41245aa5620dfa423001d5",
+  "shared_file_count": 220,
+  "shared_payload_bytes": 358924531,
+  "previous_release": "v1.2.0.json",
+  "changes": [
+    "Replaced standalone DAT survey points, lines and polygons with NOAA Event Footprint Catalog annual files and tornado_footprints.parquet.",
+    "Seven main tables plus an annual summary; all six retained SPC/NCEI/Census Parquet tables and 104 retained non-DAT source payloads are byte-identical to v1.2.0.",
+    "Preserved footprint region provenance, nested relationships, source ratings and sentinel values; added nullable rating, usable-width and UTC date helpers.",
+    "No cross-source event join; footprint regions are not unique tornadoes. Earlier releases retain individual DAT survey records."
+  ],
+  "huggingface": {
+    "url": "https://huggingface.co/datasets/jakeryderv/us-tornado-data-2010-2025",
+    "repo_id": "jakeryderv/us-tornado-data-2010-2025",
+    "commit": "dbe9453af95255c77de5d4616fba2f924a2f80ad",
+    "tag": "v2.0.0",
+    "transport": "direct files",
+    "download_authentication": "authenticated",
+    "verification": {
+      "status": "passed",
+      "version": "v2.0.0",
+      "files": 220,
+      "payload_bytes": 358924531,
+      "manifest_sha256": "d6cf2577f31663c568878e9047e70ec0e26aa4c38f41245aa5620dfa423001d5",
+      "commit": "dbe9453af95255c77de5d4616fba2f924a2f80ad",
+      "retired_files_absent": true,
+      "analysis_loads": {
+        "tornadoes.parquet": {
+          "rows": 20164,
+          "columns": 24
+        },
+        "county_context.parquet": {
+          "rows": 50294,
+          "columns": 8
+        },
+        "annual_summary.csv": {
+          "rows": 16,
+          "columns": 17
+        },
+        "storm_events.parquet": {
+          "rows": 23189,
+          "columns": 57
+        },
+        "storm_fatalities.parquet": {
+          "rows": 1352,
+          "columns": 14
+        },
+        "storm_locations.parquet": {
+          "rows": 35920,
+          "columns": 14
+        },
+        "tornado_footprints.parquet": {
+          "rows": 24858,
+          "columns": 89,
+          "crs": "OGC:CRS84"
+        },
+        "county_boundaries.parquet": {
+          "rows": 3234,
+          "columns": 16,
+          "crs": "OGC:CRS84"
+        }
+      },
+      "all_tables_loaded": true,
+      "footprint_provenance_reconciled": true,
+      "annual_counts_reconciled": true
+    }
+  },
+  "kaggle": {
+    "url": "https://www.kaggle.com/datasets/jakevanslyke/us-tornado-data-2010-2025/versions/5",
+    "handle": "jakevanslyke/us-tornado-data-2010-2025/versions/5",
+    "numeric_version": 5,
+    "transport": "Direct analysis/ files; full shared payload in release.zip.bin.",
+    "archive_sha256": "cc6f2884290985e126d224e97432986c4646ffd8f8d0712320573fe1166e5b11",
+    "archive_bytes": 259483010,
+    "verification": {
+      "status": "passed",
+      "version": "v2.0.0",
+      "files": 220,
+      "payload_bytes": 358924531,
+      "manifest_sha256": "d6cf2577f31663c568878e9047e70ec0e26aa4c38f41245aa5620dfa423001d5",
+      "version_number": 5,
+      "retired_files_absent": true,
+      "direct_analysis_verified": [
+        "analysis/tornadoes.parquet",
+        "analysis/county_context.parquet",
+        "analysis/annual_summary.csv",
+        "analysis/storm_events.parquet",
+        "analysis/storm_fatalities.parquet",
+        "analysis/storm_locations.parquet",
+        "analysis/tornado_footprints.parquet",
+        "analysis/county_boundaries.parquet",
+        "analysis/manifest.json"
+      ],
+      "analysis_loads": {
+        "tornadoes.parquet": {
+          "rows": 20164,
+          "columns": 24
+        },
+        "county_context.parquet": {
+          "rows": 50294,
+          "columns": 8
+        },
+        "annual_summary.csv": {
+          "rows": 16,
+          "columns": 17
+        },
+        "storm_events.parquet": {
+          "rows": 23189,
+          "columns": 57
+        },
+        "storm_fatalities.parquet": {
+          "rows": 1352,
+          "columns": 14
+        },
+        "storm_locations.parquet": {
+          "rows": 35920,
+          "columns": 14
+        },
+        "tornado_footprints.parquet": {
+          "rows": 24858,
+          "columns": 89,
+          "crs": "OGC:CRS84"
+        },
+        "county_boundaries.parquet": {
+          "rows": 3234,
+          "columns": 16,
+          "crs": "OGC:CRS84"
+        }
+      },
+      "all_tables_loaded": true,
+      "footprint_provenance_reconciled": true,
+      "annual_counts_reconciled": true
+    },
+    "listing": {
+      "verified_at": "2026-09-15T23:38:23.320129+00:00",
+      "usability_score": 10,
+      "visible_files": 20,
+      "updated_file_descriptions": [
+        "tornado_footprints.parquet",
+        "annual_summary.csv",
+        "manifest.json",
+        "release.zip.bin",
+        "release_manifest.json",
+        "schema.json",
+        "ANALYSIS.md"
+      ],
+      "all_column_definitions_in_templates": 239,
+      "new_footprint_column_definitions_in_templates": 89,
+      "update_frequency": "never",
+      "verification": "Version and usability score verified with Kaggle API; new card, source provenance, methodology and seven updated file descriptions checked in the live UI. Column counts describe packaged definitions and templates, not live column-editor completion."
+    }
+  },
+  "analysis": {
+    "schema_version": 3,
+    "main_tables": 7,
+    "annual_summary_rows": 16,
+    "table_bytes": 24104783,
+    "input_hashes": 83,
+    "columns": 239,
+    "geoparquet_version": "1.0.0",
+    "geometry_crs": "OGC:CRS84",
+    "all_tables_loaded_from_both_hosts": true,
+    "source_collection_changes": true,
+    "retained_parquet_tables_unchanged": 6,
+    "retained_source_payloads_unchanged": 104
+  },
+  "validation": {
+    "offline_tests": 21,
+    "full_inspection_notebook": "passed",
+    "implementation_ci_run": 35035469252,
+    "implementation_ci_conclusion": "success"
+  }
+}

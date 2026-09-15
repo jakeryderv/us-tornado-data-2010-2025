@@ -110,7 +110,7 @@ import kagglehub
 
 hf_root = Path(snapshot_download(
     "jakeryderv/us-tornado-data-2010-2025",
-    repo_type="dataset", revision="v2.0.0",
+    repo_type="dataset", revision="dbe9453af95255c77de5d4616fba2f924a2f80ad",
 ))
 kg_archive = Path(kagglehub.dataset_download(
     "jakevanslyke/us-tornado-data-2010-2025/versions/5",
@@ -139,7 +139,7 @@ from zipfile import ZipFile
 
 with kg_archive.open("rb") as handle:
     assert hashlib.file_digest(handle, "sha256").hexdigest() == (
-        "TRUSTED_ARCHIVE_SHA256"
+        "cc6f2884290985e126d224e97432986c4646ffd8f8d0712320573fe1166e5b11"
     )  # v2.0.0 archive hash from the receipt
 kg_root = Path("tornado-data-v2.0.0")
 kg_root.mkdir(exist_ok=False)  # Extract once into a new folder; reuse it afterward.
