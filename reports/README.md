@@ -49,3 +49,9 @@ complete cross-source event matching.
 
 Historical reports retain the paths and identifiers recorded at the time. Use
 `verification/latest.json` or a matching collection-side report for current status.
+
+## Local linkage audit
+
+[Linkage audit](linkage/audit.md) reports the separate SPC-centered crosswalk,
+accepted and unresolved coverage, threshold sensitivity, and deterministic review
+samples. It is implementation/coverage evidence, not a measured accuracy score.

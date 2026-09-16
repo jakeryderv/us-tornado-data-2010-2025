@@ -274,3 +274,11 @@ For EF classification, establish eligible predictors and grouping before splitti
 data. Damage characteristics, casualties, and survey-derived values may leak the
 rating process. This layer supplies neither a model split nor pre-storm forecasting
 inputs. See [the dataset card](DATASET_CARD.md) for broader limitations and sources.
+
+## Optional cross-source linkage
+
+The seven source-oriented tables above remain unchanged. Run
+`uv run python scripts/build_crosswalk.py` to create a separate local SPC-centered
+crosswalk and linked view. See [LINKAGE.md](LINKAGE.md) for evidence rules,
+uncertainty, county aggregation, and loading examples. These derived files are
+not part of the frozen v2.0.0 / Kaggle 5 release.

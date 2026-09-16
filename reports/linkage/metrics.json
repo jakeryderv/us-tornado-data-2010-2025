@@ -1,0 +1,530 @@
+{
+  "algorithm": "spc-time-geometry-v1",
+  "linkage_manifest_sha256": "c5dd3e9bb3e93bdb6717462b20f48b7ea2f2e1ce0af07d62095858689ebde864",
+  "summary": {
+    "sources": [
+      {
+        "source_table": "storm_events",
+        "source_origin": "NCEI",
+        "source_records": 23189,
+        "accepted_records": 20842,
+        "unresolved_with_plausible_candidates": 2216,
+        "only_outside_acceptance": 99,
+        "no_candidates": 32,
+        "accepted_spc_tracks": 18313
+      },
+      {
+        "source_table": "tornado_footprints",
+        "source_origin": "DAT",
+        "source_records": 16465,
+        "accepted_records": 9639,
+        "unresolved_with_plausible_candidates": 4048,
+        "only_outside_acceptance": 752,
+        "no_candidates": 2026,
+        "accepted_spc_tracks": 7567
+      },
+      {
+        "source_table": "tornado_footprints",
+        "source_origin": "SED",
+        "source_records": 8393,
+        "accepted_records": 7562,
+        "unresolved_with_plausible_candidates": 779,
+        "only_outside_acceptance": 37,
+        "no_candidates": 15,
+        "accepted_spc_tracks": 6954
+      }
+    ],
+    "spc_tracks": 20164,
+    "spc_with_ncei": 18313,
+    "spc_with_footprints": 14488,
+    "spc_with_both": 14341,
+    "spc_without_accepted_links": 1704,
+    "split_groups": 2277
+  },
+  "files": [
+    {
+      "path": "source_crosswalk.parquet",
+      "rows": 95222,
+      "bytes": 4570747,
+      "sha256": "0f1d6f705a8e516e66a513195a50c179d3d39199f57654ddc1e4bbe6be510ba6",
+      "columns": [
+        {
+          "name": "source_table",
+          "dtype": "string"
+        },
+        {
+          "name": "source_id",
+          "dtype": "string"
+        },
+        {
+          "name": "source_group_id",
+          "dtype": "string"
+        },
+        {
+          "name": "source_origin",
+          "dtype": "string"
+        },
+        {
+          "name": "source_year",
+          "dtype": "Int64"
+        },
+        {
+          "name": "source_file",
+          "dtype": "string"
+        },
+        {
+          "name": "source_row",
+          "dtype": "Int64"
+        },
+        {
+          "name": "time_basis",
+          "dtype": "string"
+        },
+        {
+          "name": "input_issue",
+          "dtype": "string"
+        },
+        {
+          "name": "source_start_utc",
+          "dtype": "datetime64[ns, UTC]"
+        },
+        {
+          "name": "source_end_utc",
+          "dtype": "datetime64[ns, UTC]"
+        },
+        {
+          "name": "source_auto_eligible",
+          "dtype": "boolean"
+        },
+        {
+          "name": "tornado_id",
+          "dtype": "string"
+        },
+        {
+          "name": "spc_start_utc",
+          "dtype": "datetime64[ns, UTC]"
+        },
+        {
+          "name": "spc_end_utc",
+          "dtype": "datetime64[ns, UTC]"
+        },
+        {
+          "name": "interval_gap_minutes",
+          "dtype": "Float64"
+        },
+        {
+          "name": "interval_outside_minutes",
+          "dtype": "Float64"
+        },
+        {
+          "name": "start_delta_minutes",
+          "dtype": "Float64"
+        },
+        {
+          "name": "geometry_gap_km",
+          "dtype": "Float64"
+        },
+        {
+          "name": "source_extent_distance_km",
+          "dtype": "Float64"
+        },
+        {
+          "name": "plausible",
+          "dtype": "boolean"
+        },
+        {
+          "name": "evidence_score",
+          "dtype": "Float64"
+        },
+        {
+          "name": "confidence",
+          "dtype": "string"
+        },
+        {
+          "name": "evidence_tier",
+          "dtype": "string"
+        },
+        {
+          "name": "candidate_rank",
+          "dtype": "Int64"
+        },
+        {
+          "name": "candidate_count",
+          "dtype": "Int64"
+        },
+        {
+          "name": "plausible_candidate_count",
+          "dtype": "Int64"
+        },
+        {
+          "name": "accepted",
+          "dtype": "boolean"
+        },
+        {
+          "name": "match_status",
+          "dtype": "string"
+        },
+        {
+          "name": "decision_reason",
+          "dtype": "string"
+        }
+      ]
+    },
+    {
+      "path": "tornado_counties.parquet",
+      "rows": 20842,
+      "bytes": 460305,
+      "sha256": "7e0d9bf97afa606e445ffc6aeb8fe7d51e6ddd8b49d7c91a65a98c7dba30e68c",
+      "columns": [
+        {
+          "name": "tornado_id",
+          "dtype": "string"
+        },
+        {
+          "name": "ncei_event_id",
+          "dtype": "string"
+        },
+        {
+          "name": "year",
+          "dtype": "Int64"
+        },
+        {
+          "name": "county_fips",
+          "dtype": "string"
+        },
+        {
+          "name": "state_name",
+          "dtype": "string"
+        },
+        {
+          "name": "county_name",
+          "dtype": "string"
+        },
+        {
+          "name": "population",
+          "dtype": "Int64"
+        },
+        {
+          "name": "housing_units",
+          "dtype": "Int64"
+        },
+        {
+          "name": "estimate_vintage",
+          "dtype": "Int16"
+        },
+        {
+          "name": "map_2020_fips_present",
+          "dtype": "boolean"
+        },
+        {
+          "name": "context_available",
+          "dtype": "bool"
+        },
+        {
+          "name": "link_basis",
+          "dtype": "string"
+        }
+      ]
+    },
+    {
+      "path": "tornadoes_linked.parquet",
+      "rows": 20164,
+      "bytes": 1074721,
+      "sha256": "e7b18642bd35d9bd46d06139e68775d33dde40981401c26168e92bcb834fa2b2",
+      "columns": [
+        {
+          "name": "tornado_id",
+          "dtype": "string"
+        },
+        {
+          "name": "spc_event_id",
+          "dtype": "string"
+        },
+        {
+          "name": "year",
+          "dtype": "Int16"
+        },
+        {
+          "name": "start_date",
+          "dtype": "datetime64[ns]"
+        },
+        {
+          "name": "start_time",
+          "dtype": "string"
+        },
+        {
+          "name": "end_date",
+          "dtype": "datetime64[ns]"
+        },
+        {
+          "name": "end_time",
+          "dtype": "string"
+        },
+        {
+          "name": "spc_timezone_code",
+          "dtype": "Int16"
+        },
+        {
+          "name": "state",
+          "dtype": "string"
+        },
+        {
+          "name": "state_fips",
+          "dtype": "string"
+        },
+        {
+          "name": "spc_rating_code",
+          "dtype": "Int8"
+        },
+        {
+          "name": "injuries",
+          "dtype": "Int32"
+        },
+        {
+          "name": "fatalities",
+          "dtype": "Int32"
+        },
+        {
+          "name": "start_latitude",
+          "dtype": "Float64"
+        },
+        {
+          "name": "start_longitude",
+          "dtype": "Float64"
+        },
+        {
+          "name": "end_latitude",
+          "dtype": "Float64"
+        },
+        {
+          "name": "end_longitude",
+          "dtype": "Float64"
+        },
+        {
+          "name": "path_length_miles",
+          "dtype": "Float64"
+        },
+        {
+          "name": "path_width_yards",
+          "dtype": "Int32"
+        },
+        {
+          "name": "states_affected",
+          "dtype": "Int8"
+        },
+        {
+          "name": "ef_rating",
+          "dtype": "Int8"
+        },
+        {
+          "name": "ef_rating_known",
+          "dtype": "boolean"
+        },
+        {
+          "name": "start_coordinates_valid",
+          "dtype": "boolean"
+        },
+        {
+          "name": "end_coordinates_valid",
+          "dtype": "boolean"
+        },
+        {
+          "name": "ncei_accepted_records",
+          "dtype": "Int64"
+        },
+        {
+          "name": "ncei_unresolved_candidate_records",
+          "dtype": "Int64"
+        },
+        {
+          "name": "footprint_accepted_records",
+          "dtype": "Int64"
+        },
+        {
+          "name": "footprint_unresolved_candidate_records",
+          "dtype": "Int64"
+        },
+        {
+          "name": "footprint_dat_accepted_regions",
+          "dtype": "Int64"
+        },
+        {
+          "name": "footprint_sed_accepted_regions",
+          "dtype": "Int64"
+        },
+        {
+          "name": "linked_county_years",
+          "dtype": "Int64"
+        },
+        {
+          "name": "county_context_missing_rows",
+          "dtype": "Int64"
+        },
+        {
+          "name": "linked_county_population_sum",
+          "dtype": "Int64"
+        },
+        {
+          "name": "linked_county_housing_units_sum",
+          "dtype": "Int64"
+        },
+        {
+          "name": "suggested_split_group",
+          "dtype": "string"
+        },
+        {
+          "name": "linkage_available",
+          "dtype": "boolean"
+        }
+      ]
+    }
+  ],
+  "threshold_sensitivity": [
+    {
+      "max_outside_minutes": 1,
+      "max_extent_km": 1,
+      "ncei_records": 20204,
+      "footprint_regions": 15640,
+      "spc_tracks": 18229
+    },
+    {
+      "max_outside_minutes": 2,
+      "max_extent_km": 2,
+      "ncei_records": 20842,
+      "footprint_regions": 17201,
+      "spc_tracks": 18460
+    }
+  ],
+  "ncei_spc_rating_diagnostic": {
+    "known_pairs": 19430,
+    "different_recorded_ratings": 1083
+  },
+  "by_year": [
+    {
+      "year": 2010,
+      "spc_tracks": 1302,
+      "with_ncei": 1151,
+      "with_footprints": 939,
+      "with_any_link": 1151
+    },
+    {
+      "year": 2011,
+      "spc_tracks": 1704,
+      "with_ncei": 1537,
+      "with_footprints": 1261,
+      "with_any_link": 1539
+    },
+    {
+      "year": 2012,
+      "spc_tracks": 948,
+      "with_ncei": 867,
+      "with_footprints": 760,
+      "with_any_link": 867
+    },
+    {
+      "year": 2013,
+      "spc_tracks": 916,
+      "with_ncei": 850,
+      "with_footprints": 606,
+      "with_any_link": 851
+    },
+    {
+      "year": 2014,
+      "spc_tracks": 928,
+      "with_ncei": 833,
+      "with_footprints": 610,
+      "with_any_link": 837
+    },
+    {
+      "year": 2015,
+      "spc_tracks": 1182,
+      "with_ncei": 1078,
+      "with_footprints": 716,
+      "with_any_link": 1078
+    },
+    {
+      "year": 2016,
+      "spc_tracks": 976,
+      "with_ncei": 914,
+      "with_footprints": 649,
+      "with_any_link": 914
+    },
+    {
+      "year": 2017,
+      "spc_tracks": 1442,
+      "with_ncei": 1331,
+      "with_footprints": 929,
+      "with_any_link": 1333
+    },
+    {
+      "year": 2018,
+      "spc_tracks": 1138,
+      "with_ncei": 1044,
+      "with_footprints": 757,
+      "with_any_link": 1045
+    },
+    {
+      "year": 2019,
+      "spc_tracks": 1534,
+      "with_ncei": 1409,
+      "with_footprints": 1040,
+      "with_any_link": 1429
+    },
+    {
+      "year": 2020,
+      "spc_tracks": 1090,
+      "with_ncei": 1006,
+      "with_footprints": 828,
+      "with_any_link": 1018
+    },
+    {
+      "year": 2021,
+      "spc_tracks": 1328,
+      "with_ncei": 1200,
+      "with_footprints": 1010,
+      "with_any_link": 1226
+    },
+    {
+      "year": 2022,
+      "spc_tracks": 1167,
+      "with_ncei": 1092,
+      "with_footprints": 912,
+      "with_any_link": 1096
+    },
+    {
+      "year": 2023,
+      "spc_tracks": 1321,
+      "with_ncei": 1178,
+      "with_footprints": 970,
+      "with_any_link": 1184
+    },
+    {
+      "year": 2024,
+      "spc_tracks": 1805,
+      "with_ncei": 1600,
+      "with_footprints": 1389,
+      "with_any_link": 1622
+    },
+    {
+      "year": 2025,
+      "spc_tracks": 1383,
+      "with_ncei": 1223,
+      "with_footprints": 1112,
+      "with_any_link": 1270
+    }
+  ],
+  "source_records": 48047,
+  "candidate_rows": 95222,
+  "review_sample_rows": 82,
+  "largest_suggested_split_group": 400,
+  "accepted_reasons": {
+    "unique_time_and_geometry_match": 38043
+  },
+  "nonaccepted_plausible_reasons": {
+    "multiple_plausible_tracks": 8014,
+    "stormdate_only": 1649,
+    "borderline_time_or_geometry": 1441,
+    "conflicting_times": 488,
+    "footprint_family_conflict": 4
+  }
+}

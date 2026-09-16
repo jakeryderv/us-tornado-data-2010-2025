@@ -101,8 +101,22 @@ select manifest-backed sources and exclude old DAT caches.
 
 Census supplies annual county population/housing estimates and one fixed 2020
 simplified county map. These are context, not exact people/buildings struck.
-No radar, photos, building footprints, geographic crosswalk, cross-source event
-join, or model split is provided.
+The frozen release contains no radar, photos, building footprints, cross-source
+event join, or model split. An optional local linkage layer is described below.
+
+## Link records across sources
+
+```sh
+uv run python scripts/build_crosswalk.py
+```
+
+This builds `data/linkage/source_crosswalk.parquet`, `tornado_counties.parquet`,
+and `tornadoes_linked.parquet` without changing the seven original tables.
+The crosswalk retains candidates and unmatched records; the linked view preserves
+one row per SPC tornado. Automatic acceptance requires a unique close match in
+time and geometry. [Linkage methods and usage](docs/LINKAGE.md) and the
+[audit](reports/linkage/audit.md) describe coverage, ambiguity, and limitations.
+These are local research outputs, separate from the frozen v2.0.0 host releases.
 
 ## Repository
 
