@@ -1,0 +1,38 @@
+{
+  "checked_at": "2026-09-16T15:34:29.483043+00:00",
+  "notebook_url": "https://www.kaggle.com/code/jakevanslyke/us-tornado-data-getting-started",
+  "notebook_id": 134529491,
+  "notebook_version": 5,
+  "dataset_release": "v2.2.0",
+  "dataset_version": 7,
+  "dataset_handle": "jakevanslyke/us-tornado-data-2010-2025/versions/7",
+  "manifest_sha256": "ccf1b89346664e665d06021ddd09a3f0548a1411792363d6c34773cf936f0f83",
+  "notebook_source_sha256": "c0cdf7740e2aa92c53c424464b2a7bd9900d8e6d70a0ce22b735b576117be6bf",
+  "local_executed_notebook_sha256": "a908824ed6442693ae869ac06dab30cffde8d2dd74f658eede30b3c41b2740db",
+  "hosted_execution_log_sha256": "558e269ff8728f310ae318a19b02e8de712feadcb2868141d80f72a2d4856899",
+  "validation": {
+    "local_execution": "passed",
+    "kaggle_execution": "COMPLETE",
+    "published_source_cells_match_local": true,
+    "code_cells_executed": 5,
+    "table_inventory": 19,
+    "selected_files_sha256_verified": 6,
+    "release_manifest_sha256_verified": true,
+    "all_event_ids_and_targets_preserved": 20164,
+    "labeled_rows": 18639,
+    "onset_predictor_candidates": 15,
+    "local_figures_reviewed": 2
+  },
+  "execution": {
+    "public": true,
+    "gpu": false,
+    "internet": false,
+    "runtime_seconds_rounded": 30,
+    "loading": "kagglehub individual pinned version-7 files from attached cache; local download support and optional predownloaded-root override"
+  },
+  "notes": [
+    "Kaggle numeric dataset version 7 corresponds to shared release v2.2.0; notebook version 5 is a separate counter.",
+    "Manifest and per-file hashes verified the actual attached release; pulled kernel metadata omits the attachment version.",
+    "No fitted model is included. Onset candidates use hindsight event anchors and an assumed five-minute radar latency; post-event features are restricted to the retrospective view."
+  ]
+}

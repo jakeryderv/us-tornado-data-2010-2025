@@ -85,7 +85,10 @@ uv run --group publish hf upload jakeryderv/us-tornado-data-2010-2025 dist/v2.2.
 uv run --group publish kaggle datasets version -p dist/v2.2.0/kaggle --keep-tabular --dir-mode zip -m 'Release v2.2.0: radar, warnings, NLCD and onset/retrospective ML views'
 ```
 
-Refresh listing metadata/cover using `kaggle datasets metadata --update` and verify
+Export the existing listing metadata, then merge the staged description, source
+notes, resources, frequency and cover into a copy. Preserve the exported display
+license name: this update endpoint rejects the creation-time license slug.
+Refresh that copy using `kaggle datasets metadata --update` and verify
 the saved description, sources and file notes; API success alone is not proof of
 rendered metadata. Both listings must show the same version, sources, 19-table
 inventory, coverage gaps and limitations, with the matching platform's code.

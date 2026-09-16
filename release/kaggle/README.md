@@ -13,9 +13,14 @@ not always saved those nested descriptions; verify the listing rather than just
 the success response. A missing UI description must be reported, not silently
 assumed applied. Fixed-snapshot update frequency is `never`.
 
+For `datasets metadata --update`, preserve the exported display license
+`U.S. Government Works`; the creation/version metadata slug
+`US-Government-Works` is rejected by this update endpoint. Apply changes to an
+exported metadata copy and retain its license/settings. Collection methodology
+is a separate UI field; keep it aligned with `collection-methodology.md`.
+
 The notebook uses `kagglehub` and a pinned dataset attachment. It loads the small
-ML views, predictor dictionary, backbone tornado table, coverage table and annual
-summary; it inventories all 19 tables without eagerly loading large radar/warning
+ML views, predictor dictionary, backbone tornado table, coverage table and schema inventory; it inventories all 19 tables without eagerly loading large radar/warning
 source tables. It demonstrates target selection, missingness and grouped model
 inputs, not a fitted model or operational forecast.
 

@@ -333,7 +333,7 @@ def stage(payload, destination, platform, owner, config):
         (destination / 'README.md').write_text(card + summary)
         write_json(destination / 'dataset-metadata.json', dict(title=config['title'], subtitle=config['subtitle'],
                    id=f'{owner}/{config["slug"]}', licenses=[{'name': config['data_license']}],
-                   description=card + summary, keywords=['geography','weather','earth and nature'],
+                   description=card + summary, keywords=['geography','earth and nature'],
                    **read_json(ROOT/'release/kaggle/metadata.json')))
         shutil.copyfile(ROOT/'release/kaggle/dataset-cover-image.png',destination/'dataset-cover-image.png')
     else:

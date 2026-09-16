@@ -2,8 +2,8 @@
 
 [![Tests](https://github.com/jakeryderv/us-tornado-data-2010-2025/actions/workflows/tests.yml/badge.svg)](https://github.com/jakeryderv/us-tornado-data-2010-2025/actions/workflows/tests.yml)
 
-NOAA tornado records and damage footprints with Census county population/housing
-context. Load a frozen release with Python, or collect sources and inspect them
+NOAA tornado records and damage footprints with radar indicators, NWS warnings,
+Annual NLCD land cover and Census county population/housing context. Load a frozen release with Python, or collect sources and inspect them
 locally in Jupyter. **v2.2.0** provides 17 linked source/supporting tables and two event-level ML
 views, including an auditable cross-source crosswalk. Earlier releases
 retain their original layouts and detailed DAT surveys.
@@ -32,7 +32,7 @@ from huggingface_hub import hf_hub_download
 
 path = hf_hub_download(
     "jakeryderv/us-tornado-data-2010-2025", repo_type="dataset",
-    revision="v2.2.0", filename="analysis/tornadoes.parquet",
+    revision="33abca4f79fa30e288f72225f52b042a5ff4e07b", filename="analysis/tornadoes.parquet",
 )
 tornadoes = pd.read_parquet(path)
 ```
@@ -51,7 +51,7 @@ tornadoes = pd.read_parquet(path)
 ```
 
 Change the filename to download another table. To download all analysis files on
-HF, use `snapshot_download(..., repo_type="dataset", revision="v2.2.0",
+HF, use `snapshot_download(..., repo_type="dataset", revision="33abca4f79fa30e288f72225f52b042a5ff4e07b",
 allow_patterns=["analysis/*", "ANALYSIS.md"])`. Both clients reuse local caches.
 Full sources are direct files on HF and inside `release.zip.bin` on Kaggle.
 See [release/download verification](docs/RELEASING.md) for full-collection checks.
@@ -65,9 +65,18 @@ See [release/download verification](docs/RELEASING.md) for full-collection check
 | NOAA Event Footprint Catalog | `tornado_footprints.parquet` — 24,858 damage regions from DAT/Storm Events |
 | Census | `county_context.parquet`, `county_boundaries.parquet` |
 | Link evidence | `source_crosswalk.parquet`, `tornado_counties.parquet` |
+| NEXRAD Level III / SWDI | `radar_detections.parquet`, `tornado_radar.parquet` |
+| NWS warnings / IEM | `warning_updates.parquet`, `tornado_warnings.parquet` |
+| Annual NLCD / event geometry | `nlcd_samples.parquet`, `event_areas.parquet` |
+| Collection provenance | `source_coverage.parquet`, `record_provenance.parquet` |
 | Summary/provenance | `annual_summary.csv`, `manifest.json` |
 
-There are **nine main tables**, plus the annual summary, totaling **29.3 MB**. Use `pandas.read_parquet`
+There are **17 analysis tables** plus an annual summary. The original nine backbone
+tables remain unchanged (29.3 MB). Two additional event-level views under `ml/` —
+`events_onset.parquet` and `events_retrospective.parquet` — total **3.9 MB** and
+are the easiest starting point for EF modeling. Use the predictor roles in
+`ml/feature_dictionary.json`; see the [dataset card examples](docs/DATASET_CARD.md).
+The full shared payload is **1.34 GB**. Use `pandas.read_parquet`
 for ordinary tables and `geopandas.read_parquet` for footprints and boundaries.
 The [field dictionary](docs/ANALYSIS.md) covers types, units, and missing values.
 
@@ -113,8 +122,8 @@ select manifest-backed sources and exclude old DAT caches.
 
 Census supplies annual county population/housing estimates and one fixed 2020
 simplified county map. These are context, not exact people/buildings struck.
-The release contains no radar, photos, individual building footprints, or fixed
-train/test split. The crosswalk is automatic research evidence, not verified identity.
+The release contains derived radar indicators; raw radar scans, survey photos,
+individual building footprints and a fixed train/test split are excluded. The crosswalk is automatic research evidence, not verified identity.
 
 To collect the new enrichment separately and rebuild its ML views:
 
@@ -169,7 +178,8 @@ dist/                    Local staged releases, ignored by Git
 
 [Reports](reports/README.md) distinguish current verification from the historical
 DAT study. The [public Kaggle example](https://www.kaggle.com/code/jakevanslyke/us-tornado-data-getting-started)
-loads v2.1.0 / Kaggle 6 with `kagglehub` and reads the nine consolidated tables.
+loads v2.2.0 / Kaggle 7 with `kagglehub`, verifies selected file checksums, inventories
+all 19 tables and demonstrates onset and retrospective ML views.
 It runs on Kaggle or locally; the local inspection notebook additionally checks
 the repository collection and analysis provenance.
 
@@ -181,7 +191,7 @@ GitHub Actions runs offline tests and a download dry run with locked dependencie
 Full source/host verification is performed separately for each published release.
 Publishing clients live in the optional `publish` dependency group.
 
-[MIT](LICENSE) covers project code and original text. NOAA and Census records have
+[MIT](LICENSE) covers project code and original text. Source records have
 separate [attribution and reuse notices](docs/DATA_SOURCES.md). This compilation is
 not endorsed by the source agencies. See the [dataset card](docs/DATASET_CARD.md)
 and [release workflow](docs/RELEASING.md) for reproducible citation and packaging.
