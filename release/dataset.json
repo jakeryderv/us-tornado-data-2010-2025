@@ -2,7 +2,7 @@
   "slug": "us-tornado-data-2010-2025",
   "title": "US Tornado Data, 2010\u20132025",
   "subtitle": "Linked tornado records, radar, warnings, land cover and EF modeling tables",
-  "version": "v2.2.0",
+  "version": "v2.2.1",
   "start_year": 2010,
   "end_year": 2025,
   "code_repository": "https://github.com/jakeryderv/us-tornado-data-2010-2025",

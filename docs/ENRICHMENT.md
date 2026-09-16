@@ -6,7 +6,7 @@ adds eight radar, warning, land-cover, linking and provenance tables to the same
 checkpoints remain under `enrichment/`. Reproducible, offline feature generation creates
 two additional event tables under `ml/`; it never replaces the source tables.
 
-**These additions are included in v2.2.0; v2.1.0 remains the earlier backbone-only release.** Development began
+**These additions are included in v2.2.1; v2.1.0 remains the earlier backbone-only release.** Development began
 with four events spanning 2010–2025, followed by a 200-event equivalence benchmark.
 ACS, TIGER/Line tract enrichment and ERA5
 are deferred; the default collection and ML views omit their tables and columns.
@@ -315,7 +315,12 @@ Final dimensions and exposure may encode the EF assessment itself. Never use
 a physical intensity predictor without studying collection bias.
 
 `feature_dictionary.json` supplies explicit onset/retrospective predictor lists,
-target, ID, grouping field, column roles and assumptions. Metadata and unknown
+target, ID, grouping field, column roles and assumptions. Schema 2 also provides
+source tables/columns, units, aggregation/window and availability basis for each
+field. `eligible_for_conditional_onset` identifies the 15 candidates;
+`available_by_onset` is null for those fields because actual real-time delivery
+is not verified. `post_nlcd_valid_fraction` is quality metadata, excluded from
+the default retrospective predictor list. Metadata and unknown
 targets are not silently imputed. `ml_split_group` joins existing backbone split
 groups and events sharing radar detections or warnings; keep groups intact.
 These conservative groups are not independently verified meteorological outbreaks.
@@ -359,17 +364,26 @@ county cancellation, invalid range responses, Census
 sentinels, raster no-data and incomplete exposure. The local inspection notebook
 checks active table hashes and reads coverage and both views without downloading.
 `python -m enrichment.verify` rechecks retained source bytes, table keys/links,
-the ML input snapshot and target preservation. It reports optional bodies as intentionally not retained, separately from missing/corrupt required files. A passed
+the ML input snapshot and target preservation. It independently reconstructs all
+11 radar/warning onset aggregates from source timestamps/values, rejecting changed
+latency or future selected polygon times; this does not prove actual receipt or
+archive completeness. It reports optional bodies as intentionally not retained, separately from missing/corrupt required files. A passed
 verification can describe a small pilot; check `selected_events` and
 `full_cohort_processed` rather than assuming a pass implies full coverage.
 The full test suite also checks the deferred Census and ERA5 adapters; `--group era5` is only
 needed for those optional tests. Use `--require-full` after your full collection to
 reject a pilot or partial run; omit it for an intentional small validation.
 
-The v2.2.0 release builder requires full source/ML verification and packages all
+The v2.2.1 release builder requires full source/ML verification and packages all
 17 analysis tables plus both ML views. It preserves table bytes and the extraction
 manifest. Required supporting texts/schema documents are bundled into
 `enrichment/supporting_assets.zip`; caches/checkpoints are excluded. Expand that
 bundle using `python -m scripts.release_data restore-support PATH` before running
 the standalone enrichment verifier on a downloaded release. ML regeneration does
 not require expanding it. See [RELEASING.md](RELEASING.md) for publication steps.
+
+Research coverage reports can be regenerated with
+`python -m scripts.research_report --data-dir data --output reports/research`.
+They summarize source completeness, linkage uncertainty and feature missingness by
+year, state/territory and EF class. See [research readiness](RESEARCH_READINESS.md)
+for measured counts, biases, intended uses and conclusions the dataset cannot support.

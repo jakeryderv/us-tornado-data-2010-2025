@@ -1,6 +1,6 @@
 # Kaggle listing and notebook maintenance
 
-The v2.2.0 release includes 17 linked analysis tables and two ML views. The shared
+The v2.2.1 release includes 17 linked analysis tables and two ML views. The shared
 dataset card contains both platform examples; the staged Kaggle listing renders
 only the Kaggle quick start. `metadata.json` supplies current source notes and
 file/column descriptions. `dataset-cover-image.png` labels the expanded scope.
@@ -35,5 +35,5 @@ uv run --group publish kaggle kernels status jakevanslyke/us-tornado-data-gettin
 
 The hosted notebook uses CPU, internet disabled and the pinned attached dataset.
 Retrieve and verify the hosted output and source after completion. Store the run
-receipt in `notebook-v2.2.json`; older receipts and notebook history are retained.
+receipt in `notebook-v2.2.1.json`; older receipts and notebook history are retained.
 A notebook-only update does not create a new dataset version.

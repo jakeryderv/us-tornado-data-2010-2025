@@ -183,23 +183,106 @@ def make_views(backbone, tables, config):
     return pd.DataFrame(onset_rows),pd.DataFrame(retro_rows)
 
 
+def feature_provenance(name, config):
+    """Machine-readable lineage for current fields; optional adapters stay explicit."""
+    post = name.startswith('post_')
+    field = name[5:] if post else name
+    window = (f"observed within onset -{config['radar_before_minutes']} to +{config['radar_after_minutes']} minutes"
+              if post else f"observed within onset -{config['radar_before_minutes']} minutes; observation +{config['radar_latency_minutes']} minutes <= onset")
+    if field in RADAR_FEATURES:
+        product, column = RADAR_FEATURES[field]
+        units = {'max_shear_per_s':'s^-1', 'velocity_difference_knots':'knots',
+                 'rotation_velocity_knots':'knots', 'max_reflectivity_dbz':'dBZ', 'vil_kg_m2':'kg m^-2'}
+        native = {'max_shear_per_s':'MAX_SHEAR / 1000', 'velocity_difference_knots':'MXDV or LL_DV',
+                  'rotation_velocity_knots':'MAX_RV_KTS', 'max_reflectivity_dbz':'MAX_REFLECT', 'vil_kg_m2':'VIL'}
+        return dict(source_tables=['radar_detections','tornado_radar'],
+                    source_columns=[column or 'record_id','product','observed_at','available_at','distance_km'],
+                    source_product=product, native_field=native.get(column,'record_id'),
+                    aggregation='maximum' if column else 'count associated product records; not independent storms or normalized scan opportunities',
+                    units=units.get(column,'records'), window=window,
+                    spatial_rule=f"{config['radar_radius_km']} km around final-catalog reported start",
+                    availability_basis='post_event_window' if post else 'observation_plus_assumed_latency',
+                    missingness='Incomplete source -> null; complete/no qualifying records -> count zero and maximum null; radar uptime unknown.')
+    if field.startswith('warning_') and field in {'warning_active_tornado_count','warning_active_severe_count','warning_tornado_lead_minutes'}:
+        return dict(source_tables=['warning_updates','tornado_warnings'],
+                    source_columns=['warning_id','issued_at','original_issue_at','known_expiry_at','action','phenomenon','covers_start'],
+                    aggregation=('onset minus earliest original issuance of active TO warning' if field.endswith('lead_minutes')
+                                 else 'count distinct active warning IDs of TO or SV type after latest-update selection'),
+                    units='minutes' if field.endswith('lead_minutes') else 'warnings',
+                    window='latest update issued <= onset; known expiry > onset; exclude CAN/EXP',
+                    spatial_rule='latest polygon covers final-catalog reported start',
+                    availability_basis='product_issuance_without_receipt_evidence',
+                    missingness='Incomplete/ambiguous source state -> null; no active warning -> count zero, lead time null. Missing CAN products may overstate activity.')
+    land = {'land_developed_fraction':('class_21_pixels + class_22_pixels + class_23_pixels + class_24_pixels','sum / valid_pixel_count','fraction'),
+            'land_forest_fraction':('class_41_pixels + class_42_pixels + class_43_pixels','sum / valid_pixel_count','fraction'),
+            'land_cropland_fraction':('class_82_pixels','class_82_pixels / valid_pixel_count','fraction'),
+            'impervious_mean_percent':('mean_impervious_percent','mean valid impervious pixels','percent'),
+            'nlcd_valid_fraction':('valid_pixel_count, pixel_count','valid_pixel_count / pixel_count','fraction')}
+    if field in land:
+        columns, aggregation, units = land[field]
+        return dict(source_tables=['nlcd_samples','event_areas'],source_columns=columns.split(', '),
+                    aggregation=aggregation,units=units,window=f"event year minus {config['nlcd_year_lag']}; annual map, not event-date observation",
+                    spatial_rule='30 m pixel centers within final accepted footprint union or 500 m endpoint-track buffer',
+                    availability_basis='final_event_geometry_and_retrospective_map',
+                    missingness='Outside coverage, no pixel centers or no valid class pixels -> null; valid fraction is quality metadata.')
+    mapping = {'target_ef_rating':'ef_rating','target_known':'ef_rating_known',
+               'onset_utc':'start_date, start_time, spc_timezone_code','prediction_cutoff_utc':'start_date, start_time, spc_timezone_code',
+               'end_utc':'end_date, end_time, spc_timezone_code','duration_minutes':'start_date, start_time, end_date, end_time, spc_timezone_code',
+               'month':'start_date, start_time, spc_timezone_code','hour_utc':'start_date, start_time, spc_timezone_code'}
+    if field in {'tornado_id','target_ef_rating','target_known','onset_utc','prediction_cutoff_utc','start_longitude','start_latitude','end_longitude','end_latitude','end_utc','duration_minutes','path_length_miles','path_width_yards','injuries','fatalities','year','month','hour_utc','suggested_split_group'}:
+        units = {'target_ef_rating':'ordinal EF0-EF5','path_length_miles':'miles','path_width_yards':'yards','duration_minutes':'minutes',
+                 'start_longitude':'degrees east','end_longitude':'degrees east','start_latitude':'degrees north','end_latitude':'degrees north',
+                 'injuries':'people','fatalities':'people','month':'UTC month 1-12','hour_utc':'UTC hour 0-23'}
+        return dict(source_tables=['tornadoes'],source_columns=mapping.get(field,field).split(', '),
+                    aggregation=('UTC end minus start; equal reported timestamps yield zero, not proven zero physical duration' if field=='duration_minutes'
+                                 else 'UTC calendar extraction from reported onset' if field in {'month','hour_utc'} else 'copy or normalize preserved SPC field'),
+                    units=units.get(field,'UTC timestamp' if field.endswith('_utc') else 'identifier/metadata'),
+                    window='final source catalog',availability_basis='final_event_catalog',
+                    missingness='Source unknown values preserved; unknown EF is never EF0.')
+    if field.endswith('_source_status'):
+        return dict(source_tables=['source_coverage'],source_columns=['source','status'],aggregation='event/source lookup',units='categorical status',
+                    window='collection snapshot',availability_basis='post_event_collection_metadata',missingness='not_requested when absent; completion is not observing coverage')
+    if field in {'area_id','area_method'}:
+        return dict(source_tables=['event_areas'],source_columns=[field],aggregation='event lookup',units='identifier/metadata',
+                    window='final event geometry',availability_basis='post_event_geometry',missingness='null if unavailable')
+    if field=='ml_split_group':
+        return dict(source_tables=['tornadoes','tornado_radar','tornado_warnings'],source_columns=['suggested_split_group','record_id','warning_id'],
+                    aggregation='connected components of shared groups/detections/warnings',units='opaque group ID',window='full selected source window',
+                    availability_basis='post_event_split_metadata',missingness='always assigned; not a predictor or confirmed outbreak')
+    if field=='feature_missing_count':
+        return dict(source_tables=['radar_detections','tornado_radar','warning_updates','tornado_warnings','source_coverage'],
+                    source_columns=['derived radar_* and warning_* output columns'],aggregation='count null radar_/warning_ output fields',units='fields',
+                    window='conditional onset aggregation',availability_basis='derived_quality_metadata',missingness='always computed; not a predictor')
+    if field=='onset_location_from_final_catalog':
+        return dict(source_tables=['tornadoes'],source_columns=['start_longitude','start_latitude'],aggregation='constant true provenance flag',units='boolean',
+                    window='final catalog',availability_basis='final_event_catalog',missingness='always true')
+    if field=='radar_no_detection_is_not_no_radar_coverage':
+        return dict(source_tables=['radar_detections'],source_columns=['product','record_id'],aggregation='constant true interpretation flag',units='boolean',
+                    window='selected query window',availability_basis='interpretation_metadata',missingness='always true; archive/uptime completeness is unknown')
+    if field.startswith(('era5_','exposure_')):
+        return dict(source_tables=['era5_samples'] if field.startswith('era5_') else ['acs_tracts','tornado_tracts'],
+                    source_columns=['see deferred adapter documentation'],aggregation='deferred adapter summary',units='see deferred adapter documentation',
+                    window='retrospective only',availability_basis='deferred_retrospective_source',missingness='null if unrequested/unavailable')
+    return dict(source_tables=['source_coverage'],source_columns=['status'],aggregation='derived assumption/quality flag or null-count of radar/warning outputs',
+                units='boolean or count',window='collection snapshot',availability_basis='post_event_quality_metadata',missingness='not a physical predictor')
+
+
 def dictionary(onset, retrospective, config):
-    excluded={'tornado_id','target_ef_rating','target_known','onset_utc','prediction_cutoff_utc',
-              'suggested_split_group','ml_split_group','year','feature_missing_count',
-              'era5_source_status'}
-    onset_features=[c for c in onset if c not in excluded and not any(x in c for x in
-                    ['source_status','assumed','no_detection','from_final_catalog'])]
+    onset_features=[c for c in ['start_longitude','start_latitude','month','hour_utc',*RADAR_FEATURES,
+                    'warning_active_tornado_count','warning_active_severe_count','warning_tornado_lead_minutes'] if c in onset]
     columns={}
     for c in retrospective:
         role=('target' if c=='target_ef_rating' else 'retrospective_candidate' if c.startswith('post_')
               else 'onset_predictor_candidate' if c in onset_features else 'metadata')
         if c in {'post_injuries','post_fatalities','post_area_id','post_area_method','post_end_utc','post_era5_grid_distance_km','post_era5_profile_status',
-                 'post_era5_surface_geopotential_m2_s2'}:
+                 'post_era5_surface_geopotential_m2_s2','post_nlcd_valid_fraction'}:
             role='retrospective_metadata'
-        columns[c]=dict(role=role,available_by_onset=c in onset_features,
+        columns[c]=dict(role=role,available_by_onset=None if c in onset_features else False,
+                        eligible_for_conditional_onset=c in onset_features,
+                        **feature_provenance(c,config),
                         note='Reported start location is a hindsight event anchor; operational latency is assumed for radar; ERA5 is retrospective only.' if c in onset_features else
                              'Never include post_ fields in an onset forecast.' if c.startswith('post_') else 'Exclude from predictors unless separately justified.')
-    return dict(schema_version=1,cutoff='reported_tornado_onset',config=config,columns=columns,
+    return dict(schema_version=2,availability_contract='conditional_on_reported_onset; actual receipt unverified',cutoff='reported_tornado_onset',config=config,columns=columns,
                 onset_predictor_columns=onset_features,
                 retrospective_predictor_columns=onset_features+[c for c,v in columns.items() if v['role']=='retrospective_candidate'],
                 target='target_ef_rating',id='tornado_id',group='ml_split_group',

@@ -1,6 +1,6 @@
 # Analysis tables
 
-Release **v2.2.0** has **17 Parquet tables in `analysis/`**, plus the annual
+Release **v2.2.1** has **17 Parquet tables in `analysis/`**, plus the annual
 summary CSV. Two generated modeling views live in `ml/`. Download caches and
 collection metadata live separately in `enrichment/`.
 

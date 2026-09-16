@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "sources": [
+    {
+      "id": "spc",
+      "provider": "NOAA / National Weather Service, Storm Prediction Center",
+      "product": "U.S. historical actual tornado tracks, 1950\u20132025 archive",
+      "url": "https://www.spc.noaa.gov/wcm/#data",
+      "version": "2010\u20132025 selected from 1950-2025_actual_tornadoes.csv; exact upstream/subset hashes in sidecar",
+      "coverage": "Recorded U.S. tornadoes; source year defines selection",
+      "terms": "NWS public-domain terms, except identified third-party material",
+      "terms_url": "https://www.weather.gov/disclaimer",
+      "metadata_prefixes": [
+        "spc/"
+      ],
+      "derived_tables": [
+        "tornadoes",
+        "events_onset",
+        "events_retrospective"
+      ],
+      "provenance": "SPC source year/event ID defines tornado_id; final EF target, reported times/coordinates, dimensions and impacts.",
+      "recommended_citation": "NOAA/NWS Storm Prediction Center. U.S. Tornado Database, 1950\u20132025 actual tornadoes, subset 2010\u20132025."
+    },
+    {
+      "id": "ncei",
+      "provider": "NOAA National Centers for Environmental Information / National Weather Service",
+      "product": "Storm Events Database: details, fatalities and locations",
+      "url": "https://www.ncei.noaa.gov/stormevents/",
+      "version": "Annual 2010\u20132025 export v1.0; exact per-table cYYYYMMDD revisions retained in filenames/manifest",
+      "coverage": "All-hazard annual archives plus exact Tornado EVENT_ID extracts",
+      "terms": "NWS terms and NCEI accuracy/source constraints",
+      "terms_url": "https://www.ncei.noaa.gov/metadata/geoportal/rest/metadata/item/gov.noaa.ncdc:C00510/html",
+      "metadata_prefixes": [
+        "ncei_storm_events/"
+      ],
+      "derived_tables": [
+        "storm_events",
+        "storm_fatalities",
+        "storm_locations",
+        "source_crosswalk",
+        "tornado_counties",
+        "tornadoes"
+      ],
+      "provenance": "Original event IDs join NCEI tables; accepted time/geometry links join SPC. Narratives/impacts remain retrospective.",
+      "recommended_citation": "NOAA NCEI. Storm Events Database (C00510 / DSI 3910_03), details, fatalities and locations, 2010\u20132025; annual revision filenames identify the snapshot."
+    },
+    {
+      "id": "efc",
+      "provider": "NOAA National Centers for Environmental Information / National Weather Service",
+      "product": "Event Footprint Catalog: tornado footprints",
+      "url": "https://www.ncei.noaa.gov/products/event-footprint-catalog",
+      "version": "Catalog v1.0 launched 2026; annual objects pinned by GCS generation, MD5 and SHA-256",
+      "coverage": "2010\u20132025 annual tornado files; DAT surveys supplemented by Storm Events reconstructions",
+      "terms": "NWS public-domain terms and retained source notices",
+      "terms_url": "https://www.weather.gov/disclaimer",
+      "metadata_prefixes": [
+        "event_footprints/"
+      ],
+      "derived_tables": [
+        "tornado_footprints",
+        "source_crosswalk",
+        "event_areas",
+        "nlcd_samples",
+        "events_retrospective"
+      ],
+      "provenance": "Catalog region IDs remain distinct from tornado IDs; accepted regions form retrospective area unions. Underlying DAT/SED attribution is preserved.",
+      "recommended_citation": "NOAA NCEI. Event Footprint Catalog, tornado footprints, annual files 2010\u20132025, frozen object generations. Derived from NWS Damage Assessment Toolkit and Storm Events Database."
+    },
+    {
+      "id": "census_estimates",
+      "provider": "U.S. Census Bureau, Population Division",
+      "product": "Population Estimates Program: county population and housing-unit estimates",
+      "url": "https://www.census.gov/programs-surveys/popest.html",
+      "version": "Vintage 2020: co-est2020-alldata.csv, HU-EST2020_ALL.csv; vintage 2025: co-est2025-alldata.csv, CO-EST2025-HU.xlsx",
+      "coverage": "July 1 annual estimates; 2010\u20132019 use vintage 2020; 2020\u20132025 use vintage 2025; 50 states and DC",
+      "terms": "Census employee works generally not copyrighted in the U.S.; third-party exceptions",
+      "terms_url": "https://www2.census.gov/foia/ds_policies/ds027.pdf",
+      "metadata_prefixes": [
+        "census_population/"
+      ],
+      "derived_tables": [
+        "county_context",
+        "tornado_counties",
+        "tornadoes"
+      ],
+      "provenance": "Original county totals joined by county FIPS/year; deduplicated linked county totals are context, not counts struck.",
+      "recommended_citation": "U.S. Census Bureau, Population Division. County population and housing-unit estimates, vintages 2020 and 2025, selected years 2010\u20132025; four source files identified above."
+    },
+    {
+      "id": "census_map",
+      "provider": "U.S. Census Bureau",
+      "product": "2020 Cartographic Boundary Files: national county KML, 1:5,000,000",
+      "url": "https://www.census.gov/geographies/mapping-files/2020/geo/carto-boundary-file.html",
+      "version": "cb_2020_us_county_5m.zip; fixed 2020 geography",
+      "coverage": "U.S. states and included territories; generalized display geometry, not a historical boundary series",
+      "terms": "Census employee works generally not copyrighted in the U.S.; third-party exceptions",
+      "terms_url": "https://www2.census.gov/foia/ds_policies/ds027.pdf",
+      "metadata_prefixes": [
+        "census_boundaries/"
+      ],
+      "derived_tables": [
+        "county_boundaries"
+      ],
+      "provenance": "Original KML converted to GeoJSON/GeoParquet preserving county identifiers and parts; used as contextual map.",
+      "recommended_citation": "U.S. Census Bureau. 2020 Cartographic Boundary Files, Counties, United States, 1:5,000,000, KML (cb_2020_us_county_5m.zip)."
+    },
+    {
+      "id": "swdi",
+      "provider": "NOAA National Centers for Environmental Information",
+      "product": "Severe Weather Data Inventory: NEXRAD Level III TVS, MDA and storm structure detections",
+      "url": "https://www.ncei.noaa.gov/swdiws/",
+      "version": "Products nx3tvs, nx3mda, nx3structure; exact queries/native rows and asset hashes identify the snapshot",
+      "coverage": "2010\u20132025 event windows, onset \u00b160 minutes and 20 km radius; selected detections, not all Level III products or radar uptime",
+      "terms": "NWS public-domain terms and source notices",
+      "terms_url": "https://www.weather.gov/disclaimer",
+      "metadata_prefixes": [],
+      "derived_tables": [
+        "radar_detections",
+        "tornado_radar",
+        "events_onset",
+        "events_retrospective"
+      ],
+      "provenance": "Source product/native record IDs \u2192 proximity links \u2192 count/max aggregates. TVS MAX_SHEAR divided by 1000; other units preserved.",
+      "recommended_citation": "NOAA NCEI. Severe Weather Data Inventory (SWDI), NEXRAD Level III Tornado Vortex Signature, Mesocyclone Detection Algorithm and Storm Structure products (nx3tvs, nx3mda, nx3structure), selected 2010\u20132025 event windows."
+    },
+    {
+      "id": "iem",
+      "provider": "NOAA / National Weather Service; archive provided by Iowa State University, Iowa Environmental Mesonet",
+      "product": "NWS storm-based TO/SV warning polygons, follow-up updates and original VTEC product text",
+      "url": "https://mesonet.agron.iastate.edu/request/gis/watchwarn.phtml",
+      "version": "Exact export parameters, product IDs, VTEC keys, original texts and asset hashes identify the snapshot",
+      "coverage": "2010\u20132025 event-day/previous-day archive windows; standalone CAN rows absent from this export",
+      "terms": "IEM materials public domain with attribution requested; NWS terms apply to original warnings",
+      "terms_url": "https://mesonet.agron.iastate.edu/disclaimer.php",
+      "metadata_prefixes": [],
+      "derived_tables": [
+        "warning_updates",
+        "tornado_warnings",
+        "events_onset",
+        "events_retrospective"
+      ],
+      "provenance": "Product/polygon rows \u2192 warning/event links \u2192 latest-issued active state and lead time; receipt/complete cancellation timeline not established.",
+      "recommended_citation": "NOAA/NWS. Tornado and Severe Thunderstorm Warnings and updates, 2010\u20132025. Archived by the Iowa Environmental Mesonet, Iowa State University; storm-based polygon export and original product text."
+    },
+    {
+      "id": "nlcd",
+      "provider": "U.S. Geological Survey, Earth Resources Observation and Science Center",
+      "product": "Annual National Land Cover Database Collection 1: Land Cover and Fractional Impervious Surface",
+      "url": "https://www.usgs.gov/data/annual-national-land-cover-database-nlcd-collection-1-products",
+      "version": "WCS Land-Cover-Native and Fractional-Impervious-Surface-Native; collection revision unresolved in saved service metadata; current catalog revision must not be assumed to identify this snapshot",
+      "coverage": "Prior years 2009\u20132024 for tornadoes 2010\u20132025; CONUS native 30 m EPSG:5070 pixels",
+      "terms": "CC0 1.0 Universal, as marked on the USGS data release",
+      "terms_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "metadata_prefixes": [],
+      "derived_tables": [
+        "nlcd_samples",
+        "events_retrospective"
+      ],
+      "provenance": "Native WCS pixels intersect final event_areas using pixel centers; class fractions and impervious means are retrospective. Exact requests/description hashes preserve extraction identity.",
+      "recommended_citation": "U.S. Geological Survey (USGS), 2024. Annual National Land Cover Database (NLCD) Collection 1 Products. U.S. Geological Survey data release, https://doi.org/10.5066/P94UXNTS. Land Cover and Fractional Impervious Surface, years 2009\u20132024; WCS collection revision unresolved."
+    }
+  ]
+}

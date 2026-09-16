@@ -8,7 +8,8 @@ from pathlib import Path
 import pandas as pd
 
 from .common import atomic_json, digest, now, utc, stable_id
-from .features import validate_sources
+from .features import validate_sources, RADAR_FEATURES
+from .temporal import verify_onset
 from .pipeline import DEFAULT_SOURCES, ROOT, input_hashes
 from .storage import verify_asset
 
@@ -82,6 +83,17 @@ def verify(data, enrichment, ml, *, require_full=False):
     if any(c.startswith('post_') or c.startswith('env_') for c in onset):raise ValueError('Post-event fields in onset view')
     if any(c.startswith('post_') or c==spec['target'] for c in spec['onset_predictor_columns']):
         raise ValueError('Invalid onset predictor allowlist')
+    expected={'start_longitude','start_latitude','month','hour_utc',*RADAR_FEATURES,
+              'warning_active_tornado_count','warning_active_severe_count','warning_tornado_lead_minutes'}
+    if set(spec['onset_predictor_columns']) != expected or spec.get('schema_version') != 2:
+        raise ValueError('Unreviewed onset predictor or availability contract')
+    for name in expected:
+        field=spec['columns'][name]
+        if field.get('available_by_onset') is not None or field.get('eligible_for_conditional_onset') is not True:
+            raise ValueError('Conditional onset eligibility must not assert actual availability')
+    if 'post_nlcd_valid_fraction' in spec['retrospective_predictor_columns']:
+        raise ValueError('NLCD valid fraction is quality metadata')
+    temporal=verify_onset(onset,tables,manifest['definition']['config'])
     env=tables.get('era5_samples',pd.DataFrame())
     if len(env):
         checked=env.merge(onset[['tornado_id','prediction_cutoff_utc']],on='tornado_id',validate='many_to_one')
@@ -103,7 +115,8 @@ def verify(data, enrichment, ml, *, require_full=False):
                 ml_tables={v['path']:v['rows'] for v in ml_manifest['files']},
                 enrichment_manifest_sha256=digest(enrichment/'manifest.json'),
                 ml_manifest_sha256=digest(ml/'manifest.json'),
-                checks=['source/table digests','keys and source links','requested cohort coverage',
+                temporal_verification=temporal,
+                checks=['source-time aggregate reconstruction','source/table digests','keys and source links','requested cohort coverage',
                         'all backbone IDs/targets preserved','onset allowlist']+
                        (['per-job extraction definitions'] if 'extraction_definition_id' in coverage else [])+
                        (['ERA5 time cutoff'] if 'era5' in manifest['requested_sources'] else []))

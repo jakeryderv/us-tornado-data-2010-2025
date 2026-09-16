@@ -1,6 +1,6 @@
 {
   "expectedUpdateFrequency": "never",
-  "userSpecifiedSources": "Original source products and archive services:\n\n- [NOAA/NWS SPC tornado database](https://www.spc.noaa.gov/wcm/#data).\n- [NOAA NCEI Storm Events](https://www.ncei.noaa.gov/stormevents/).\n- [NOAA Event Footprint Catalog](https://www.ncei.noaa.gov/products/event-footprint-catalog), incorporating DAT and Storm Events.\n- [Census Population Estimates Program](https://www.census.gov/programs-surveys/popest.html).\n- [Census 2020 cartographic boundaries](https://www.census.gov/geographies/mapping-files/2020/geo/carto-boundary-file.html).\n- [NOAA NCEI SWDI](https://www.ncei.noaa.gov/swdiws/), NEXRAD-derived products.\n- [Iowa Environmental Mesonet warning archive](https://mesonet.agron.iastate.edu/request/gis/watchwarn.phtml), archiving NWS warning products.\n- [USGS Annual NLCD](https://www.usgs.gov/centers/eros/science/annual-nlcd-data-access).\n\nFixed 2010\u20132025 snapshot; no scheduled refresh. The release preserves source URLs, timestamps, hashes and extracted records. NLCD has 17 documented coverage gaps. ERA5 and ACS/TIGER tract data are deferred. Code and release receipts: https://github.com/jakeryderv/us-tornado-data-2010-2025",
+  "userSpecifiedSources": "Original source products and archive services:\n\n- [NOAA/NWS SPC tornado database](https://www.spc.noaa.gov/wcm/#data).\n- [NOAA NCEI Storm Events](https://www.ncei.noaa.gov/stormevents/).\n- [NOAA Event Footprint Catalog](https://www.ncei.noaa.gov/products/event-footprint-catalog), incorporating DAT and Storm Events.\n- [Census Population Estimates Program](https://www.census.gov/programs-surveys/popest.html).\n- [Census 2020 cartographic boundaries](https://www.census.gov/geographies/mapping-files/2020/geo/carto-boundary-file.html).\n- [NOAA NCEI SWDI](https://www.ncei.noaa.gov/swdiws/), NEXRAD-derived products.\n- [Iowa Environmental Mesonet warning archive](https://mesonet.agron.iastate.edu/request/gis/watchwarn.phtml), archiving NWS warning products.\n- [USGS Annual NLCD](https://www.usgs.gov/centers/eros/science/annual-nlcd-data-access).\n\nFixed 2010\u20132025 snapshot; no scheduled refresh. The release preserves source URLs, timestamps, hashes and extracted records. NLCD has 17 documented coverage gaps. ERA5 and ACS/TIGER tract data are deferred. Code and release receipts: https://github.com/jakeryderv/us-tornado-data-2010-2025\n\nsource_registry.json and DATA_SOURCES.md give exact product names/vintages, acquisition dates, terms and recommended citations. NLCD Collection 1 is CC0; its WCS revision is unresolved in retained metadata. IEM material is public domain with attribution requested. The compilation and derived features do not imply provider endorsement.",
   "resources": [
     {
       "path": "analysis/county_boundaries.parquet",
@@ -1212,11 +1212,11 @@
     },
     {
       "path": "ml/events_onset.parquet",
-      "description": "EF target, normalized onset/location, pre-cutoff radar aggregates, warning counts/lead time and missingness. Release v2.2.0: one row per tornado, 20,164 rows and 30 columns. Use ml/feature_dictionary.json to select the 15 onset predictor candidates; targets, IDs and metadata are not predictors. Reported onset/location are hindsight anchors, radar latency is assumed to be five minutes, and warning cancellation coverage is incomplete. Unknown EF targets remain missing. Join linked source tables using tornado_id."
+      "description": "EF target, normalized onset/location, pre-cutoff radar aggregates, warning counts/lead time and missingness. Release v2.2.1: one row per tornado, 20,164 rows and 30 columns. Use ml/feature_dictionary.json to select the 15 onset predictor candidates; targets, IDs and metadata are not predictors. Reported onset/location are hindsight anchors, radar latency is assumed to be five minutes, and warning cancellation coverage is incomplete. Unknown EF targets remain missing. Join linked source tables using tornado_id. Dictionary schema 2 marks conditional eligibility separately from unverified real-time availability. Independent verification reconstructs all 11 radar/warning aggregates."
     },
     {
       "path": "ml/events_retrospective.parquet",
-      "description": "Onset fields plus final track/impact data, radar through onset +60 minutes and land-cover summaries. Release v2.2.0: one row per tornado, 20,164 rows and 53 columns. This view supports retrospective EF-rating analysis. Final path dimensions, damage/impact fields and footprint-dependent NLCD summaries are post-event information and must not enter onset forecasts. Land cover uses prior-year Annual NLCD at native 30 m resolution; 17 events are outside selected coverage. Unknown EF targets and missing values are preserved. Use ml/feature_dictionary.json for field roles and join source evidence by tornado_id."
+      "description": "Onset fields plus final track/impact data, radar through onset +60 minutes and land-cover summaries. Release v2.2.1: one row per tornado, 20,164 rows and 53 columns. This view supports retrospective EF-rating analysis. Final path dimensions, damage/impact fields and footprint-dependent NLCD summaries are post-event information and must not enter onset forecasts. Land cover uses prior-year Annual NLCD at native 30 m resolution; 17 events are outside selected coverage. Unknown EF targets and missing values are preserved. Use ml/feature_dictionary.json for field roles and join source evidence by tornado_id. NLCD valid-pixel fraction is quality metadata, excluded from default predictors. Land-cover fractions are missing for 317 events; see research/ coverage reports."
     },
     {
       "path": "README.md",
@@ -1260,7 +1260,7 @@
     },
     {
       "path": "release_manifest.json",
-      "description": "Frozen v2.2.0 payload inventory, source snapshots, code revision and SHA-256 checksums."
+      "description": "Frozen v2.2.1 payload inventory, source snapshots, code revision and SHA-256 checksums."
     },
     {
       "path": "SHA256SUMS",
@@ -1268,7 +1268,7 @@
     },
     {
       "path": "release.zip.bin",
-      "description": "Complete v2.2.0 payload, including all 19 Parquet tables and source provenance. Extract with Python zipfile. Analysis and ML tables are also directly downloadable."
+      "description": "Complete v2.2.1 payload, including all 19 Parquet tables and source provenance. Extract with Python zipfile. Analysis and ML tables are also directly downloadable."
     },
     {
       "path": "schema.json",
@@ -1285,6 +1285,22 @@
     {
       "path": "CODE_LICENSE.txt",
       "description": "MIT license for code and original documentation; government-source reuse is described separately."
+    },
+    {
+      "path": "source_registry.json",
+      "description": "Eight upstream product records: providers, exact datasets/products, URLs, version/coverage, access dates, terms, recommended citations and derived-table provenance."
+    },
+    {
+      "path": "RESEARCH_READINESS.md",
+      "description": "Conditional onset contract, independent temporal checks, measured coverage, biases, intended and inappropriate uses, and reproducible rebuild commands."
+    },
+    {
+      "path": "research/summary.json",
+      "description": "Reproducible cohort/EF/missingness counts, denominator definitions and input hashes."
+    },
+    {
+      "path": "research/README.md",
+      "description": "Coverage-report guide: year, state/territory and EF-class summaries distinguish job completion, nonmissing features and positive records."
     }
   ]
 }

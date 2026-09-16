@@ -28,11 +28,12 @@ regenerating or changing table bytes. It refuses existing staging destinations.
 
 ```sh
 uv run --group enrichment python -m scripts.release_data build
-uv run python -m scripts.release_data verify dist/v2.2.0/payload
+uv run python -m scripts.release_data verify dist/v2.2.1/payload
 ```
 
 The shared payload has all 17 `analysis/` tables and both `ml/` views, their
 manifests/dictionaries, original backbone sources, portable documentation,
+`source_registry.json`, generated `research/` coverage reports, `RESEARCH_READINESS.md`,
 `schema.json`, `CITATION.cff`, `release_manifest.json` and `SHA256SUMS`.
 Working caches/checkpoints/benchmarks are omitted. Required warning texts and
 schema documents are bundled in `enrichment/supporting_assets.zip`; every member
@@ -50,8 +51,8 @@ The release checksum verifier can verify the bundle without expanding it.
 ## Stage both hosts
 
 ```sh
-uv run python -m scripts.release_data stage huggingface --owner jakeryderv --payload dist/v2.2.0/payload --output dist/v2.2.0/huggingface
-uv run python -m scripts.release_data stage kaggle --owner jakevanslyke --payload dist/v2.2.0/payload --output dist/v2.2.0/kaggle
+uv run python -m scripts.release_data stage huggingface --owner jakeryderv --payload dist/v2.2.1/payload --output dist/v2.2.1/huggingface
+uv run python -m scripts.release_data stage kaggle --owner jakevanslyke --payload dist/v2.2.1/payload --output dist/v2.2.1/kaggle
 ```
 
 Both share identical payload bytes and checksums. HF stores them directly.
@@ -81,8 +82,8 @@ should remove only explicitly identified obsolete files in the new revision;
 never delete the repository or historical revisions. Kaggle uses `datasets version`.
 
 ```sh
-uv run --group publish hf upload jakeryderv/us-tornado-data-2010-2025 dist/v2.2.0/huggingface . --repo-type dataset --commit-message 'Release v2.2.0'
-uv run --group publish kaggle datasets version -p dist/v2.2.0/kaggle --keep-tabular --dir-mode zip -m 'Release v2.2.0: radar, warnings, NLCD and onset/retrospective ML views'
+uv run --group publish hf upload jakeryderv/us-tornado-data-2010-2025 dist/v2.2.1/huggingface . --repo-type dataset --commit-message 'Release v2.2.1'
+uv run --group publish kaggle datasets version -p dist/v2.2.1/kaggle --keep-tabular --dir-mode zip -m 'Release v2.2.1: radar, warnings, NLCD and onset/retrospective ML views'
 ```
 
 Export the existing listing metadata, then merge the staged description, source
@@ -97,7 +98,7 @@ Download the full HF payload at its immutable commit and the Kaggle transport
 archive at its numeric version into fresh locations. Compare every file against
 the same trusted release manifest, then test direct Parquet downloads and the
 examples. Save host revisions, tag, sizes, checksums and verification results in
-`release/v2.2.0.json`. HF's `v2.2.0` tag and Kaggle's automatic numeric version are
+`release/v2.2.1.json`. HF's `v2.2.1` tag and Kaggle's automatic numeric version are
 separate identifiers for the same shared release.
 
 Update the public Kaggle notebook with the actual numeric version and manifest

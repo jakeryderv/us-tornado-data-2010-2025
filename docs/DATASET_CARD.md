@@ -1,6 +1,6 @@
 # US Tornado Data, 2010–2025
 
-**v2.2.0** combines **20,164 recorded U.S. tornadoes**, linked damage footprints
+**v2.2.1** combines **20,164 recorded U.S. tornadoes**, linked damage footprints
 and county context with radar-derived indicators, NWS warning histories and
 land-cover summaries. It provides **17 linked source/supporting Parquet tables**
 under `analysis/` and **two event-level modeling tables** under `ml/`.
@@ -30,7 +30,7 @@ from huggingface_hub import snapshot_download
 
 root = Path(snapshot_download(
     "jakeryderv/us-tornado-data-2010-2025",
-    repo_type="dataset", revision="v2.2.0",
+    repo_type="dataset", revision="v2.2.1",
     allow_patterns=["ml/*"],
 ))
 ```
@@ -49,8 +49,8 @@ Install `kagglehub`, `pandas` and `pyarrow`, then download just the ML files:
 from pathlib import Path
 import kagglehub
 
-# Kaggle numeric version 7 corresponds to shared release v2.2.0.
-DATASET = "jakevanslyke/us-tornado-data-2010-2025/versions/7"
+# Kaggle numeric version 8 corresponds to shared release v2.2.1.
+DATASET = "jakevanslyke/us-tornado-data-2010-2025/versions/8"
 paths = {}
 for filename in ("events_onset.parquet", "events_retrospective.parquet",
                  "feature_dictionary.json"):
@@ -158,6 +158,23 @@ complete historical observing record. Inspect source statuses and feature missin
 - **2010 is a study-scope choice**, not the EF transition or a completeness threshold.
   Rare EF classes, spatial/reporting biases and related records require care.
 
+Coverage/missingness reports in `research/` are split by year, state/territory and
+EF class. Unknown EF affects **1,525** records; only **eight** are EF5. Land-cover
+fractions are missing for **317**, including 299 areas with no pixel centers.
+Rural/low-exposure under-rating, changing reporting practices, radar sampling,
+warning archive gaps and shared source lineage limit interpretation. County totals
+are not exposure struck, and the saved NLCD WCS metadata does not resolve its
+collection revision. See `RESEARCH_READINESS.md` for intended/inappropriate uses,
+measured coverage, split guidance and the limits on conclusions.
+
+The onset view supports conditional recorded-tornado analysis. It cannot establish
+live availability or support safety decisions, true-wind estimates, property-level
+risk assessment or causal claims. Dictionary schema 2 uses
+`eligible_for_conditional_onset`; `available_by_onset` is null for candidates
+because actual delivery is unverified. `post_nlcd_valid_fraction` is quality metadata,
+not a default retrospective predictor. Table values and schemas are unchanged
+from v2.2.0.
+
 ## Reproducibility and files
 
 Both hosts share the same release manifest and checksummed payload. Kaggle also
@@ -179,7 +196,7 @@ first expand the support bundle with the repository's
 verification checks the bundle checksum without requiring extraction.
 
 Use `release_manifest.json`, `SHA256SUMS`, `schema.json`, `ANALYSIS.md`,
-`ENRICHMENT.md`, `LINKAGE.md`, and `ml/feature_dictionary.json`. The [GitHub release receipt](https://github.com/jakeryderv/us-tornado-data-2010-2025/blob/main/release/v2.2.0.json) records the shared v2.2.0 label, immutable HF revision and Kaggle numeric
+`ENRICHMENT.md`, `LINKAGE.md`, and `ml/feature_dictionary.json`. The [GitHub release receipt](https://github.com/jakeryderv/us-tornado-data-2010-2025/blob/main/release/v2.2.1.json) records the shared v2.2.1 label, immutable HF revision and Kaggle numeric
 version. This is a fixed snapshot with no scheduled refresh; later changes receive
 new versions, and historical releases remain available.
 
@@ -195,13 +212,16 @@ new versions, and historical releases remain available.
 - [USGS Annual NLCD](https://www.usgs.gov/centers/eros/science/annual-nlcd-data-access).
 
 The data designation is **U.S. Government Works**, subject to source-specific
-notices and third-party exceptions described in `DATA_SOURCES.md`. MIT covers
+notices and third-party exceptions described in `DATA_SOURCES.md`. Annual NLCD is
+marked CC0 by USGS, and IEM materials are public domain with attribution requested. MIT covers
 project code and original documentation, not ownership of government records.
 Credit NWS/NOAA, Census, USGS and IEM's archive service as applicable. The compilation
 and transformations are not endorsed by these organizations.
 
-Cite Jake Van Slyke, *US Tornado Data, 2010–2025*, **v2.2.0**, the relevant host
+Cite Jake Van Slyke, *US Tornado Data, 2010–2025*, **v2.2.1**, the relevant host
 revision and access date, together with the original sources. `CITATION.cff`
-contains machine-readable citation information. No DOI is assigned. Code,
+contains machine-readable citation information, release date, data URL and code revision.
+`source_registry.json` gives each product’s recommended citation, terms, version/coverage,
+actual acquisition dates and mapping into derived tables. No DOI is assigned. Code,
 methodology and release receipts are maintained in
 [the GitHub repository](https://github.com/jakeryderv/us-tornado-data-2010-2025).

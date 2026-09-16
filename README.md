@@ -4,7 +4,7 @@
 
 NOAA tornado records and damage footprints with radar indicators, NWS warnings,
 Annual NLCD land cover and Census county population/housing context. Load a frozen release with Python, or collect sources and inspect them
-locally in Jupyter. **v2.2.0** provides 17 linked source/supporting tables and two event-level ML
+locally in Jupyter. **v2.2.1** provides 17 linked source/supporting tables and two event-level ML
 views, including an auditable cross-source crosswalk. Earlier releases
 retain their original layouts and detailed DAT surveys.
 
@@ -13,13 +13,14 @@ enrichment, plus onset and retrospective ML views. [ACS/TIGER tract exposure](do
 and [ERA5](docs/ERA5.md) are deferred future additions. All 17 local source and
 supporting tables are in `data/analysis/`; the two modeling views are in `data/ml/`.
 Download metadata and checkpoints stay in `data/enrichment/`.
-See the
+See the [research readiness and limitations](docs/RESEARCH_READINESS.md),
+[source citation register](docs/DATA_SOURCES.md), [coverage reports](reports/research/README.md), and
 [enrichment guide](docs/ENRICHMENT.md) for collection commands, full collection coverage,
 table layout and the prediction-time contract.
 
 - [Hugging Face dataset](https://huggingface.co/datasets/jakeryderv/us-tornado-data-2010-2025)
 - [Kaggle dataset](https://www.kaggle.com/datasets/jakevanslyke/us-tornado-data-2010-2025)
-- [v2.2.0 release receipt](release/v2.2.0.json): pinned revisions and verified checksums.
+- [v2.2.1 release receipt](release/v2.2.1.json): pinned revisions and verified checksums.
 
 ## Download and load
 
@@ -32,7 +33,7 @@ from huggingface_hub import hf_hub_download
 
 path = hf_hub_download(
     "jakeryderv/us-tornado-data-2010-2025", repo_type="dataset",
-    revision="33abca4f79fa30e288f72225f52b042a5ff4e07b", filename="analysis/tornadoes.parquet",
+    revision="v2.2.1", filename="analysis/tornadoes.parquet",
 )
 tornadoes = pd.read_parquet(path)
 ```
@@ -44,14 +45,14 @@ import pandas as pd
 import kagglehub
 
 path = kagglehub.dataset_download(
-    "jakevanslyke/us-tornado-data-2010-2025/versions/7",
+    "jakevanslyke/us-tornado-data-2010-2025/versions/8",
     path="analysis/tornadoes.parquet",
 )
 tornadoes = pd.read_parquet(path)
 ```
 
 Change the filename to download another table. To download all analysis files on
-HF, use `snapshot_download(..., repo_type="dataset", revision="33abca4f79fa30e288f72225f52b042a5ff4e07b",
+HF, use `snapshot_download(..., repo_type="dataset", revision="v2.2.1",
 allow_patterns=["analysis/*", "ANALYSIS.md"])`. Both clients reuse local caches.
 Full sources are direct files on HF and inside `release.zip.bin` on Kaggle.
 See [release/download verification](docs/RELEASING.md) for full-collection checks.
@@ -178,7 +179,7 @@ dist/                    Local staged releases, ignored by Git
 
 [Reports](reports/README.md) distinguish current verification from the historical
 DAT study. The [public Kaggle example](https://www.kaggle.com/code/jakevanslyke/us-tornado-data-getting-started)
-loads v2.2.0 / Kaggle 7 with `kagglehub`, verifies selected file checksums, inventories
+loads v2.2.1 / Kaggle 8 with `kagglehub`, verifies selected file checksums, inventories
 all 19 tables and demonstrates onset and retrospective ML views.
 It runs on Kaggle or locally; the local inspection notebook additionally checks
 the repository collection and analysis provenance.

@@ -260,19 +260,27 @@ def build(data, output, config, *, backbone_only=False):
     if expanded:
         bundle_support(data,payload)
         write_json(payload/'enrichment/verification.json',enrichment_verification)
+        from scripts.research_report import build_report
+        from scripts.source_registry import build_registry
+        build_report(payload,payload/'research')
+        write_json(payload/'source_registry.json',build_registry(payload,ROOT/'release/sources.json'))
     else:
         from scripts.build_analysis import build_analysis
         build_analysis(payload, start=start, end=end)
     repository = config['code_repository']
     for source, name in [('docs/DATASET_CARD.md', 'DATASET_CARD.md'), ('docs/DATASET.md', 'COLLECTION.md'),
                          ('docs/DATA_SOURCES.md', 'DATA_SOURCES.md'), ('docs/ANALYSIS.md', 'ANALYSIS.md'),
-                         ('docs/LINKAGE.md','LINKAGE.md'),('docs/ENRICHMENT.md','ENRICHMENT.md')]:
+                         ('docs/LINKAGE.md','LINKAGE.md'),('docs/ENRICHMENT.md','ENRICHMENT.md'),
+                         ('docs/RESEARCH_READINESS.md','RESEARCH_READINESS.md')]:
         (payload / name).write_text(source_doc(ROOT / source, commit, repository), encoding='utf-8')
     shutil.copyfile(ROOT / 'LICENSE', payload / 'CODE_LICENSE.txt')
     write_json(payload / 'schema.json', schema(payload, start, end))
     citation = '\n'.join(['cff-version: 1.2.0', 'type: dataset',
-                          'message: "Cite this release and its original NOAA/Census sources."',
+                          'message: "Cite this release and the original products used; see source_registry.json for provider citations and terms."',
                           'title: ' + json.dumps(config['title']), 'version: ' + config['version'],
+                          'date-released: ' + datetime.now(timezone.utc).date().isoformat(),
+                          'url: https://huggingface.co/datasets/jakeryderv/' + config['slug'],
+                          'license-url: ' + repository + '/blob/' + commit + '/docs/DATA_SOURCES.md',
                           'authors:', '  - family-names: "Van Slyke"', '    given-names: "Jake"',
                           'repository-code: ' + repository, 'commit: ' + commit, ''])
     (payload / 'CITATION.cff').write_text(citation)
@@ -347,13 +355,14 @@ def stage(payload, destination, platform, owner, config):
                 zipped.write(local(payload, relative), relative)
         # Keep analysis and descriptive files visible; preserve full sources in the archive.
         for item in list(destination.iterdir()):
-            if item.is_dir() and item.name not in ('analysis','ml'):
+            if item.is_dir() and item.name not in ('analysis','ml','research'):
                 shutil.rmtree(item)
             elif item.is_dir():
                 continue
             elif item.name not in {'release.zip.bin', 'README.md', 'dataset-metadata.json',
                                    'DATASET_CARD.md', 'DATA_SOURCES.md', 'CITATION.cff',
                                    'CODE_LICENSE.txt', 'COLLECTION.md', 'ANALYSIS.md', 'LINKAGE.md', 'ENRICHMENT.md', 'schema.json',
+                                   'source_registry.json','RESEARCH_READINESS.md',
                                    'release_manifest.json', 'SHA256SUMS','dataset-cover-image.png'}:
                 item.unlink()
         verified['archive_sha256'] = digest(archive)
