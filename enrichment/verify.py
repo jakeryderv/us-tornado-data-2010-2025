@@ -18,7 +18,7 @@ def verify(data, enrichment, ml, *, require_full=False):
     if require_full and (manifest['status']!='complete'
             or manifest['event_count']!=manifest['full_backbone_count']
             or not set(DEFAULT_SOURCES)<=set(manifest['requested_sources'])):
-        raise ValueError('Full non-ERA5 collection required; this is a pilot, partial run, or incomplete source selection')
+        raise ValueError('Full radar/warnings/NLCD collection required; this is a pilot, partial run, or incomplete source selection')
     if input_hashes(data)!=manifest['definition']['backbone']:
         raise ValueError('Enrichment backbone is stale')
     asset_status=Counter();retained_bytes=0
@@ -49,6 +49,13 @@ def verify(data, enrichment, ml, *, require_full=False):
         if frame.tornado_id.duplicated().any():raise ValueError('Duplicate ML event')
         pd.testing.assert_series_equal(frame.tornado_id,base.tornado_id,check_dtype=False)
         pd.testing.assert_series_equal(frame.target_ef_rating,base.ef_rating,check_names=False)
+        for source in ('era5','acs','tiger'):
+            if source not in manifest['requested_sources'] and source+'_source_status' in frame:
+                raise ValueError(f'Unrequested source status in ML view: {source}')
+        if not {'acs','tiger'} <= set(manifest['requested_sources']) and any(c.startswith('post_exposure_') for c in frame):
+            raise ValueError('Deferred tract-exposure features in ML view')
+        if 'era5' not in manifest['requested_sources'] and any(c.startswith('post_era5_') for c in frame):
+            raise ValueError('Deferred ERA5 features in ML view')
     onset=pd.read_parquet(ml/'events_onset.parquet')
     if any(c.startswith('post_') or c.startswith('env_') for c in onset):raise ValueError('Post-event fields in onset view')
     if any(c.startswith('post_') or c==spec['target'] for c in spec['onset_predictor_columns']):

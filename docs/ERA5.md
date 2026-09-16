@@ -27,4 +27,4 @@ would require a new isolated pilot, confirmed CDS access and dataset terms,
 updated coverage/runtime estimates, and explicit release attribution and licence
 review. See [CDS setup](https://cds.climate.copernicus.eu/how-to-api) and
 [attribution notes](DATA_SOURCES.md#era5-attribution-for-the-deferred-extension).
-No CDS access is needed for the [current five-source enrichment run](ENRICHMENT.md).
+No CDS access is needed for the [current three-source enrichment run](ENRICHMENT.md).

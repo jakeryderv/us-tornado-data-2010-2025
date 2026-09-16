@@ -182,11 +182,29 @@ class ConcurrentCacheTests(unittest.TestCase):
                 out=root/str(workers)
                 m=collect(data,out,events,list(DEFAULT_SOURCES),Config(),max_bytes=1000,timeout=1,
                           workers=workers,max_cache_bytes=16)
-                self.assertEqual(m['status_counts'],{'complete':20})
+                self.assertEqual(m['status_counts'],{'complete':12})
                 self.assertTrue(m['checkpoints_retired'])
                 outputs.append({p['path']:pd.read_parquet(out/'tables'/p['path']) for p in m['outputs']})
             for name,frame in outputs[0].items():pd.testing.assert_frame_equal(frame,outputs[1][name])
             self.assertEqual(outputs[0]['radar_detections.parquet'].iloc[0]['value'],'d')
+
+    def test_deferring_tract_sources_retires_previous_tables(self):
+        with TemporaryDirectory() as d,ExitStack() as stack:
+            root=Path(d);data=root/'data';out=root/'enrichment'
+            (data/'analysis').mkdir(parents=True)
+            pd.DataFrame({'tornado_id':['a']}).to_parquet(data/'analysis/tornadoes.parquet')
+            event=dict(tornado_id='a',year=2020,area_states=['01'],start_utc=None,
+                       area_wkt=None,latitude=35.,longitude=-97.,usable=True)
+            stack.enter_context(patch('enrichment.pipeline.input_hashes',return_value={}))
+            stack.enter_context(patch.dict(COLLECTORS,{name:lambda *args:{} for name in COLLECTORS}))
+            stack.enter_context(redirect_stdout(io.StringIO()))
+            collect(data,out,[event],list(DEFAULT_SOURCES)+['acs','tiger'],Config(),max_bytes=1,timeout=1)
+            deferred=['acs_tracts','tract_boundaries','tornado_tracts']
+            self.assertTrue(all((out/'tables'/f'{name}.parquet').exists() for name in deferred))
+            result=collect(data,out,[event],list(DEFAULT_SOURCES),Config(),max_bytes=1,timeout=1)
+            self.assertEqual(result['requested_sources'],['radar','warnings','nlcd'])
+            self.assertFalse(any((out/'tables'/f'{name}.parquet').exists() for name in deferred))
+            self.assertEqual(result['status_counts'],{'complete':3})
 
 
 if __name__=='__main__':unittest.main()

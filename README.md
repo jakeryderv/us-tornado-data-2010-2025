@@ -8,9 +8,9 @@ locally in Jupyter. **v2.1.0** provides one enriched tornado table and eight
 supporting tables, including an auditable cross-source crosswalk. Earlier releases
 retain their original layouts and detailed DAT surveys.
 
-Local development now also includes linked radar, warning, Annual NLCD, ACS tract
-and TIGER tract enrichment, plus onset and retrospective ML views. ERA5 is
-[deferred and opt-in](docs/ERA5.md).
+Local development now also includes linked radar, warning and Annual NLCD
+enrichment, plus onset and retrospective ML views. [ACS/TIGER tract exposure](docs/CENSUS_TRACTS.md)
+and [ERA5](docs/ERA5.md) are deferred future additions.
 These are **not yet in the published v2.1.0 release**. See the
 [enrichment guide](docs/ENRICHMENT.md) for collection commands, pilot coverage,
 table layout and the prediction-time contract.
@@ -118,7 +118,7 @@ To collect the new enrichment separately and rebuild its ML views:
 
 ```sh
 uv sync --locked --group enrichment
-# Configure CENSUS_API_KEY in the ignored .env file. No CDS setup is needed.
+# No API keys are needed for radar, warnings and NLCD.
 uv run --group enrichment python -m enrichment.pipeline --all-events --dry-run
 uv run --group enrichment python -m enrichment.pipeline --all-events --workers 4 --per-host 2 --storage compact --cache-gb 5 --max-download-gb 100
 uv run --group enrichment python -m enrichment.features
@@ -126,12 +126,12 @@ uv run --group enrichment python -m enrichment.verify --require-full --report da
 ```
 
 The collector defaults to four workers and two requests per host, reusing shared
-warning and Census inputs. See the [benchmark and concurrency notes](docs/ENRICHMENT.md#concurrency-and-reuse).
+warning inputs. See the [benchmark and concurrency notes](docs/ENRICHMENT.md#concurrency-and-reuse).
 Full-run timing depends on source latency, retries and geographic coverage.
 The byte ceiling limits new downloads per invocation; rerunning resumes extraction checkpoints. All 20,164 tornadoes remain in the
 ML views even when enrichment is missing. Inspect source statuses before modeling.
-Radar/warnings are screened at reported onset. Path-based land cover and exposure
-appear only in the retrospective view. ERA5 tables and columns are excluded by default. Compact storage keeps a bounded
+Radar/warnings are screened at reported onset. Path-based land cover
+appears only in the retrospective view. ACS/TIGER and ERA5 tables and columns are excluded by default. Compact storage keeps a bounded
 temporary cache and preserves extracted source tables and provenance. See [methods and limitations](docs/ENRICHMENT.md).
 
 ## One build, one starting table

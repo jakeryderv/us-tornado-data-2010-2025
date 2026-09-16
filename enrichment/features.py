@@ -9,7 +9,7 @@ import pandas as pd
 
 from scripts.build_crosswalk import Rules, prepare_spc
 from .common import atomic_json, digest, now, stable_id, utc
-from .pipeline import COLLECTORS, ROOT, TABLES, input_hashes, write_table
+from .pipeline import COLLECTORS, OPTIONAL_TABLE_SOURCES, ROOT, TABLES, input_hashes, write_table
 from .era5 import environmental_summary
 
 RADAR_FEATURES = {
@@ -130,8 +130,11 @@ def make_views(backbone, tables, config):
     warnings=tables['tornado_warnings']
     if len(warnings):warnings=warnings.merge(tables['warning_updates'],on=['record_id','warning_id'],validate='many_to_one')
     include_era5='era5_samples' in tables
+    include_census='acs_tracts' in tables and 'tornado_tracts' in tables
+    optional_sources=set(OPTIONAL_TABLE_SOURCES.values())
+    included_optional={source for name,source in OPTIONAL_TABLE_SOURCES.items() if name in tables}
     radar_groups,warning_groups,env_groups=grouped(radar),grouped(warnings),grouped(tables.get('era5_samples',empty))
-    land_groups,tract_groups=grouped(tables['nlcd_samples']),grouped(tables['tornado_tracts'])
+    land_groups,tract_groups=grouped(tables['nlcd_samples']),grouped(tables.get('tornado_tracts',empty))
     areas=grouped(tables['event_areas'])
     split_ids=split_groups(backbone,tables)
     onset_rows,retro_rows=[],[]
@@ -147,7 +150,8 @@ def make_views(backbone, tables, config):
                  hour_utc=None if pd.isna(cutoff) else cutoff.hour,
                  suggested_split_group=source.get('suggested_split_group'),ml_split_group=split_ids[event_id])
         for name in COLLECTORS:
-            if name!='era5' or include_era5:row[name+'_source_status']=statuses.get(name,'not_requested')
+            if name not in optional_sources or name in included_optional:
+                row[name+'_source_status']=statuses.get(name,'not_requested')
         row.update(radar_summary(radar_groups.get(event_id,empty),cutoff,complete=complete('radar')))
         row.update(warning_summary(warning_groups.get(event_id,empty),cutoff,complete=complete('warnings')))
         row['radar_availability_assumed']=complete('radar')
@@ -168,8 +172,9 @@ def make_views(backbone, tables, config):
         retrospective.update({'post_'+k:v for k,v in radar_summary(radar_groups.get(event_id,empty),end,
                               complete=complete('radar'),onset=False).items()})
         retrospective.update({'post_'+k:v for k,v in exposure_summary(land_groups.get(event_id,empty),
-            tract_groups.get(event_id,empty),tables['acs_tracts'],nlcd_complete=complete('nlcd'),
-            census_complete=complete('acs') and complete('tiger')).items()})
+            tract_groups.get(event_id,empty),tables.get('acs_tracts',empty),nlcd_complete=complete('nlcd'),
+            census_complete=complete('acs') and complete('tiger')).items()
+            if include_census or not k.startswith('exposure_')})
         area=areas.get(event_id)
         retrospective['post_area_id']=area.iloc[0].area_id if area is not None else None
         retrospective['post_area_method']=area.iloc[0].area_method if area is not None else None
@@ -201,8 +206,9 @@ def dictionary(onset, retrospective, config):
                  'Radar association is proximity, not verified parent-storm identity; detections can be shared between events.',
                  'Radar availability uses an assumed latency; ERA5 is retrospective reanalysis and never an onset predictor.',
                  'Post-event dimensions and exposure can encode EF assessment; retrospective candidates are not a forecast feature set.',
-                 'ACS weighted counts assume uniform distribution within tracts; MOEs remain in source tables, no propagated uncertainty is claimed.',
-                 'No imputation, scaling or train/test split is fitted on the complete dataset.'])
+                 'No imputation, scaling or train/test split is fitted on the complete dataset.']+
+                 (['ACS weighted counts assume uniform distribution within tracts; MOEs remain in source tables, no propagated uncertainty is claimed.']
+                  if 'post_exposure_tract_count' in retrospective else []))
 
 
 def validate_sources(tables, manifest, backbone):
@@ -218,8 +224,8 @@ def validate_sources(tables, manifest, backbone):
         raise ValueError('Incomplete or duplicate source coverage rows')
     assets = {a['asset_id'] for a in manifest['assets']}
     for name,keys in TABLES.items():
-        if name=='era5_samples' and 'era5' not in manifest['requested_sources']:
-            if name in tables:raise ValueError('Unexpected ERA5 table in non-ERA5 collection')
+        if name in OPTIONAL_TABLE_SOURCES and OPTIONAL_TABLE_SOURCES[name] not in manifest['requested_sources']:
+            if name in tables:raise ValueError(f'Unexpected deferred source table: {name}')
             continue
         frame = tables[name]
         if frame.duplicated(keys).any():raise ValueError(f'Duplicate source keys: {name}')
@@ -230,6 +236,7 @@ def validate_sources(tables, manifest, backbone):
     for child,key,parent,parent_key in [('tornado_radar','record_id','radar_detections','record_id'),
             ('tornado_warnings','record_id','warning_updates','record_id'),
             ('tornado_tracts','tract_id','tract_boundaries','record_id')]:
+        if child not in tables:continue
         if not set(tables[child][key]) <= set(tables[parent][parent_key]):
             raise ValueError(f'Broken link: {child} -> {parent}')
     if not set(tables['record_provenance'].asset_id) <= assets:

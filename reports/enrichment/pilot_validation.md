@@ -1,40 +1,34 @@
-# Default non-ERA5 enrichment pilot
+# Radar, warnings and NLCD pilot
 
-Validated September 15, 2026 (America/Chicago); machine timestamps use UTC.
-This is a four-event pilot, **not full enrichment coverage or a new publication**.
-ERA5 is deferred; its earlier validation is preserved under
-[`history/era5/`](history/era5/pilot_validation.md).
+The active four-event pilot spans 2010–2025 and contains only radar, warnings and
+NLCD. All **12 source/event jobs** completed, and the source/ML verifier passed.
+The full 20,164-event enrichment download has not started.
 
-```sh
-uv run --group enrichment python -m enrichment.pipeline \
-  --event-id spc:2010:1001201718-01 \
-  --event-id spc:2020:2001101034-01 \
-  --event-id spc:2020:2003030148-01 \
-  --event-id spc:2025:2502121943-01 \
-  --storage compact --cache-gb 0.05 --max-download-gb 2
-uv run --group enrichment python -m enrichment.features
-uv run --group enrichment python -m enrichment.verify
-```
+- Eight source/link/provenance tables retain the selected radar detections,
+  warning histories, land-cover summaries, event areas and source coverage.
+- Both ML views preserve all 20,164 backbone IDs and EF targets. Outside the
+  four-event cohort, source coverage remains explicitly unrequested.
+- ACS/TIGER tables, status columns and tract-exposure features are absent.
+  ERA5 remains excluded. Backbone county estimates and the simplified map remain.
+- The NLCD refresh retried two timed-out USGS requests successfully; completed
+  jobs resumed from checkpoints.
+- Obsolete mixed-source pilot jobs, shared checkpoints and unreferenced raw cache
+  artifacts were removed after the new tables committed and verification passed.
+- All 70 offline tests passed, including narrowed defaults, optional-table
+  retirement, absent deferred ML columns and preserved NLCD features.
+- All 11 code cells in the updated local inspection notebook executed successfully.
 
-- All 20 source/event jobs complete for radar, warnings, NLCD, ACS and TIGER.
-- The active collection has 11 source/link/provenance tables (1,546,990 bytes).
-  ERA5 tables, status columns and environmental features are absent.
-- Both ML views retain every one of the 20,164 backbone IDs and final EF targets;
-  enrichment outside the four-event cohort remains explicitly unrequested.
-- Source provenance identifies 63 assets, originally totaling 35,265,399 bytes.
-  The 29 retained supporting files (249,301 bytes) passed checksum checks;
-  34 optional source bodies were intentionally removed after extraction.
-- ML generation, verification and zero-download resume passed with `cdsapi`,
-  ecCodes and MetPy uninstalled. The collection manifest remained unchanged
-  during resume. `--require-full` correctly rejected the successful pilot.
-- All 61 tests passed with optional ERA5 dependencies. The default dependency
-  group passed 56 tests and skipped the five explicitly optional ERA5 tests.
-- All 11 code cells of the local inspection notebook executed successfully.
-- Removed 412 unreferenced pilot artifacts (92,565,364 bytes) across the active
-  and archived pilot folders, then reverified both retained snapshots.
+The separate 200-event replay completed all **600 source jobs** without network
+requests. Its eight remaining source/link/provenance tables exactly match the
+corresponding historical benchmark rows. Both ML views exactly match all retained
+columns after removing only ACS/TIGER statuses and tract-exposure features.
+See [tract_deferral_validation.json](tract_deferral_validation.json).
 
-The [machine report](pilot_validation.json) records exact counts and manifest
-hashes. The [full-run instructions](../../docs/ENRICHMENT.md) use all 20,164 events
-and `--require-full`. Full collection is left for the user. Publication to HF and
-Kaggle, and updating the hosted example notebook, follow full-run verification.
-Existing public releases and notebook pins are unchanged.
+The [machine report](pilot_validation.json) identifies the active verified
+snapshot. Earlier five-source results remain as historical evidence under
+[history/tracts/](history/tracts/pilot_validation.md), and the old mixed-source
+benchmark files were replaced by the verified three-source collection at
+`data/benchmarks/three_sources/`.
+
+Use the [full-run instructions](../../docs/ENRICHMENT.md) when ready. HF/Kaggle
+publication and hosted notebook updates follow full collection and verification.

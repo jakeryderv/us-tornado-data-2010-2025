@@ -198,11 +198,16 @@ class FeatureTests(unittest.TestCase):
         self.assertNotIn('feature_missing_count',spec['onset_predictor_columns'])
         self.assertFalse(any('status' in x or x.startswith('post_') for x in spec['onset_predictor_columns']))
         self.assertFalse(any('era5' in x for x in spec['onset_predictor_columns']))
-        # The default release has no empty ERA5 table, status, or feature columns.
-        tables.pop('era5_samples')
+        # Deferred sources leave no empty tables, statuses or feature columns.
+        for name in ('era5_samples','acs_tracts','tract_boundaries','tornado_tracts'):
+            tables.pop(name)
         onset,retro=make_views(base,tables,asdict(Config()))
         self.assertFalse(any('era5' in c for c in onset))
         self.assertFalse(any('era5' in c for c in retro))
+        self.assertFalse(any(c in onset for c in ('acs_source_status','tiger_source_status')))
+        self.assertFalse(any(c.startswith('post_exposure_') for c in retro))
+        self.assertIn('post_land_developed_fraction',retro)
+        self.assertFalse(any('ACS' in note for note in dictionary(onset,retro,asdict(Config()))['limitations']))
         self.assertEqual(len(onset),len(base))
 
 

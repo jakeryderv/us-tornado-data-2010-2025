@@ -23,8 +23,8 @@ source attribution when using those outputs.
 The local, unreleased [enrichment pipeline](ENRICHMENT.md) additionally uses
 NOAA NCEI SWDI Level III-derived detections and NWS warnings
 redistributed by Iowa State University's Iowa Environmental Mesonet, USGS Annual
-NLCD land cover/impervious grids, Census ACS 5-year tract estimates, and Census
-TIGER/Line tract boundaries. The enrichment guide links each original service
+NLCD land cover/impervious grids. [ACS 5-year estimates and TIGER/Line tract
+boundaries](CENSUS_TRACTS.md) are deferred future additions. The enrichment guide links each original service
 and describes extraction, units and limitations. Credit both NWS and IEM for
 the warning archive, and retain USGS and Census product/vintage attribution.
 These additions are not included in the existing v2.1.0 publication. Source

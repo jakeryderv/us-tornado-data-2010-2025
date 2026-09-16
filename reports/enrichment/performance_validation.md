@@ -1,4 +1,8 @@
-# Enrichment performance validation
+# Historical five-source enrichment performance validation
+
+ACS/TIGER tract enrichment was subsequently deferred. These measurements retain
+the original five-source scope; its local benchmark artifacts were replaced by
+a three-source replay. See [current scope validation](tract_deferral_validation.json).
 
 The optimized collector completed the same 200-event live workload in **228.7
 seconds**, versus **905.6 seconds** at `df883ab` (about **3.96× faster**). Both

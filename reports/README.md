@@ -21,7 +21,7 @@ the collection's saved verification, not the standalone report in this directory
 
 ## Local enrichment pilot
 
-`enrichment/pilot_validation.json` verifies the default five-source, non-ERA5
+`enrichment/pilot_validation.json` verifies the default three-source radar/warnings/NLCD
 four-event implementation pilot,
 not a full enrichment download. Regenerate against the current local collection:
 
@@ -35,6 +35,8 @@ requested. The [enrichment guide](../docs/ENRICHMENT.md) covers collection and
 the reported-onset cutoff. Earlier ERA5 validation is preserved under
 `enrichment/history/era5/` as historical development evidence. Its downloaded
 pilot artifacts and derived tables have been removed; ERA5 is a future target.
+The earlier five-source pilot is archived under `enrichment/history/tracts/`.
+ACS/TIGER tract data are also deferred; the current pilot and benchmark omit them.
 
 ## Historical DAT coverage study (v1 releases)
 

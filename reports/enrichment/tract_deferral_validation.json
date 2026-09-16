@@ -1,0 +1,53 @@
+{
+  "status": "passed",
+  "sources": [
+    "radar",
+    "warnings",
+    "nlcd"
+  ],
+  "selected_events": 200,
+  "exact_comparison": {
+    "radar_detections.parquet": 22998,
+    "tornado_radar.parquet": 20445,
+    "record_provenance.parquet": 144180,
+    "nlcd_samples.parquet": 400,
+    "warning_updates.parquet": 93867,
+    "event_areas.parquet": 200,
+    "tornado_warnings.parquet": 1312,
+    "source_coverage.parquet": 600,
+    "events_onset.parquet": 20164,
+    "events_retrospective.parquet": 20164
+  },
+  "removed_tables": [
+    "acs_tracts",
+    "tornado_tracts",
+    "tract_boundaries"
+  ],
+  "removed_ml_fields": "ACS/TIGER source statuses and post_exposure_* tract features",
+  "timing": {
+    "wall_seconds": 40.39292010400095,
+    "events": 200,
+    "workers": 4,
+    "replay": true,
+    "status_counts": {
+      "complete": 600
+    },
+    "downloaded_bytes": 0,
+    "source_wall_seconds": {
+      "radar": 14.086043768998934,
+      "warnings": 22.913904154000193,
+      "nlcd": 1.734108661999926
+    },
+    "performance": {
+      "workers": 4,
+      "per_host": 2,
+      "elapsed_seconds": 40.24308121300055,
+      "transport_stats": {
+        "cache_hits": 3312,
+        "memo_builds": 1817,
+        "memo_hits": 465
+      }
+    }
+  },
+  "full_collection_started": false
+}

@@ -29,7 +29,9 @@ ROOT = Path(__file__).resolve().parents[1]
 COLLECTORS = {'radar': collect_radar, 'warnings': collect_warnings,
               'era5': collect_era5, 'nlcd': collect_nlcd,
               'acs': collect_acs, 'tiger': collect_tracts}
-DEFAULT_SOURCES = ('radar', 'warnings', 'nlcd', 'acs', 'tiger')
+DEFAULT_SOURCES = ('radar', 'warnings', 'nlcd')
+OPTIONAL_TABLE_SOURCES = {'era5_samples': 'era5', 'acs_tracts': 'acs',
+                          'tract_boundaries': 'tiger', 'tornado_tracts': 'tiger'}
 TABLES = {'radar_detections': ['record_id'], 'tornado_radar': ['tornado_id','record_id'],
           'warning_updates': ['record_id'], 'tornado_warnings': ['tornado_id','record_id'],
           'era5_samples': ['record_id'], 'acs_tracts': ['record_id'],
@@ -198,7 +200,8 @@ def _collect(data, output, selected, sources, config, *, max_bytes, timeout, sto
         cache.commit(previous.get('assets',[]))
     # Deduplicate during ingestion: all state ACS tracts must not be repeated
     # in memory once per tornado during a 20,000-event collection.
-    frames = {name:{} for name in TABLES if name!='era5_samples' or 'era5' in sources}
+    frames = {name:{} for name in TABLES
+              if name not in OPTIONAL_TABLE_SOURCES or OPTIONAL_TABLE_SOURCES[name] in sources}
     provenance_records = {}
     coverage, asset_records = [], {}
     manifest = dict(schema_version=2, created_at=now(), status='in_progress',
@@ -342,8 +345,9 @@ def _collect(data, output, selected, sources, config, *, max_bytes, timeout, sto
     # Retire the old environmental table only after its replacement snapshot commits.
     if 'hrrr' in previous.get('requested_sources',[]):
         (table_dir/'hrrr_samples.parquet').unlink(missing_ok=True)
-    if 'era5' in previous.get('requested_sources',[]) and 'era5' not in sources:
-        (table_dir/'era5_samples.parquet').unlink(missing_ok=True)
+    for name, source in OPTIONAL_TABLE_SOURCES.items():
+        if source in previous.get('requested_sources',[]) and source not in sources:
+            (table_dir/(name+'.parquet')).unlink(missing_ok=True)
     if manifest['checkpoints_retired']:prune_checkpoints(output,paths)
     manifest['storage'].update(evicted_bytes=cache.evicted_bytes,
                               cache_bytes=sum(e['bytes'] for e in cache.entries.values()))
@@ -360,7 +364,7 @@ def main(argv=None):
     group.add_argument('--limit',type=int)
     group.add_argument('--event-id',action='append')
     parser.add_argument('--sources',nargs='+',choices=list(COLLECTORS),default=list(DEFAULT_SOURCES),
-                        help='Defaults to radar, warnings, NLCD, ACS and TIGER; ERA5 is an explicit optional extension')
+                        help='Defaults to radar, warnings and NLCD; ACS, TIGER and ERA5 are deferred opt-in extensions')
     parser.add_argument('--start-year',type=int,default=2010)
     parser.add_argument('--end-year',type=int,default=2025)
     parser.add_argument('--max-download-gb',type=float,default=5)

@@ -1,13 +1,13 @@
 # Linked enrichment and event feature views
 
 The existing nine `analysis/` tables remain the backbone. Optional collection
-adds radar detections, warning histories, land cover and tract
-exposure under `enrichment/`. Reproducible, offline feature generation creates
+adds radar detections, warning histories and land cover under `enrichment/`. Reproducible, offline feature generation creates
 two additional event tables under `ml/`; it never replaces the source tables.
 
 **These additions are local and not part of published v2.1.0.** Initial validation
-uses four events spanning 2010–2025. ERA5 is deferred; the default collection
-and its ML views contain no ERA5 table or feature columns. A 20,164-row ML table is not evidence of
+uses four events spanning 2010–2025. ACS, TIGER/Line tract enrichment and ERA5
+are deferred; the default collection and ML views omit their tables and columns.
+Existing backbone county estimates and the simplified county map remain included. A 20,164-row ML table is not evidence of
 20,164 enriched events: inspect `source_event_count`, `source_coverage`, and the
 per-source status columns. Unrequested rows remain in both views.
 
@@ -17,7 +17,7 @@ Use Python 3.12 and the locked optional dependencies:
 
 ```sh
 uv sync --locked --group enrichment
-# If .env does not exist, copy .env.example to .env and fill in the key locally.
+# No API keys are needed for the current three-source enrichment.
 uv run --group enrichment python -m enrichment.pipeline --all-events --dry-run
 uv run --group enrichment python -m enrichment.pipeline --all-events --workers 4 --per-host 2 --storage compact --cache-gb 5 --max-download-gb 100
 uv run --group enrichment python -m enrichment.features
@@ -34,21 +34,22 @@ Use `--storage cache` to leave the bounded cache between runs, or
 `--storage archive` to retain every source body (the cache ceiling then does not
 apply). These policies do not change scientific extraction settings.
 
-Plan roughly **1.5–4 GB persistent data** after a completed full compact run,
-and initially allow **10–15 GB working disk** including the 5 GB cache,
-compressed checkpoints and table consolidation. These are planning estimates, not measurements of a full collection.
+The earlier **1.5–4 GB persistent / 10–15 GB working disk** planning allowance
+included ACS/TIGER. Removing those sources reduces storage, but the full narrowed
+collection has not been measured. Keep headroom beyond the 5 GB cache for
+retained source tables, compressed checkpoints and table consolidation.
 Incomplete runs retain compressed checkpoints and can use additional space.
 Disk cache and network transfer limits are independent. A body larger than the
 cache limit fails explicitly; raise `--cache-gb` and resume. Concurrent jobs pin
 their inputs until their extraction checkpoints are committed. If their combined
 working set exceeds the cache, increase it or reduce `--workers`.
 
-The [200-event benchmark](../reports/enrichment/performance_validation.md)
-finished in **3.8 minutes**, versus 15.1 minutes before optimization. A simple
-20,164-event projection is 6.4 hours; allow roughly **6–12 hours** for planning,
-with additional time possible for throttling, failures and retries. This is not
-a measured full-run duration: query reuse and geographic coverage differ at
-full scale. There is
+The [historical five-source benchmark](../reports/enrichment/performance_validation.md)
+finished in 3.8 minutes. Radar, warnings and NLCD accounted for 2.4 minutes of
+that run, giving a rough 4.1-hour projection for 20,164 events before additional
+consolidation overhead. Allow **4–8 hours** for planning, with more time possible
+for throttling or retries. This is an estimate from the remaining source phases,
+not a measured full three-source run. Query reuse differs at full scale. There is
 no CDS queue in the default run. Read `progress.json` for finished jobs,
 transferred/cache bytes, HTTP/cache counters, total wall time and completed
 source wall times (`source_wall_seconds`). `source_seconds` sums job durations,
@@ -59,7 +60,7 @@ finish. Budget-limited or failed jobs are retried on the next invocation.
 Rerun the same command to resume: completed extraction checkpoints do not need
 the original binaries. A fully completed identical selection verifies and reuses
 its consolidated tables without downloading. When every backbone event and all
-five default sources finish successfully (including documented unavailable jobs), compact
+three default sources finish successfully (including documented unavailable jobs), compact
 mode retires that run's redundant checkpoints. Subset/partial runs keep theirs.
 A failed or transfer-budget-limited run exits with code 2; inspect status/reasons.
 Only one collector may use an output directory at a time (Linux/macOS file lock).
@@ -68,16 +69,15 @@ Only one collector may use an output directory at a time (Linux/macOS file lock)
 
 The default is four extraction workers, with at most two concurrent HTTP requests
 to each host. `--workers 1` restores serial job execution. Sources still run in
-groups to reuse adjacent dates and Census vintages. Shared requests have one
-downloader; connections are reused within each worker. Transfer reservations,
+groups to reuse adjacent dates. Shared requests have one downloader; connections
+are reused within each worker. Transfer reservations,
 temporary cache space and file eviction are coordinated across workers. HTTP
 429/5xx retries honor `Retry-After` with a shared host cooldown.
 
 Warning responses are normalized once per cached query, with a spatial index for
-point coverage. TIGER uses spatial indexes for candidate tracts; exact geometry
-intersections and area calculations are unchanged. ACS state tables and warning
-background rows share compressed checkpoint batches rather than being serialized
-again for every event. A coordinator commits results in stable event order, so
+point coverage. Warning background rows share compressed checkpoint batches
+rather than being serialized again for every event. A coordinator commits
+results in stable event order, so
 completion order cannot change duplicate resolution or provenance. Existing
 checkpoint formats remain readable. Worker settings are performance options and
 do not change scientific extraction definitions.
@@ -105,7 +105,7 @@ its bounded raw cache for comparison, independently of the active dataset.
 
 For a small check, replace `--all-events` with `--limit 4`, or repeat `--event-id`
 for a chosen cohort. `--start-year`, `--end-year`, and `--sources radar warnings
-nlcd acs tiger` select scope; `--data-dir` selects the backbone location.
+nlcd` select scope; `--data-dir` selects the backbone location.
 `--output` selects a separate collection directory. The offline builder accepts
 matching `--data-dir`, `--enrichment-dir`, and `--output` options.
 
@@ -116,12 +116,13 @@ for experiments. Applicable extraction checkpoints remain; optional raw bodies
 may be evicted. Running `--all-events` later reuses applicable checkpoints and
 expands the active cohort.
 
-The Census API key is loaded from the repository's ignored `.env` or environment.
-It is excluded from persisted request URLs, identifiers and error messages.
-No CDS credentials or ERA5 downloads are needed for this default workflow.
-ERA5 is [planned for later](ERA5.md); its earlier local pilot artifacts have been removed.
+No Census or CDS credentials are needed for this default workflow.
+[ACS/TIGER tract exposure](CENSUS_TRACTS.md) and [ERA5](ERA5.md) are future targets;
+optional adapters remain available only through explicit source selection.
 
 ## Files and keys
+
+The default collection has eight source/link/provenance tables:
 
 | File under `enrichment/tables/` | Unit and links | Contents |
 |---|---|---|
@@ -129,9 +130,6 @@ ERA5 is [planned for later](ERA5.md); its earlier local pilot artifacts have bee
 | `tornado_radar.parquet` | `tornado_id` + radar `record_id` | Distance, assumed availability, association method, query asset |
 | `warning_updates.parquet` | One `record_id` per warning/product/polygon | Stable VTEC `warning_id`, product issuance, known expiry/action, polygon, raw attributes and text asset |
 | `tornado_warnings.parquet` | `tornado_id` + update `record_id` | All updates of relevant warnings, start-point coverage and issue lead time |
-| `acs_tracts.parquet` | `acs5:period_end:GEOID` | Population, housing and mobile-home estimates/MOEs, five-year period, geography vintage, raw response |
-| `tract_boundaries.parquet` | `tiger:vintage:GEOID` | Intersecting tract geometries and original attributes |
-| `tornado_tracts.parquet` | `tornado_id` + `tract_id` | Exact-vintage `acs_id`, `area_id`, intersection area and both area fractions |
 | `nlcd_samples.parquet` | Event area/year/product `record_id` | Land-class pixel counts, impervious mean, valid/total pixel counts, grid and source provenance |
 | `event_areas.parquet` | `tornado_id`, `area_id` | Retrospective area geometry, construction method and accepted footprint IDs |
 | `source_coverage.parquet` | `tornado_id` + source | Requested-job status and reason; `complete`, `unavailable`, `failed`, `budget_exceeded` |
@@ -175,29 +173,12 @@ jobs, not universal geographic/temporal coverage or every possible variable.
   EPSG:5070 grids snapped to the native origin; retain counts, summaries and grid metadata. Count pixel centers within the
   event area, excluding no-data. Tiny areas may contain no centers; this is
   missing information, not undeveloped land. These selected products cover CONUS.
-- **[Census ACS 5-year](https://www.census.gov/programs-surveys/acs/data/data-via-api.html):**
-  the period ending one year before the event; B01003 population, B25001 housing
-  units and B25024 mobile homes, with 90% MOEs. Retain all tract rows returned for
-  requested states/vintages. Negative API sentinel values become null, with raw
-  values preserved. A missing tract estimate is not zero.
-- **[Census TIGER/Line](https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html):**
-  tract boundaries matching the ACS geography vintage. Extract intersecting
-  geometries and attributes; full source ZIPs are disposable in compact mode. The 2009 collection is
-  county-partitioned; select counties using accepted backbone county links and
-  flag unavailable selection if none exists. No modern geometry substitution.
-
 An accepted footprint union defines the retrospective area where available.
 Otherwise, use a fixed 500 m buffer around the reported endpoint line/point.
 The buffer is an explicit approximation, not an inferred damage width. Keep
-the method and contributing footprint IDs. Census state selection uses the
-start state plus accepted county-link states. The source footprint/link quality
-and any omitted crossing counties limit exposure coverage.
-
-Exposure counts sum tract estimates weighted by intersection area / whole tract
-area. They assume uniform within-tract distribution, not exact people or homes
-struck. Require all intersecting estimates and at least 99% geometric tract
-coverage for aggregate counts; otherwise retain null. MOEs remain in source
-tables; no propagated confidence interval is claimed.
+the method and contributing footprint IDs. The source footprint/link quality
+limits path-based land-cover interpretation. Tract exposure summaries are deferred;
+county context remains available separately in the backbone.
 
 ## ML views and leakage contract
 
@@ -210,7 +191,7 @@ unchanged; unknown ratings remain null and `target_known` remains false.
   source status and missingness metadata. There are no environmental values in the onset view.
 - **Retrospective:** the onset fields plus `post_` end/duration/path dimensions,
   casualties (metadata), radar aggregates through onset +60 minutes, land-class
-  fractions, impervious percentage, weighted tract exposure and area provenance.
+  fractions, impervious percentage and area provenance.
 
 The cutoff is **reported tornado onset**. Radar availability is observation
 time plus an assumed 5 minutes; warnings use the issued product time.
@@ -220,7 +201,7 @@ Both location and onset are hindsight anchors from the final catalog: this is
 conditional intensity analysis of recorded tornadoes, not proof of a deployable
 tornado-detection system. Radar latency remains an assumption, not receipt evidence.
 
-Prior-year NLCD/ACS are still retrospective predictors: the final damage area
+Prior-year NLCD summaries are still retrospective predictors: the final damage area
 was unknown at onset, product releases can occur later, and maps can be revised.
 Final dimensions and exposure may encode the EF assessment itself. Never use
 `post_` fields in an early forecast. Do not treat a source's presence/absence as
@@ -274,7 +255,7 @@ checks active table hashes and reads coverage and both views without downloading
 the ML input snapshot and target preservation. It reports optional bodies as intentionally not retained, separately from missing/corrupt required files. A passed
 verification can describe a small pilot; check `selected_events` and
 `full_cohort_processed` rather than assuming a pass implies full coverage.
-The full test suite also checks the deferred ERA5 adapter; `--group era5` is only
+The full test suite also checks the deferred Census and ERA5 adapters; `--group era5` is only
 needed for those optional tests. Use `--require-full` after your full collection to
 reject a pilot or partial run; omit it for an intentional small validation.
 
