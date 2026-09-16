@@ -33,7 +33,8 @@ Check the selected event count, `full_cohort_processed` and source status counts
 Both ML views retain all backbone events even when their enrichment was not
 requested. The [enrichment guide](../docs/ENRICHMENT.md) covers collection and
 the reported-onset cutoff. Earlier ERA5 validation is preserved under
-`enrichment/history/era5/`; it is not the active collection scope.
+`enrichment/history/era5/` as historical development evidence. Its downloaded
+pilot artifacts and derived tables have been removed; ERA5 is a future target.
 
 ## Historical DAT coverage study (v1 releases)
 

@@ -119,7 +119,7 @@ expands the active cohort.
 The Census API key is loaded from the repository's ignored `.env` or environment.
 It is excluded from persisted request URLs, identifiers and error messages.
 No CDS credentials or ERA5 downloads are needed for this default workflow.
-The validated ERA5 adapter is [deferred and explicitly opt-in](ERA5.md).
+ERA5 is [planned for later](ERA5.md); its earlier local pilot artifacts have been removed.
 
 ## Files and keys
 

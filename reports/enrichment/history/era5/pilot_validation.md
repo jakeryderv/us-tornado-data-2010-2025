@@ -1,5 +1,9 @@
 # ERA5 and compact-storage pilot
 
+Historical report only: the local pilot downloads, checkpoints, extracted tables
+and experimental ML views have been removed. ERA5 is [planned for later](../../../../docs/ERA5.md).
+The commands and measurements below describe the implementation at validation time.
+
 Validated September 15, 2026 (America/Chicago); machine timestamps use UTC.
 This is a four-event pilot, **not full enrichment coverage or a new publication**.
 Earlier HRRR results are preserved separately in the [HRRR history](../README.md).
