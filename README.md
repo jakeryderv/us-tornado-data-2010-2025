@@ -8,6 +8,13 @@ locally in Jupyter. **v2.1.0** provides one enriched tornado table and eight
 supporting tables, including an auditable cross-source crosswalk. Earlier releases
 retain their original layouts and detailed DAT surveys.
 
+Local development now also includes linked radar, warning, Annual NLCD, ACS tract
+and TIGER tract enrichment, plus onset and retrospective ML views. ERA5 is
+[deferred and opt-in](docs/ERA5.md).
+These are **not yet in the published v2.1.0 release**. See the
+[enrichment guide](docs/ENRICHMENT.md) for collection commands, pilot coverage,
+table layout and the prediction-time contract.
+
 - [Hugging Face dataset](https://huggingface.co/datasets/jakeryderv/us-tornado-data-2010-2025)
 - [Kaggle dataset](https://www.kaggle.com/datasets/jakevanslyke/us-tornado-data-2010-2025)
 - [v2.1.0 release receipt](release/v2.1.0.json): pinned revisions and verified checksums.
@@ -107,6 +114,24 @@ simplified county map. These are context, not exact people/buildings struck.
 The release contains no radar, photos, individual building footprints, or fixed
 train/test split. The crosswalk is automatic research evidence, not verified identity.
 
+To collect the new enrichment separately and rebuild its ML views:
+
+```sh
+uv sync --locked --group enrichment
+# Configure CENSUS_API_KEY in the ignored .env file. No CDS setup is needed.
+uv run --group enrichment python -m enrichment.pipeline --all-events --dry-run
+uv run --group enrichment python -m enrichment.pipeline --all-events --storage compact --cache-gb 5 --max-download-gb 100
+uv run --group enrichment python -m enrichment.features
+uv run --group enrichment python -m enrichment.verify --require-full --report data/enrichment/verification.json
+```
+
+Plan many hours to a few days for full collection; API latency and retries vary.
+The byte ceiling limits new downloads per invocation; rerunning resumes extraction checkpoints. All 20,164 tornadoes remain in the
+ML views even when enrichment is missing. Inspect source statuses before modeling.
+Radar/warnings are screened at reported onset. Path-based land cover and exposure
+appear only in the retrospective view. ERA5 tables and columns are excluded by default. Compact storage keeps a bounded
+temporary cache and preserves extracted source tables and provenance. See [methods and limitations](docs/ENRICHMENT.md).
+
 ## One build, one starting table
 
 `uv run python scripts/build_analysis.py` creates all nine tables under
@@ -126,6 +151,7 @@ download_data.py          Collection CLI and HTTP/cache helpers
 footprint_data.py         EFC inventory, generation-pinned download, validation
 census_data.py            Pinned Census sources and derivations
 dataset_inspection.py     Read-only inspection helpers
+enrichment/              Optional source adapters, resumable collection, offline ML views
 notebooks/               Local inspection and Kaggle getting-started example
 scripts/                 Analysis build, verification, release packaging
 tests/                   Offline regression tests
@@ -143,7 +169,7 @@ It runs on Kaggle or locally; the local inspection notebook additionally checks
 the repository collection and analysis provenance.
 
 ```sh
-uv run python -m unittest discover -s tests -v
+uv run --group enrichment python -m unittest discover -s tests -v
 ```
 
 GitHub Actions runs offline tests and a download dry run with locked dependencies.

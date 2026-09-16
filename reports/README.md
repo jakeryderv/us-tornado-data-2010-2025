@@ -19,6 +19,22 @@ travels with the dataset. Both kinds of report identify their checked manifests;
 a later collection can make an earlier verification stale. The notebook displays
 the collection's saved verification, not the standalone report in this directory.
 
+## Local enrichment pilot
+
+`enrichment/pilot_validation.json` verifies the default five-source, non-ERA5
+four-event implementation pilot,
+not a full enrichment download. Regenerate against the current local collection:
+
+```sh
+uv run --group enrichment python -m enrichment.verify --report data/enrichment/verification.json
+```
+
+Check the selected event count, `full_cohort_processed` and source status counts.
+Both ML views retain all backbone events even when their enrichment was not
+requested. The [enrichment guide](../docs/ENRICHMENT.md) covers collection and
+the reported-onset cutoff. Earlier ERA5 validation is preserved under
+`enrichment/history/era5/`; it is not the active collection scope.
+
 ## Historical DAT coverage study (v1 releases)
 
 [`dat_coverage/dat_coverage_report.md`](dat_coverage/dat_coverage_report.md) describes

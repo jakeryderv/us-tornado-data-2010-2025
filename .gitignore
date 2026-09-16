@@ -1,6 +1,9 @@
 .venv/
 .ipynb_checkpoints/
 __pycache__/
+.env
+.env.*
+!.env.example
 
 # Downloaded NOAA/Census sources, derived files, and collection metadata.
 data/*

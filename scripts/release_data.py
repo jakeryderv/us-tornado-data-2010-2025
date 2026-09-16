@@ -142,8 +142,11 @@ def verify_release(folder, expected_manifest_sha=None):
             'payload_bytes': manifest['payload_bytes'], 'manifest_sha256': digest(manifest_path)}
 
 
-def build(data, output, config):
+def build(data, output, config, *, backbone_only=False):
     data, output = Path(data).resolve(), Path(output).resolve()
+    if (data / 'enrichment/manifest.json').exists() and not backbone_only:
+        raise ValueError('Local enrichment exists. This release builder packages the backbone only; '
+                         'use --backbone-only explicitly, or prepare the expanded release after full collection.')
     if output.exists():
         raise ValueError(f'Release destination already exists: {output}; choose a new version/destination')
     if output.is_relative_to(data) or data.is_relative_to(output):
@@ -287,6 +290,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest='command', required=True)
     b = sub.add_parser('build')
+    b.add_argument('--backbone-only', action='store_true', help='Explicitly exclude local enrichment/ML tables')
     b.add_argument('--data-dir', type=Path, default=ROOT / 'data')
     b.add_argument('--output', type=Path)
     v = sub.add_parser('verify')
@@ -305,7 +309,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     config = read_json(ROOT / 'release/dataset.json')
     if args.command == 'build':
-        build(args.data_dir, args.output or ROOT / 'dist' / config['version'], config)
+        build(args.data_dir, args.output or ROOT / 'dist' / config['version'], config, backbone_only=args.backbone_only)
     elif args.command == 'verify':
         print(json.dumps(verify_release(args.folder, args.manifest_sha256), indent=2))
     elif args.command == 'unpack':

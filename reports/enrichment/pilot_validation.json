@@ -1,0 +1,62 @@
+{
+  "verified_at": "2026-09-16T03:11:52.349643+00:00",
+  "status": "passed",
+  "collection_status": "complete",
+  "full_cohort_processed": false,
+  "selected_events": 4,
+  "backbone_events": 20164,
+  "source_status_counts": {
+    "complete": 20
+  },
+  "source_assets": 63,
+  "source_bytes": 35265401,
+  "retained_source_bytes": 249301,
+  "raw_asset_status_counts": {
+    "intentionally_not_retained": 34,
+    "bytes_verified": 29
+  },
+  "storage": {
+    "mode": "compact",
+    "max_cache_bytes": 50000000,
+    "evicted_bytes": 35016100,
+    "cache_bytes": 0
+  },
+  "reproducibility": "offline ML regeneration from retained source tables; raw re-extraction requires upstream downloads",
+  "source_tables": {
+    "radar_detections.parquet": 415,
+    "tornado_radar.parquet": 358,
+    "warning_updates.parquet": 769,
+    "tornado_warnings.parquet": 20,
+    "acs_tracts.parquet": 8917,
+    "tract_boundaries.parquet": 14,
+    "tornado_tracts.parquet": 14,
+    "nlcd_samples.parquet": 8,
+    "source_coverage.parquet": 20,
+    "record_provenance.parquet": 10509,
+    "event_areas.parquet": 4
+  },
+  "ml_tables": {
+    "events_onset.parquet": 20164,
+    "events_retrospective.parquet": 20164
+  },
+  "enrichment_manifest_sha256": "7c430caef7faa6a3d9d78acea1b4a7a58221c000c66cdcb2e986218d75432d72",
+  "ml_manifest_sha256": "dee93b61c07eff6e1ffa73860c4687e8255c775480efeac06de987fac90b258c",
+  "checks": [
+    "source/table digests",
+    "keys and source links",
+    "requested cohort coverage",
+    "all backbone IDs/targets preserved",
+    "onset allowlist"
+  ],
+  "pilot_checks": {
+    "era5_tables_and_columns_absent": true,
+    "era5_dependencies_not_installed": true,
+    "offline_resume_new_bytes": 0,
+    "full_collection_gate_rejected_pilot": true,
+    "full_dependency_tests_passed": 61,
+    "default_dependency_tests_passed": 56,
+    "optional_tests_skipped": 5,
+    "notebook_code_cells_executed": 11,
+    "cleanup_bytes_removed": 92565364
+  }
+}

@@ -20,6 +20,17 @@ source attribution when using those outputs.
 
 ## NOAA and NWS material
 
+The local, unreleased [enrichment pipeline](ENRICHMENT.md) additionally uses
+NOAA NCEI SWDI Level III-derived detections and NWS warnings
+redistributed by Iowa State University's Iowa Environmental Mesonet, USGS Annual
+NLCD land cover/impervious grids, Census ACS 5-year tract estimates, and Census
+TIGER/Line tract boundaries. The enrichment guide links each original service
+and describes extraction, units and limitations. Credit both NWS and IEM for
+the warning archive, and retain USGS and Census product/vintage attribution.
+These additions are not included in the existing v2.1.0 publication. Source
+material remains subject to its own notices; the project's MIT license applies
+to the collection/feature code and original documentation.
+
 The [NWS use policy](https://www.weather.gov/disclaimer) describes its web
 information as public domain unless otherwise noted. It permits use without
 charge subject to its conditions, including not claiming ownership of NWS
@@ -60,3 +71,15 @@ The frozen data is available on
 and [Kaggle](https://www.kaggle.com/datasets/jakevanslyke/us-tornado-data-2010-2025).
 Use the revisions and checksums in the [v2.1.0 release receipt](https://github.com/jakeryderv/us-tornado-data-2010-2025/blob/main/release/v2.1.0.json)
 and the `CITATION.cff` included with the snapshot when citing this collection.
+
+## ERA5 attribution for the deferred extension
+
+[ERA5 is deferred](ERA5.md) and excluded from the default/next release scope.
+It is Copernicus Climate Change Service data produced by ECMWF. Its CDS
+single-level and pressure-level catalogues carry a CC-BY licence; it must not be
+presented as U.S. Government Works. Preserve the product citations, retrieval
+snapshot and applicable licence in an expanded release. Existing v2.1.0 host
+metadata still describes only the published NOAA/Census backbone.
+
+- [ERA5 single levels, DOI 10.24381/cds.adbb2d47](https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels)
+- [ERA5 pressure levels, DOI 10.24381/cds.bd0915c6](https://cds.climate.copernicus.eu/datasets/reanalysis-era5-pressure-levels)

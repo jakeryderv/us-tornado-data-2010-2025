@@ -1,0 +1,42 @@
+{
+  "verified_at": "2026-09-16T01:58:17.142526+00:00",
+  "status": "passed",
+  "collection_status": "complete",
+  "full_cohort_processed": false,
+  "selected_events": 4,
+  "backbone_events": 20164,
+  "source_status_counts": {
+    "complete": 23,
+    "unavailable": 1
+  },
+  "source_assets": 108,
+  "source_bytes": 84563095,
+  "source_tables": {
+    "radar_detections.parquet": 415,
+    "tornado_radar.parquet": 358,
+    "warning_updates.parquet": 769,
+    "tornado_warnings.parquet": 20,
+    "hrrr_samples.parquet": 42,
+    "acs_tracts.parquet": 8917,
+    "tract_boundaries.parquet": 14,
+    "tornado_tracts.parquet": 14,
+    "nlcd_samples.parquet": 8,
+    "source_coverage.parquet": 24,
+    "record_provenance.parquet": 10593,
+    "event_areas.parquet": 4
+  },
+  "ml_tables": {
+    "events_onset.parquet": 20164,
+    "events_retrospective.parquet": 20164
+  },
+  "enrichment_manifest_sha256": "66a9ff0dbdd37b8733d513d7a8bdfbbc0e6b91099a095c18c4c9ef7e6dd610a7",
+  "ml_manifest_sha256": "60d67eff98b5f37323f3165b42a04861ae464e212146f32a041c1944a8e8b426",
+  "checks": [
+    "source/table digests",
+    "keys and source links",
+    "requested cohort coverage",
+    "all backbone IDs/targets preserved",
+    "onset allowlist",
+    "HRRR time cutoff"
+  ]
+}

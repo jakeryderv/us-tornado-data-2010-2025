@@ -1,0 +1,68 @@
+{
+  "verified_at": "2026-09-16T02:49:11.302073+00:00",
+  "status": "passed",
+  "collection_status": "complete",
+  "full_cohort_processed": false,
+  "selected_events": 4,
+  "backbone_events": 20164,
+  "source_status_counts": {
+    "complete": 24
+  },
+  "source_assets": 71,
+  "source_bytes": 35556240,
+  "retained_source_bytes": 249301,
+  "raw_asset_status_counts": {
+    "intentionally_not_retained": 42,
+    "bytes_verified": 29
+  },
+  "storage": {
+    "mode": "compact",
+    "max_cache_bytes": 50000000,
+    "evicted_bytes": 290840,
+    "cache_bytes": 0
+  },
+  "reproducibility": "offline ML regeneration from retained source tables; raw re-extraction requires upstream downloads",
+  "source_tables": {
+    "radar_detections.parquet": 415,
+    "tornado_radar.parquet": 358,
+    "warning_updates.parquet": 769,
+    "tornado_warnings.parquet": 20,
+    "era5_samples.parquet": 292,
+    "acs_tracts.parquet": 8917,
+    "tract_boundaries.parquet": 14,
+    "tornado_tracts.parquet": 14,
+    "nlcd_samples.parquet": 8,
+    "source_coverage.parquet": 24,
+    "record_provenance.parquet": 10801,
+    "event_areas.parquet": 4
+  },
+  "ml_tables": {
+    "events_onset.parquet": 20164,
+    "events_retrospective.parquet": 20164
+  },
+  "enrichment_manifest_sha256": "63cf0f7a87a87142afc1f7fb73910d2e4fd5f27b7d514bdf164ce0715600b986",
+  "ml_manifest_sha256": "7286cbc4809457c063ea80fb3faf71d00652a9cabd9ad779f581f6e5f884aad5",
+  "checks": [
+    "source/table digests",
+    "keys and source links",
+    "requested cohort coverage",
+    "all backbone IDs/targets preserved",
+    "onset allowlist",
+    "ERA5 time cutoff"
+  ],
+  "pilot_checks": {
+    "era5_samples_per_event": 73,
+    "all_era5_values_sampled": true,
+    "selected_environment_features_nonmissing": [
+      "post_era5_cape_j_kg",
+      "post_era5_bulk_shear_0_1km_m_s",
+      "post_era5_bulk_shear_0_6km_m_s",
+      "post_era5_srh_0_1km_m2_s2",
+      "post_era5_srh_0_3km_m2_s2"
+    ],
+    "offline_resume_new_bytes": 0,
+    "offline_resume_manifest_unchanged": true,
+    "offline_tests_passed": 60,
+    "notebook_code_cells_executed": 11
+  }
+}

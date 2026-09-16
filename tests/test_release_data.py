@@ -10,6 +10,14 @@ from scripts.release_data import digest, local, stage, unpack, verify_release, w
 
 
 class ReleaseIntegrity(unittest.TestCase):
+    def test_local_enrichment_cannot_be_silently_omitted(self):
+        from scripts.release_data import build
+        with TemporaryDirectory() as d:
+            root=Path(d);(root/'data/enrichment').mkdir(parents=True)
+            (root/'data/enrichment/manifest.json').write_text('{}')
+            with self.assertRaisesRegex(ValueError,'backbone only'):
+                build(root/'data',root/'release',{})
+
     def fixture(self, root):
         root.mkdir()
         (root/'DATASET_CARD.md').write_text('# Shared card\n')

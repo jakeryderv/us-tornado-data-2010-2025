@@ -31,6 +31,15 @@ uv run --group publish python -c 'import kagglehub; print(kagglehub.whoami(verbo
 
 ## Build a frozen release
 
+The current builder targets the published backbone layout. New local enrichment
+and ML views are not yet released. If `data/enrichment/manifest.json` exists,
+the builder requires `build --backbone-only` to explicitly exclude those files.
+The next enrichment scope is radar, warnings, NLCD, ACS and TIGER; ERA5 is
+deferred and excluded. Follow [the full-run instructions](ENRICHMENT.md), then
+require `python -m enrichment.verify --require-full` to pass. Complete expanded
+packaging/metadata before publishing a release advertised as containing the new sources. Never treat the
+four-event validation pilot as full 2010–2025 enrichment coverage.
+
 Commit the code, card, and config first. Build requires a clean working tree,
 full source verification, and matching collection-side verification manifests.
 It selects active source files and supporting provenance rather than copying

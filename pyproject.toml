@@ -12,6 +12,17 @@ dependencies = [
 ]
 
 [dependency-groups]
+enrichment = [
+    "python-dotenv>=1,<2",
+    "rasterio>=1.4,<2",
+]
+era5 = [
+    {include-group = "enrichment"},
+    "cdsapi>=0.7.7,<1",
+    "eccodes>=2.40,<3",
+    "eccodeslib>=2.40,<3",
+    "metpy>=1.7,<2",
+]
 publish = [
     "huggingface-hub>=1.31.0",
     "kaggle>=2.2.4",
