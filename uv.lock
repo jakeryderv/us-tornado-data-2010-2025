@@ -2842,6 +2842,7 @@ dependencies = [
 enrichment = [
     { name = "python-dotenv" },
     { name = "rasterio" },
+    { name = "requests" },
 ]
 era5 = [
     { name = "cdsapi" },
@@ -2850,6 +2851,7 @@ era5 = [
     { name = "metpy" },
     { name = "python-dotenv" },
     { name = "rasterio" },
+    { name = "requests" },
 ]
 publish = [
     { name = "huggingface-hub" },
@@ -2871,6 +2873,7 @@ requires-dist = [
 enrichment = [
     { name = "python-dotenv", specifier = ">=1,<2" },
     { name = "rasterio", specifier = ">=1.4,<2" },
+    { name = "requests", specifier = ">=2.32,<3" },
 ]
 era5 = [
     { name = "cdsapi", specifier = ">=0.7.7,<1" },
@@ -2879,6 +2882,7 @@ era5 = [
     { name = "metpy", specifier = ">=1.7,<2" },
     { name = "python-dotenv", specifier = ">=1,<2" },
     { name = "rasterio", specifier = ">=1.4,<2" },
+    { name = "requests", specifier = ">=2.32,<3" },
 ]
 publish = [
     { name = "huggingface-hub", specifier = ">=1.31.0" },

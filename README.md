@@ -120,12 +120,14 @@ To collect the new enrichment separately and rebuild its ML views:
 uv sync --locked --group enrichment
 # Configure CENSUS_API_KEY in the ignored .env file. No CDS setup is needed.
 uv run --group enrichment python -m enrichment.pipeline --all-events --dry-run
-uv run --group enrichment python -m enrichment.pipeline --all-events --storage compact --cache-gb 5 --max-download-gb 100
+uv run --group enrichment python -m enrichment.pipeline --all-events --workers 4 --per-host 2 --storage compact --cache-gb 5 --max-download-gb 100
 uv run --group enrichment python -m enrichment.features
 uv run --group enrichment python -m enrichment.verify --require-full --report data/enrichment/verification.json
 ```
 
-Plan many hours to a few days for full collection; API latency and retries vary.
+The collector defaults to four workers and two requests per host, reusing shared
+warning and Census inputs. See the [benchmark and concurrency notes](docs/ENRICHMENT.md#concurrency-and-reuse).
+Full-run timing depends on source latency, retries and geographic coverage.
 The byte ceiling limits new downloads per invocation; rerunning resumes extraction checkpoints. All 20,164 tornadoes remain in the
 ML views even when enrichment is missing. Inspect source statuses before modeling.
 Radar/warnings are screened at reported onset. Path-based land cover and exposure

@@ -57,7 +57,7 @@ class SourceTests(unittest.TestCase):
             result={'tables':{'acs_tracts':[{'record_id':'a','population':20}]},'assets':[],'coverage':{'status':'complete'}}
             for name in ['a','b']:save_job(output/(name+'.json'),result,output)
             self.assertEqual(len(list((output/'job_tables').glob('*.json.gz'))),1)
-            self.assertEqual(load_job(output/'a.json',output)['tables'],result['tables'])
+            self.assertEqual({k:list(v) for k,v in load_job(output/'a.json',output)['tables'].items()},result['tables'])
             next((output/'job_tables').glob('*.json.gz')).write_text('[]')
             with self.assertRaisesRegex(ValueError,'Changed shared'):load_job(output/'b.json',output)
 

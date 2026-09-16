@@ -90,23 +90,23 @@ class RetentionTests(unittest.TestCase):
             stack.enter_context(patch.dict(COLLECTORS,{name:adapter(name) for name in COLLECTORS}))
             stack.enter_context(patch('enrichment.common.urlopen',side_effect=lambda *a,**k:Response()))
             stack.enter_context(redirect_stdout(io.StringIO()))
-            first=collect(data,out,events,list(DEFAULT_SOURCES),Config(),max_bytes=1000,timeout=1,max_cache_bytes=16)
+            first=collect(data,out,events,list(DEFAULT_SOURCES),Config(),max_bytes=1000,timeout=1,max_cache_bytes=16,workers=1)
             self.assertEqual(first['status'],'partial');self.assertEqual(len(calls),10)
             self.assertNotIn('era5_samples.parquet',[v['path'] for v in first['outputs']])
             self.assertFalse(any(name=='era5' for name,_ in calls))
             self.assertTrue(list((out/'jobs').glob('job_*.json')))
             self.assertFalse(list((out/'raw').glob('*.bin')))
-            second=collect(data,out,events,list(DEFAULT_SOURCES),Config(),max_bytes=1000,timeout=1,max_cache_bytes=16)
+            second=collect(data,out,events,list(DEFAULT_SOURCES),Config(),max_bytes=1000,timeout=1,max_cache_bytes=16,workers=1)
             self.assertEqual(second['status'],'complete');self.assertEqual(len(calls),11)
             self.assertEqual(second['downloaded_bytes'],8)
             self.assertFalse(list((out/'jobs').glob('job_*.json')))
             self.assertFalse(list((out/'job_tables').glob('*.gz')))
             with patch('enrichment.common.urlopen',side_effect=AssertionError('unexpected network')):
-                third=collect(data,out,events,list(DEFAULT_SOURCES),Config(),max_bytes=0,timeout=1,max_cache_bytes=16)
+                third=collect(data,out,events,list(DEFAULT_SOURCES),Config(),max_bytes=0,timeout=1,max_cache_bytes=16,workers=1)
             self.assertTrue(third['resumed_complete']);self.assertEqual(len(calls),11)
             (out/'tables/radar_detections.parquet').write_bytes(b'corrupt')
             with self.assertRaisesRegex(ValueError,'table changed'):
-                collect(data,out,events,list(DEFAULT_SOURCES),Config(),max_bytes=0,timeout=1,max_cache_bytes=16)
+                collect(data,out,events,list(DEFAULT_SOURCES),Config(),max_bytes=0,timeout=1,max_cache_bytes=16,workers=1)
 
 
 if __name__=='__main__':unittest.main()

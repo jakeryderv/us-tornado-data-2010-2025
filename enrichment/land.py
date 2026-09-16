@@ -13,6 +13,7 @@ from shapely import wkt
 from shapely.ops import transform
 
 from .common import Unavailable, project, stable_id
+from .checkpoints import SharedRows, BatchedRows
 
 ACS_VARIABLES = {
     'B01003_001': 'population', 'B25001_001': 'housing_units',
@@ -52,13 +53,13 @@ def collect_acs(event, cache, config):
     if not key:
         raise RuntimeError('CENSUS_API_KEY is required; set it in ignored .env and rerun')
     year = event['year'] - config.acs_year_lag
-    rows = []
+    parts = []
     for state in event['area_states']:
         params = {'get': ','.join(['NAME']+[v+s for v in ACS_VARIABLES for s in ('E','M')]),
                   'for': 'tract:*', 'in': 'state:'+state, 'key': key}
         payload, asset = cache.json(f'https://api.census.gov/data/{year}/acs/acs5?' + urlencode(params))
-        rows.extend(cache.memo(('acs',year,asset),lambda:acs_rows(payload, year, asset)))
-    return {'acs_tracts': rows}
+        parts.append(cache.memo(('acs',year,asset),lambda:SharedRows(acs_rows(payload, year, asset))))
+    return {'acs_tracts': BatchedRows(*parts)}
 
 
 def tiger_urls(year, state, counties, cache):
@@ -98,17 +99,22 @@ def collect_tracts(event, cache, config):
     tables = {'tract_boundaries': [], 'tornado_tracts': []}
     lon, lat = event['longitude'], event['latitude']
     area = project(polygon, lon, lat)
-    # Keep complete state source ZIPs; normalized output contains intersecting
+    # Read each shared archive once and query its index; retain only intersecting
     # tracts. Never infer matching geometry from a different vintage.
     for state in event['area_states']:
         counties = [x for x in event['county_fips'] if x.startswith(state)]
         for url in tiger_urls(year, state, counties, cache):
             path, asset = cache.fetch(url, suffix='.zip')
-            frame = cache.memo(('tiger',asset),lambda:gpd.read_file(path).to_crs('EPSG:4326'))
+            def read_tracts():
+                frame = gpd.read_file(path).to_crs('EPSG:4326')
+                frame.sindex  # build once before worker sharing
+                return frame
+            frame = cache.memo(('tiger',asset),read_tracts)
             geoid_field = next((n for n in ('GEOID', 'GEOID10', 'CTIDFP00') if n in frame), None)
             if geoid_field is None:
                 raise ValueError('TIGER tract identifier field missing')
-            frame = frame.loc[frame.geometry.intersects(polygon)]
+            positions = sorted(frame.sindex.query(polygon, predicate='intersects'))
+            frame = frame.iloc[positions]
             for _, item in frame.iterrows():
                 geoid = str(item[geoid_field])
                 if not re.fullmatch(r'\d{11}', geoid):

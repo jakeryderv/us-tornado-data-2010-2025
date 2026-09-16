@@ -1,7 +1,9 @@
 """Resumable optional collection. Existing backbone tables are read-only inputs."""
 import argparse
 from collections import Counter
-import gzip
+from concurrent.futures import ThreadPoolExecutor
+from collections import deque
+from threading import Event
 import time
 from dataclasses import asdict
 import json
@@ -21,6 +23,7 @@ from .land import collect_acs, collect_nlcd, collect_tracts
 from .weather import collect_radar, collect_warnings
 from .era5 import collect_era5, group_key, plan_requests
 from .storage import verify_asset
+from .checkpoints import BatchedRows, Checkpoints, batches, references, load as load_checkpoint
 
 ROOT = Path(__file__).resolve().parents[1]
 COLLECTORS = {'radar': collect_radar, 'warnings': collect_warnings,
@@ -103,40 +106,11 @@ def write_table(path, rows, keys):
 
 
 def save_job(path, result, output):
-    """Compressed content-addressed checkpoints; no unverified binary dependency."""
-    saved=dict(result, tables={}, table_refs={},
-               tables_digest=stable_id('checkpoint-tables',result['tables']))
-    for name,rows in result['tables'].items():
-        identity=stable_id(name,rows).replace(':','_')
-        table_path=output/'job_tables'/(identity+'.json.gz')
-        if not table_path.exists():
-            table_path.parent.mkdir(exist_ok=True)
-            temp=table_path.with_suffix('.tmp')
-            with gzip.open(temp,'wt',encoding='utf-8') as stream:
-                json.dump(rows,stream,sort_keys=True,default=str,allow_nan=False)
-            with gzip.open(temp,'rt',encoding='utf-8') as stream:
-                if stable_id(name,json.load(stream)).replace(':','_')!=identity:
-                    raise ValueError('Checkpoint round trip failed')
-            temp.replace(table_path)
-        else:
-            with gzip.open(table_path,'rt',encoding='utf-8') as stream:
-                if stable_id(name,json.load(stream)).replace(':','_')!=identity:
-                    raise ValueError('Changed shared job table')
-        saved['table_refs'][name]=dict(path=table_path.relative_to(output).as_posix(),sha256=digest(table_path))
-    atomic_json(path,saved)
+    Checkpoints(output).save(path, result)
 
 
 def load_job(path, output):
-    result=json.loads(path.read_text())
-    for name,ref in result.get('table_refs',{}).items():
-        table_path=output/ref['path']
-        if digest(table_path)!=ref['sha256']:raise ValueError('Changed shared job table')
-        if table_path.suffix=='.gz':
-            with gzip.open(table_path,'rt',encoding='utf-8') as stream:result['tables'][name]=json.load(stream)
-        else:result['tables'][name]=json.loads(table_path.read_text())
-    if result.get('tables_digest')!=stable_id('checkpoint-tables',result['tables']):
-        raise ValueError('Checkpoint extraction digest missing or changed')
-    return result
+    return load_checkpoint(path, output)
 
 
 def prune_checkpoints(output, paths):
@@ -145,11 +119,11 @@ def prune_checkpoints(output, paths):
     for path in paths:
         if not path.exists():continue
         saved=json.loads(path.read_text())
-        retired.update(r['path'] for r in saved.get('table_refs',{}).values())
+        retired.update(r['path'] for r in references(saved))
         path.unlink()
     live=set()
     for path in (output/'jobs').glob('job_*.json'):
-        live.update(r['path'] for r in json.loads(path.read_text()).get('table_refs',{}).values())
+        live.update(r['path'] for r in references(json.loads(path.read_text())))
     for relative in retired-live:
         path=(output/relative).resolve()
         if not path.is_relative_to((output/'job_tables').resolve()):raise ValueError('Unsafe checkpoint path')
@@ -165,7 +139,9 @@ def job_order(event, source, config):
 
 
 def collect(data, output, selected, sources, config, *, max_bytes, timeout,
-            storage='compact', max_cache_bytes=5_000_000_000):
+            storage='compact', max_cache_bytes=5_000_000_000, workers=4, per_host=2):
+    if workers < 1 or per_host < 1:
+        raise ValueError('Worker and per-host limits must be positive')
     # Prevent another collector or cleanup from changing in-use artifacts.
     import fcntl
     output=Path(output);output.mkdir(parents=True,exist_ok=True)
@@ -173,15 +149,15 @@ def collect(data, output, selected, sources, config, *, max_bytes, timeout,
         try:fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
         except BlockingIOError:raise ValueError('Another collector is using this output directory') from None
         return _collect(data,output,selected,sources,config,max_bytes=max_bytes,timeout=timeout,
-                        storage=storage,max_cache_bytes=max_cache_bytes)
+                        storage=storage,max_cache_bytes=max_cache_bytes,workers=workers,per_host=per_host)
 
 
-def _collect(data, output, selected, sources, config, *, max_bytes, timeout, storage, max_cache_bytes):
+def _collect(data, output, selected, sources, config, *, max_bytes, timeout, storage, max_cache_bytes, workers, per_host):
     if not selected:
         raise ValueError('Select at least one tornado')
     hashes = input_hashes(data)
     code = {name:digest(Path(__file__).parent/name) for name in
-            ['common.py','storage.py','pipeline.py','land.py','weather.py','era5.py']}
+            ['common.py','cache.py','transport.py','checkpoints.py','storage.py','pipeline.py','land.py','weather.py','era5.py']}
     code['build_crosswalk.py']=digest(ROOT/'scripts/build_crosswalk.py')
     definition = dict(config=json.loads(json.dumps(asdict(config))), backbone=hashes, code=code)
     fingerprint = stable_id('definition', definition)
@@ -211,7 +187,7 @@ def _collect(data, output, selected, sources, config, *, max_bytes, timeout, sto
         print('Completed selection verified; no downloads or extraction needed.',flush=True)
         return dict(previous,resumed_complete=True,new_downloaded_bytes=0)
     cache = Cache(output/'raw', timeout=timeout, max_bytes=max_bytes,
-                  storage=storage,max_cache_bytes=max_cache_bytes)
+                  storage=storage,max_cache_bytes=max_cache_bytes,per_host=per_host)
     cache.era5_plans=plan_requests(selected,config) if 'era5' in sources else {}
     # Previous verified extraction snapshots permit adoption of legacy caches.
     if previous.get('outputs'):
@@ -233,74 +209,116 @@ def _collect(data, output, selected, sources, config, *, max_bytes, timeout, sto
     atomic_json(old_manifest, manifest)
     jobs = output/'jobs'
     jobs.mkdir(exist_ok=True)
-    budget_reached = False
+    budget_reached = Event()
+    checkpoints = Checkpoints(output)
+    seen_batches = set()
     paths=[];statuses=Counter();durations=Counter();finished=Counter()
-    work=[(e,name) for name in sources for e in sorted(selected,key=lambda x:job_order(x,name,config))]
-    for step,(event,name) in enumerate(work,1):
-        started=time.monotonic()
-        job_id = stable_id('job',[fingerprint, event['tornado_id'], name])
-        job_path = jobs/(job_id.replace(':','_')+'.json');paths.append(job_path)
+    source_wall = Counter()
+    total_jobs = len(selected) * len(sources)
+    run_started = time.monotonic()
+
+    def run_job(event, name):
+        started = time.monotonic()
+        job_id = stable_id('job', [fingerprint, event['tornado_id'], name])
+        job_path = jobs / (job_id.replace(':', '_') + '.json')
+        owner = cache.fork()
         result = None
+        policy_changed = False
         if job_path.exists():
-            candidate = load_job(job_path, output)
-            if candidate['coverage']['status'] in ('complete','unavailable'):
-                reusable=True;policy_changed=False
+            candidate = load_checkpoint(job_path, output, memo=cache.memo)
+            if candidate['coverage']['status'] in ('complete', 'unavailable'):
+                reusable = True
                 for asset in candidate['assets']:
-                    old_policy=asset.get('retention')
-                    asset['retention']=cache.retention(asset['url'],Path(asset['path']).suffix)
-                    policy_changed|=old_policy!=asset['retention']
-                    if storage=='archive' and old_policy=='optional' and not (output/asset['path']).exists():
-                        reusable=False;continue
-                    verify_asset(output,asset)
+                    old_policy = asset.get('retention')
+                    asset['retention'] = cache.retention(asset['url'], Path(asset['path']).suffix)
+                    policy_changed |= old_policy != asset['retention']
+                    if storage == 'archive' and old_policy == 'optional' and not (output / asset['path']).exists():
+                        reusable = False
+                        continue
+                    verify_asset(output, asset)
                 if reusable:
                     result = candidate
-                    if policy_changed:save_job(job_path,result,output)
-        if result is None:
+        new = result is None
+        if new:
             status, reason, tables = 'complete', None, {}
-            cache.touched.clear()
             try:
-                if budget_reached:
+                if budget_reached.is_set():
                     raise BudgetExceeded('Not attempted after this run reached download budget')
                 if not event['usable']:
                     raise Unavailable('Invalid or unknown reported start time/location')
-                tables = COLLECTORS[name](event,cache,config)
+                tables = {table: rows if isinstance(rows, BatchedRows) else BatchedRows(rows)
+                          for table, rows in COLLECTORS[name](event, owner, config).items()}
             except Unavailable as exc:
-                status,reason='unavailable',str(exc)
+                status, reason = 'unavailable', str(exc)
             except BudgetExceeded as exc:
-                budget_reached=True
-                status,reason='budget_exceeded',str(exc)
+                budget_reached.set()
+                status, reason = 'budget_exceeded', str(exc)
             except Exception as exc:
-                status,reason='failed',str(exc)
-                secret = __import__('os').environ.get('CENSUS_API_KEY','')
-                if secret: reason=reason.replace(secret,'[redacted]')
-            assets = [dict(cache.assets[k],path='raw/'+Path(cache.assets[k]['path']).name)
-                      for k in cache.touched]
+                status, reason = 'failed', str(exc)
+                secret = __import__('os').environ.get('CENSUS_API_KEY', '')
+                if secret:
+                    reason = reason.replace(secret, '[redacted]')
+            assets = [dict(cache.assets[k], path='raw/' + Path(cache.assets[k]['path']).name) for k in sorted(owner.touched)]
             cov = dict(tornado_id=event['tornado_id'], source=name, status=status, reason=reason, job_id=job_id)
             result = dict(coverage=cov, tables=tables, assets=assets)
-            save_job(job_path,result,output)
-        # A durable, digest-verified checkpoint now permits cache eviction.
-        cache.commit(result['assets'])
-        coverage.append(result['coverage'])
-        asset_records.update({a['asset_id']:a for a in result['assets']})
-        for table,rows in result['tables'].items():
-            for row in rows:
-                key=tuple(row[k] for k in TABLES[table])
-                previous_row=frames[table].get(key)
-                if not previous_row or not previous_row.get('text_asset_id') or row.get('text_asset_id'):
-                    frames[table][key]=row
-                for role,asset in row.items():
-                    if role.endswith('asset_id') and asset:
-                        record_id=row.get('record_id') or stable_id(table,row)
-                        provenance_records[(table,record_id,role,asset)]=dict(
-                            table=table,record_id=record_id,role=role,asset_id=asset)
-        statuses[result['coverage']['status']]+=1;finished[event['tornado_id']]+=1
-        durations[name]+=time.monotonic()-started
-        print(f"[{step}/{len(work)}] {event['tornado_id']} {name}: {result['coverage']['status']}",flush=True)
-        if step%50==0 or step==len(work):
-            atomic_json(output/'progress.json',dict(jobs_finished=step,jobs_requested=len(work),
-                events_finished=sum(v==len(sources) for v in finished.values()),events_requested=len(selected),
-                downloaded_bytes=cache.downloaded,cache_bytes=sum(e['bytes'] for e in cache.entries.values()),
-                source_seconds=dict(durations),status_counts=dict(statuses)))
+        return result, owner, job_path, new or policy_changed, time.monotonic() - started
+
+    step = 0
+    # Bounded submission: at most workers results/active jobs, never 100k futures.
+    # Commit in stable event order so duplicate resolution is scheduling-independent.
+    try:
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            for name in sources:
+                phase_started = time.monotonic()
+                events = iter(sorted(selected, key=lambda e: job_order(e, name, config)))
+                pending = deque()
+                for _ in range(1 if name == 'era5' else workers):
+                    event = next(events, None)
+                    if event is not None:
+                        pending.append(pool.submit(run_job, event, name))
+                while pending:
+                    result, owner, job_path, needs_save, seconds = pending.popleft().result()
+                    if needs_save:
+                        checkpoints.save(job_path, result)
+                    cache.commit(result['assets'], owner=owner)
+                    paths.append(job_path)
+                    coverage.append(result['coverage'])
+                    asset_records.update({a['asset_id']:a for a in result['assets']})
+                    for table, rows in result['tables'].items():
+                        for part in batches(rows):
+                            batch_key = (table, part.identity)
+                            if batch_key in seen_batches:
+                                continue
+                            seen_batches.add(batch_key)
+                            for row in part:
+                                key = tuple(row[k] for k in TABLES[table])
+                                previous_row = frames[table].get(key)
+                                if not previous_row or not previous_row.get('text_asset_id') or row.get('text_asset_id'):
+                                    frames[table][key] = row
+                                for role, asset in row.items():
+                                    if role.endswith('asset_id') and asset:
+                                        record_id = row.get('record_id') or stable_id(table, row)
+                                        provenance_records[(table,record_id,role,asset)] = dict(table=table,record_id=record_id,role=role,asset_id=asset)
+                    cov = result['coverage']
+                    statuses[cov['status']] += 1
+                    finished[cov['tornado_id']] += 1
+                    durations[name] += seconds
+                    step += 1
+                    print(f"[{step}/{total_jobs}] {cov['tornado_id']} {name}: {cov['status']}", flush=True)
+                    if step % 25 == 0 or step == total_jobs:
+                        atomic_json(output / 'progress.json', dict(jobs_finished=step,jobs_requested=total_jobs,
+                            events_finished=sum(v==len(sources) for v in finished.values()),events_requested=len(selected),
+                            elapsed_seconds=time.monotonic()-run_started, source_seconds=dict(durations),
+                            source_wall_seconds=dict(source_wall), status_counts=dict(statuses), workers=workers,
+                            per_host=per_host, **cache.snapshot()))
+                    event = next(events, None)
+                    if event is not None:
+                        pending.append(pool.submit(run_job, event, name))
+                source_wall[name] = time.monotonic() - phase_started
+
+    finally:
+        cache.close_sessions()
+
     table_dir = output/'tables'
     table_dir.mkdir(exist_ok=True)
     provenance = list(provenance_records.values())
@@ -314,7 +332,8 @@ def _collect(data, output, selected, sources, config, *, max_bytes, timeout, sto
                     completed_at=now(), status_counts=statuses, outputs=outputs,
                     assets=sorted(asset_records.values(),key=lambda x:x['asset_id']), downloaded_bytes=cache.downloaded)
     manifest.update(storage=dict(mode=storage,max_cache_bytes=max_cache_bytes),
-                    source_seconds=dict(durations),job_ids=[r['job_id'] for r in coverage],
+                    source_seconds=dict(durations),source_wall_seconds=dict(source_wall),
+                    performance=dict(workers=workers,per_host=per_host,elapsed_seconds=time.monotonic()-run_started,transport_stats=dict(cache.stats)),job_ids=[r['job_id'] for r in coverage],
                     checkpoints_retired=(manifest['status']=='complete' and len(selected)==manifest['full_backbone_count']
                                          and storage=='compact' and set(DEFAULT_SOURCES)<=set(sources)))
     # Commit the validated consolidated tables before pruning their checkpoints.
@@ -348,9 +367,11 @@ def main(argv=None):
     parser.add_argument('--storage',choices=['compact','cache','archive'],default='compact')
     parser.add_argument('--cache-gb',type=float,default=5,help='Bound on disposable source bodies, separate from download traffic')
     parser.add_argument('--timeout',type=int,default=90)
+    parser.add_argument('--workers',type=int,default=4,help='Bounded concurrent extraction jobs; use 1 for serial comparison')
+    parser.add_argument('--per-host',type=int,default=2,help='Maximum simultaneous HTTP requests per service')
     parser.add_argument('--dry-run',action='store_true')
     args=parser.parse_args(argv)
-    if not 2010<=args.start_year<=args.end_year<=2025 or args.max_download_gb<=0 or args.cache_gb<=0 or args.timeout<=0 or (args.limit is not None and args.limit<=0):
+    if not 2010<=args.start_year<=args.end_year<=2025 or args.max_download_gb<=0 or args.cache_gb<=0 or args.timeout<=0 or args.workers<1 or args.per_host<1 or (args.limit is not None and args.limit<=0):
         parser.error('Invalid years, limit, timeout or download budget')
     config=Config();config.validate()
     events=event_records(args.data_dir,config)
@@ -362,14 +383,14 @@ def main(argv=None):
     output=args.output or args.data_dir/'enrichment'
     if args.dry_run:
         print(json.dumps(dict(events=len(events),sources=args.sources,output=str(output),config=asdict(config),
-                             max_download_gb=args.max_download_gb,storage=args.storage,cache_gb=args.cache_gb,
+                             max_download_gb=args.max_download_gb,storage=args.storage,cache_gb=args.cache_gb,workers=args.workers,per_host=args.per_host,
                              environment='ERA5; retrospective only' if 'era5' in args.sources else 'Deferred; ERA5 is not requested'),indent=2))
         return 0
     from dotenv import load_dotenv
     load_dotenv(ROOT/'.env',override=False)
     result=collect(args.data_dir,output,events,args.sources,config,
                    max_bytes=int(args.max_download_gb*1e9),timeout=args.timeout,
-                   storage=args.storage,max_cache_bytes=int(args.cache_gb*1e9))
+                   storage=args.storage,max_cache_bytes=int(args.cache_gb*1e9),workers=args.workers,per_host=args.per_host)
     return 0 if result['status']=='complete' else 2
 
 

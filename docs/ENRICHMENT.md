@@ -19,7 +19,7 @@ Use Python 3.12 and the locked optional dependencies:
 uv sync --locked --group enrichment
 # If .env does not exist, copy .env.example to .env and fill in the key locally.
 uv run --group enrichment python -m enrichment.pipeline --all-events --dry-run
-uv run --group enrichment python -m enrichment.pipeline --all-events --storage compact --cache-gb 5 --max-download-gb 100
+uv run --group enrichment python -m enrichment.pipeline --all-events --workers 4 --per-host 2 --storage compact --cache-gb 5 --max-download-gb 100
 uv run --group enrichment python -m enrichment.features
 uv run --group enrichment python -m enrichment.verify --require-full --report data/enrichment/verification.json
 ```
@@ -39,13 +39,20 @@ and initially allow **10–15 GB working disk** including the 5 GB cache,
 compressed checkpoints and table consolidation. These are planning estimates, not measurements of a full collection.
 Incomplete runs retain compressed checkpoints and can use additional space.
 Disk cache and network transfer limits are independent. A body larger than the
-cache limit fails explicitly; raise `--cache-gb` and resume.
+cache limit fails explicitly; raise `--cache-gb` and resume. Concurrent jobs pin
+their inputs until their extraction checkpoints are committed. If their combined
+working set exceeds the cache, increase it or reduce `--workers`.
 
-Without ERA5, plan for **many hours to a few days**, depending on source API
-latency and retries. This is not a measured full-run duration; the pilot cannot
-reliably extrapolate thousands of different radar/land/Census queries. There is
+The [200-event benchmark](../reports/enrichment/performance_validation.md)
+finished in **3.8 minutes**, versus 15.1 minutes before optimization. A simple
+20,164-event projection is 6.4 hours; allow roughly **6–12 hours** for planning,
+with additional time possible for throttling, failures and retries. This is not
+a measured full-run duration: query reuse and geographic coverage differ at
+full scale. There is
 no CDS queue in the default run. Read `progress.json` for finished jobs,
-transferred/cache bytes and per-source elapsed seconds. The collector processes
+transferred/cache bytes, HTTP/cache counters, total wall time and completed
+source wall times (`source_wall_seconds`). `source_seconds` sums job durations,
+which overlap under concurrency; do not treat that sum as wall time. The collector processes
 sources in groups, so an event is fully finished only after all requested sources
 finish. Budget-limited or failed jobs are retried on the next invocation.
 
@@ -56,6 +63,45 @@ five default sources finish successfully (including documented unavailable jobs)
 mode retires that run's redundant checkpoints. Subset/partial runs keep theirs.
 A failed or transfer-budget-limited run exits with code 2; inspect status/reasons.
 Only one collector may use an output directory at a time (Linux/macOS file lock).
+
+### Concurrency and reuse
+
+The default is four extraction workers, with at most two concurrent HTTP requests
+to each host. `--workers 1` restores serial job execution. Sources still run in
+groups to reuse adjacent dates and Census vintages. Shared requests have one
+downloader; connections are reused within each worker. Transfer reservations,
+temporary cache space and file eviction are coordinated across workers. HTTP
+429/5xx retries honor `Retry-After` with a shared host cooldown.
+
+Warning responses are normalized once per cached query, with a spatial index for
+point coverage. TIGER uses spatial indexes for candidate tracts; exact geometry
+intersections and area calculations are unchanged. ACS state tables and warning
+background rows share compressed checkpoint batches rather than being serialized
+again for every event. A coordinator commits results in stable event order, so
+completion order cannot change duplicate resolution or provenance. Existing
+checkpoint formats remain readable. Worker settings are performance options and
+do not change scientific extraction definitions.
+
+Radar/NLCD requests retain their original per-event bounds and resolution. This
+pass does not merge nearby storms into broader queries, which could change API
+truncation and raster alignment. ERA5 remains deferred; explicitly requested CDS
+jobs remain serial.
+
+### Repeat a bounded benchmark
+
+The benchmark selects 200 events across all 16 years, including six large outbreak
+days. It requires a fresh output directory and cannot target more than 500 events.
+It builds both ML views and verifies source tables, links and provenance:
+
+```sh
+uv run --group enrichment python -m scripts.benchmark_enrichment --output data/benchmarks/live
+uv run --group enrichment python -m scripts.benchmark_enrichment --events-json data/benchmarks/live/events.json --output data/benchmarks/replay --replay-from data/benchmarks/live --compare-with data/benchmarks/live
+```
+
+Replay copies retained raw inputs and forbids HTTP. Its table comparison excludes
+only `source_coverage.job_id`, which embeds code hashes. Compare live timing only
+with other live runs; cached replay measures extraction work. The benchmark keeps
+its bounded raw cache for comparison, independently of the active dataset.
 
 For a small check, replace `--all-events` with `--limit 4`, or repeat `--event-id`
 for a chosen cohort. `--start-year`, `--end-year`, and `--sources radar warnings
