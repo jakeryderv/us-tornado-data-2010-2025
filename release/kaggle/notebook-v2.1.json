@@ -1,0 +1,43 @@
+{
+  "checked_at": "2026-09-16T00:52:03.907574+00:00",
+  "notebook_url": "https://www.kaggle.com/code/jakevanslyke/us-tornado-data-getting-started",
+  "notebook_id": 134529491,
+  "notebook_version": 4,
+  "kaggle_run_id": 350180179,
+  "dataset_release": "v2.1.0",
+  "dataset_version": 6,
+  "dataset_handle": "jakevanslyke/us-tornado-data-2010-2025/versions/6",
+  "manifest_sha256": "a70c5657df0a0210fb3d83f6f47714a0fe2a3bd30c05ca59660122684532f825",
+  "notebook_source_sha256": "aa8ce4b45c81a6898b87178decdc32b9b606bba50e6e17896019ae187e1ad11f",
+  "local_executed_notebook_sha256": "44b9f909569495cde01adc4178836539c2704a8d73258346a817874a074e329c",
+  "hosted_execution_log_sha256": "42ef5eac4d0b38cfa48d72ebc1adf26927c2d822f54e9aeed899b84b2c56ceb9",
+  "validation": {
+    "local_execution": "passed",
+    "kaggle_execution": "COMPLETE",
+    "kaggle_runtime_seconds_rounded": 36,
+    "published_source_matches_local": true,
+    "code_cells_executed": 9,
+    "main_tables_loaded": 9,
+    "annual_summary_loaded": true,
+    "selected_analysis_files_sha256_verified": 11,
+    "release_manifest_sha256_verified": true,
+    "local_figures_rendered_and_reviewed": 4,
+    "published_output_verification": "Kaggle version 4 rendered the enriched tornado/crosswalk section and final successful inspection/checksum messages. Hosted log confirms all checks and notebook/HTML rendering completed.",
+    "offline_regression_tests": 33
+  },
+  "execution": {
+    "public": true,
+    "gpu": false,
+    "internet": false,
+    "kaggle_python": "3.12.13",
+    "kaggle_pandas": "2.3.3",
+    "kaggle_geopandas": "1.1.3",
+    "loading": "kagglehub.dataset_download for individual version-6 files, then pandas/GeoPandas; attached Kaggle cache or local download cache."
+  },
+  "notes": [
+    "Dataset attachments use owner/slug/6 in Kaggle CLI metadata and owner/slug/versions/6 in kagglehub. Pulled CLI metadata omits attachment version; successful manifest/file hash checks confirm the actual v2.1.0 data used.",
+    "Local execution preceded only Markdown changes pinning documentation links to the implementation commit. All executed code cells match the published source.",
+    "Automatic links are research evidence, not independent identity confirmation; the notebook preserves unresolved cases and demonstrates accepted-link joins.",
+    "The frozen dataset payload retains publication-time documentation; repository documentation and this notebook are updated independently."
+  ]
+}

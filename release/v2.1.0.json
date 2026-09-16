@@ -1,0 +1,275 @@
+{
+  "schema_version": 1,
+  "slug": "us-tornado-data-2010-2025",
+  "file_count_scope": "Shared payload files; excludes release_manifest.json, SHA256SUMS and host metadata.",
+  "version": "v2.1.0",
+  "recorded_at": "2026-09-16T00:52:03.907574+00:00",
+  "payload_code_commit": "487aca96192dff37ab4e364e3aa98d4611c46e47",
+  "built_at": "2026-09-16T00:37:26.559945+00:00",
+  "source_snapshots": {
+    "noaa_completed_at": "2026-09-15T23:13:08.122184+00:00",
+    "census_completed_at": "2026-09-15T23:13:08.850471+00:00"
+  },
+  "manifest_sha256": "a70c5657df0a0210fb3d83f6f47714a0fe2a3bd30c05ca59660122684532f825",
+  "shared_file_count": 223,
+  "shared_payload_bytes": 364175105,
+  "previous_release": "v2.0.0.json",
+  "changes": [
+    "Consolidated the former local enriched tornado view into canonical analysis/tornadoes.parquet; all original 20,164 SPC rows and 24 original fields remain unchanged.",
+    "Nine main tables plus an annual summary: added source_crosswalk.parquet and tornado_counties.parquet, and embedded linkage metadata in analysis/manifest.json (schema 4).",
+    "Conservative time/geometry matching preserves all 48,047 source records, candidate ambiguity and unmatched cases. EF ratings are never used for matching.",
+    "Six supporting Parquet tables, annual_summary.csv, and 200 original source payload files are byte-identical to v2.0.0; no source collection changes.",
+    "Removed duplicate local data/linkage outputs and obsolete release build/download caches. Historical publication receipts and public dataset versions remain available."
+  ],
+  "huggingface": {
+    "url": "https://huggingface.co/datasets/jakeryderv/us-tornado-data-2010-2025",
+    "repo_id": "jakeryderv/us-tornado-data-2010-2025",
+    "commit": "b2b6c9ddb14a5060c9064d4f1c96459ad140e013",
+    "tag": "v2.1.0",
+    "transport": "direct files",
+    "download_authentication": "authenticated",
+    "verification": {
+      "status": "passed",
+      "version": "v2.1.0",
+      "files": 223,
+      "payload_bytes": 364175105,
+      "manifest_sha256": "a70c5657df0a0210fb3d83f6f47714a0fe2a3bd30c05ca59660122684532f825",
+      "commit": "b2b6c9ddb14a5060c9064d4f1c96459ad140e013",
+      "analysis_loads": {
+        "tornadoes.parquet": {
+          "rows": 20164,
+          "columns": 36
+        },
+        "county_context.parquet": {
+          "rows": 50294,
+          "columns": 8
+        },
+        "annual_summary.csv": {
+          "rows": 16,
+          "columns": 17
+        },
+        "storm_events.parquet": {
+          "rows": 23189,
+          "columns": 57
+        },
+        "storm_fatalities.parquet": {
+          "rows": 1352,
+          "columns": 14
+        },
+        "storm_locations.parquet": {
+          "rows": 35920,
+          "columns": 14
+        },
+        "tornado_footprints.parquet": {
+          "rows": 24858,
+          "columns": 89,
+          "crs": "OGC:CRS84"
+        },
+        "county_boundaries.parquet": {
+          "rows": 3234,
+          "columns": 16,
+          "crs": "OGC:CRS84"
+        },
+        "source_crosswalk.parquet": {
+          "rows": 95222,
+          "columns": 30
+        },
+        "tornado_counties.parquet": {
+          "rows": 20842,
+          "columns": 12
+        }
+      },
+      "all_tables_loaded": true,
+      "retired_duplicates_absent": true,
+      "original_spc_values_preserved": true,
+      "linkage_counts_and_keys_reconciled": true,
+      "county_summaries_reconciled": true,
+      "original_source_files_unchanged": 200
+    }
+  },
+  "kaggle": {
+    "url": "https://www.kaggle.com/datasets/jakevanslyke/us-tornado-data-2010-2025/versions/6",
+    "handle": "jakevanslyke/us-tornado-data-2010-2025/versions/6",
+    "numeric_version": 6,
+    "transport": "Direct analysis/ files; full shared payload in release.zip.bin.",
+    "archive_sha256": "35db758729f19fc9dbc5c4521bfd476d51080e2d31f16a2a5d2aa3c3a5994c21",
+    "archive_bytes": 264556103,
+    "verification": {
+      "status": "passed",
+      "version": "v2.1.0",
+      "files": 223,
+      "payload_bytes": 364175105,
+      "manifest_sha256": "a70c5657df0a0210fb3d83f6f47714a0fe2a3bd30c05ca59660122684532f825",
+      "version_number": 6,
+      "direct_analysis_verified": [
+        "analysis/tornadoes.parquet",
+        "analysis/county_context.parquet",
+        "analysis/annual_summary.csv",
+        "analysis/storm_events.parquet",
+        "analysis/storm_fatalities.parquet",
+        "analysis/storm_locations.parquet",
+        "analysis/tornado_footprints.parquet",
+        "analysis/county_boundaries.parquet",
+        "analysis/source_crosswalk.parquet",
+        "analysis/tornado_counties.parquet",
+        "analysis/manifest.json"
+      ],
+      "analysis_loads": {
+        "tornadoes.parquet": {
+          "rows": 20164,
+          "columns": 36
+        },
+        "county_context.parquet": {
+          "rows": 50294,
+          "columns": 8
+        },
+        "annual_summary.csv": {
+          "rows": 16,
+          "columns": 17
+        },
+        "storm_events.parquet": {
+          "rows": 23189,
+          "columns": 57
+        },
+        "storm_fatalities.parquet": {
+          "rows": 1352,
+          "columns": 14
+        },
+        "storm_locations.parquet": {
+          "rows": 35920,
+          "columns": 14
+        },
+        "tornado_footprints.parquet": {
+          "rows": 24858,
+          "columns": 89,
+          "crs": "OGC:CRS84"
+        },
+        "county_boundaries.parquet": {
+          "rows": 3234,
+          "columns": 16,
+          "crs": "OGC:CRS84"
+        },
+        "source_crosswalk.parquet": {
+          "rows": 95222,
+          "columns": 30
+        },
+        "tornado_counties.parquet": {
+          "rows": 20842,
+          "columns": 12
+        }
+      },
+      "all_tables_loaded": true,
+      "retired_duplicates_absent": true,
+      "original_spc_values_preserved": true,
+      "linkage_counts_and_keys_reconciled": true,
+      "county_summaries_reconciled": true,
+      "original_source_files_unchanged": 200
+    },
+    "listing": {
+      "verified_at": "2026-09-16T00:52:03.907574+00:00",
+      "usability_score": 10,
+      "visible_files": 23,
+      "updated_file_descriptions": [
+        "tornadoes.parquet",
+        "source_crosswalk.parquet",
+        "tornado_counties.parquet",
+        "manifest.json",
+        "LINKAGE.md",
+        "ANALYSIS.md",
+        "release.zip.bin",
+        "release_manifest.json"
+      ],
+      "all_column_definitions_in_templates": 293,
+      "update_frequency": "never",
+      "verification": "Version 6, usability score, file/column counts and v2.1 card verified live. Updated collection methodology and eight file descriptions saved and verified in the UI. Column definitions are complete in the packaged dictionary/templates; this does not assert completion of every live Kaggle column editor."
+    },
+    "notebook_receipt": "kaggle/notebook-v2.1.json"
+  },
+  "analysis": {
+    "schema_version": 4,
+    "main_tables": 9,
+    "annual_summary_rows": 16,
+    "table_bytes": 29329113,
+    "input_hashes": 83,
+    "columns": 293,
+    "geoparquet_version": "1.0.0",
+    "geometry_crs": "OGC:CRS84",
+    "all_tables_loaded_from_both_hosts": true,
+    "source_collection_changes": false,
+    "retained_supporting_parquet_tables_unchanged": 6,
+    "retained_annual_summary_unchanged": true,
+    "retained_source_payloads_unchanged": 200,
+    "crosswalk_source_records": 48047,
+    "crosswalk_rows": 95222,
+    "tornado_county_rows": 20842,
+    "original_spc_columns_preserved": 24
+  },
+  "validation": {
+    "offline_tests": 33,
+    "full_inspection_notebook": "passed",
+    "local_kaggle_notebook": "passed",
+    "hosted_kaggle_notebook": "COMPLETE",
+    "implementation_ci_run": 35040692159,
+    "implementation_ci_conclusion": "success",
+    "canonical_comparison": {
+      "status": "passed",
+      "scope": "Canonical v2.1.0 analysis build",
+      "offline_tests": 33,
+      "all_original_spc_columns_preserved": true,
+      "six_supporting_tables_and_annual_csv_byte_identical_to_v2_0_0": true,
+      "linkage_values_identical_to_previous_local_layer": true,
+      "duplicate_linkage_directory_removed": true,
+      "spc_rows": 20164,
+      "candidate_crosswalk_rows": 95222,
+      "canonical_main_tables": 9
+    }
+  },
+  "local_cleanup": {
+    "checked_at": "2026-09-16T00:48:11.676600+00:00",
+    "removed": [
+      {
+        "path": "dist/v1.0.0",
+        "files": 22956,
+        "logical_bytes": 4592583644,
+        "allocated_bytes": 4646567936
+      },
+      {
+        "path": "dist/v1.1.0",
+        "files": 14399,
+        "logical_bytes": 2346971525,
+        "allocated_bytes": 2377900032
+      },
+      {
+        "path": "dist/v1.2.0",
+        "files": 14448,
+        "logical_bytes": 2638202285,
+        "allocated_bytes": 2669219840
+      },
+      {
+        "path": "dist/v2.0.0",
+        "files": 1168,
+        "logical_bytes": 2003669747,
+        "allocated_bytes": 2005917696
+      },
+      {
+        "path": "dist/kaggle-usability",
+        "files": 2,
+        "logical_bytes": 92226,
+        "allocated_bytes": 94208
+      },
+      {
+        "path": "/tmp/tornado-retired-dat-v1.2.0",
+        "files": 2692,
+        "logical_bytes": 190618766,
+        "allocated_bytes": 197898240
+      }
+    ],
+    "logical_bytes_removed": 11772138193,
+    "allocated_bytes_removed": 11897597952,
+    "notes": [
+      "Removed task-owned obsolete build, staging, consumer download caches and retired DAT backup after both fresh v2.1.0 host downloads verified.",
+      "Retained original current source data, canonical analysis, current v2.1.0 build and historical publication receipts.",
+      "The duplicate data/linkage directory was removed earlier after all three frames were verified equal to canonical analysis outputs."
+    ]
+  }
+}

@@ -310,7 +310,7 @@
     },
     {
       "path": "analysis/manifest.json",
-      "description": "Input/output checksums, types, source field mappings, software versions, and reconciliation for nine main tables plus annual summary (schema version 3)."
+      "description": "Input/output checksums, types, source field mappings, software versions, and reconciliation for nine main tables plus annual summary, including embedded linkage metadata (schema version 4)."
     },
     {
       "path": "analysis/storm_events.parquet",
