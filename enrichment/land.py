@@ -137,7 +137,7 @@ def collect_tracts(event, cache, config):
     return tables
 
 
-def raster_summary(path, polygon, product):
+def raster_summary(path, polygon, product, bounds=None):
     import rasterio
     from rasterio.features import geometry_mask
     with rasterio.open(path) as src:
@@ -145,9 +145,22 @@ def raster_summary(path, polygon, product):
             raise ValueError('NLCD must be a one-band native 30 m numeric raster')
         if src.crs.to_epsg() != 5070 or src.transform.b != 0 or src.transform.d != 0:
             raise ValueError('NLCD requires the unrotated EPSG:5070 grid')
+        window = None
+        if bounds is not None:
+            from rasterio.windows import from_bounds, Window
+            candidate = from_bounds(*bounds, transform=src.transform)
+            values_ = (candidate.col_off, candidate.row_off, candidate.width, candidate.height)
+            # The WCS serializes millimetre-level georeferencing drift even for
+            # native-grid requests. Permit <1% of a pixel, never a pixel shift.
+            if any(abs(v - round(v)) > 0.01 for v in values_):
+                raise ValueError('NLCD shared extract is not aligned with the event grid')
+            window = Window(*(round(v) for v in values_))
+            if window.col_off < 0 or window.row_off < 0 or window.col_off + window.width > src.width or window.row_off + window.height > src.height:
+                raise ValueError('NLCD shared extract does not contain the complete event window')
+        grid = src.transform if window is None else src.window_transform(window)
         geom = transform(Transformer.from_crs('EPSG:4326', src.crs, always_xy=True).transform, polygon)
-        mask = geometry_mask([geom], out_shape=src.shape, transform=src.transform, invert=True, all_touched=False)
-        values = src.read(1, masked=True)
+        values = src.read(1, window=window, masked=True)
+        mask = geometry_mask([geom], out_shape=values.shape, transform=grid, invert=True, all_touched=False)
         valid = mask & ~np.ma.getmaskarray(values)
         if product == 'land_cover':
             valid &= np.isin(values.data, NLCD_CLASSES)
@@ -155,7 +168,7 @@ def raster_summary(path, polygon, product):
             valid &= (values.data >= 0) & (values.data <= 100)
         selected = values.data[valid]
         row = dict(pixel_count=int(mask.sum()), valid_pixel_count=int(valid.sum()), pixel_area_m2=900,
-                   raster_crs=src.crs.to_string(), raster_transform=list(src.transform)[:6],
+                   raster_crs=src.crs.to_string(), raster_transform=list(grid)[:6],
                    pixel_rule='center_within_polygon; no resampling', mean_impervious_percent=None)
         if product == 'land_cover':
             for c in NLCD_CLASSES:
@@ -165,19 +178,37 @@ def raster_summary(path, polygon, product):
         return row
 
 
+def nlcd_bounds(area_wkt):
+    polygon = wkt.loads(area_wkt)
+    projected = transform(Transformer.from_crs('EPSG:4326', 'EPSG:5070', always_xy=True).transform, polygon)
+    # Snap to the documented native grid; avoid interpolation of class labels.
+    origins = (-2415585.0, 164805.0)
+    x0,y0,x1,y1 = projected.bounds
+    return (origins[0]+math.floor((x0-origins[0])/30)*30,
+              origins[1]+math.floor((y0-origins[1])/30)*30,
+              origins[0]+math.ceil((x1-origins[0])/30)*30,
+              origins[1]+math.ceil((y1-origins[1])/30)*30)
+
+
+def nlcd_request_bounds(bounds):
+    """Avoid GeoServer's one-cell resolution error; sampling bounds stay unchanged."""
+    x0, y0, x1, y1 = bounds
+    if x1 - x0 < 60:
+        x0 -= 30
+        x1 += 30
+    if y1 - y0 < 60:
+        y0 -= 30
+        y1 += 30
+    return x0, y0, x1, y1
+
+
 def collect_nlcd(event, cache, config):
     polygon = wkt.loads(event['area_wkt'])
     if not (-125 <= event['longitude'] <= -66 and 24 <= event['latitude'] <= 50):
         raise Unavailable('Annual NLCD selected products cover CONUS only')
     year = event['year'] - config.nlcd_year_lag
-    projected = transform(Transformer.from_crs('EPSG:4326', 'EPSG:5070', always_xy=True).transform, polygon)
-    # Snap to the documented native grid; avoid interpolation of class labels.
-    origins = (-2415585.0, 164805.0)
-    x0,y0,x1,y1 = projected.bounds
-    bounds = (origins[0]+math.floor((x0-origins[0])/30)*30,
-              origins[1]+math.floor((y0-origins[1])/30)*30,
-              origins[0]+math.ceil((x1-origins[0])/30)*30,
-              origins[1]+math.ceil((y1-origins[1])/30)*30)
+    event_bounds = nlcd_bounds(event['area_wkt'])
+    bounds = nlcd_request_bounds(getattr(cache, 'nlcd_plans', {}).get(event['tornado_id'], event_bounds))
     rows = []
     for product, layer in NLCD_PRODUCTS.items():
         service = f'https://dmsdata.cr.usgs.gov/geoserver/mrlc_{layer}_conus_year_data/wcs'
@@ -190,7 +221,7 @@ def collect_nlcd(event, cache, config):
                       format='GeoTIFF', bbox=','.join(map(str,bounds)), crs='EPSG:5070',
                       resx=30, resy=30, time=f'{year}-01-01T00:00:00Z')
         path, asset = cache.fetch(service+'?'+urlencode(params), suffix='.tif')
-        stats = raster_summary(path, polygon, product)
+        stats = raster_summary(path, polygon, product, event_bounds)
         rows.append(dict(record_id=stable_id('nlcd', [event['area_id'], year, product]),
                          tornado_id=event['tornado_id'], area_id=event['area_id'], product=product,
                          year=year, service_coverage=coverage, asset_id=asset,

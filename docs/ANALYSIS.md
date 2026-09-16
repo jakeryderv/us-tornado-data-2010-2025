@@ -1,5 +1,18 @@
 # Analysis tables
 
+Release **v2.2.0** has **17 Parquet tables in `analysis/`**, plus the annual
+summary CSV. Two generated modeling views live in `ml/`. Download caches and
+collection metadata live separately in `enrichment/`.
+
+The eight additions are `radar_detections`, `tornado_radar`, `warning_updates`,
+`tornado_warnings`, `event_areas`, `nlcd_samples`, `source_coverage`, and
+`record_provenance` (all `.parquet`). Their source attribution, fields and
+missingness rules are in the [enrichment guide](ENRICHMENT.md). They are tracked
+by `enrichment/manifest.json`, whose `table_directory` points to `../analysis`;
+`analysis/manifest.json` tracks the nine backbone tables described below.
+
+The following backbone tables are unchanged from v2.1.0.
+
 Release **v2.1.0** provides **nine main tables**, a 16-row annual summary, and
 one manifest under `analysis/`. The tables total about **29.3 MB**. Start with
 `tornadoes.parquet` (1.1 MB); download the additional tables as needed.

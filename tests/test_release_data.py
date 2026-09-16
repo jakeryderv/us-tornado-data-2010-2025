@@ -6,7 +6,7 @@ import gzip
 import unittest
 import zipfile
 
-from scripts.release_data import digest, local, stage, unpack, verify_release, write_json
+from scripts.release_data import digest, local, stage, unpack, verify_release, write_json, bundle_support, verify_support, platform_card
 
 
 class ReleaseIntegrity(unittest.TestCase):
@@ -20,12 +20,15 @@ class ReleaseIntegrity(unittest.TestCase):
 
     def fixture(self, root):
         root.mkdir()
-        (root/'DATASET_CARD.md').write_text('# Shared card\n')
+        (root/'DATASET_CARD.md').write_text('# Shared facts\n<!-- platform:huggingface -->HF_DOWNLOAD<!-- /platform -->\n<!-- platform:kaggle -->KG_DOWNLOAD<!-- /platform -->\n')
+        (root/'analysis').mkdir();(root/'ml').mkdir()
+        (root/'analysis/test.parquet').write_bytes(b'analysis-table')
+        (root/'ml/events_onset.parquet').write_bytes(b'ml-table')
         (root/'data.csv').write_text('county_fips,value\n01001,7\n')
         (root/'source.csv.gz').write_bytes(gzip.compress(b'value\n7\n', mtime=0))
         with zipfile.ZipFile(root/'source.zip', 'w') as zipped:
             zipped.writestr('source.txt', 'original archive bytes')
-        entries=[dict(path=p.name,bytes=p.stat().st_size,sha256=digest(p)) for p in sorted(root.iterdir())]
+        entries=[dict(path=p.relative_to(root).as_posix(),bytes=p.stat().st_size,sha256=digest(p)) for p in sorted(root.rglob('*')) if p.is_file()]
         write_json(root/'release_manifest.json',dict(version='v1.0.0',slug='test-dataset',files=entries,
                    file_count=len(entries),payload_bytes=sum(e['bytes'] for e in entries)))
         (root/'SHA256SUMS').write_text(''.join(f'{e["sha256"]}  {e["path"]}\n' for e in entries)+
@@ -47,12 +50,33 @@ class ReleaseIntegrity(unittest.TestCase):
                         self.assertEqual(result['status'], 'passed')
                     self.assertEqual(verify_release(restored,trusted)['status'],'passed')
                     self.assertEqual((base/host/'DATASET_CARD.md').read_bytes(),(payload/'DATASET_CARD.md').read_bytes())
+            self.assertEqual((base/'kaggle/ml/events_onset.parquet').read_bytes(),b'ml-table')
+            self.assertIn('KG_DOWNLOAD',(base/'kaggle/README.md').read_text())
+            self.assertNotIn('HF_DOWNLOAD',(base/'kaggle/README.md').read_text())
+            self.assertIn('HF_DOWNLOAD',(base/'huggingface/README.md').read_text())
+            self.assertNotIn('KG_DOWNLOAD',(base/'huggingface/README.md').read_text())
             kg=json.loads((base/'kaggle/dataset-metadata.json').read_text())
             self.assertEqual(kg['id'],'test-owner/test-dataset')
             self.assertEqual(kg['licenses'],[{'name':'US-Government-Works'}])
             self.assertIn('license: other', (base/'huggingface/README.md').read_text())
             self.assertIn('license_link: https://huggingface.co/datasets/test-owner/test-dataset/blob/main/DATA_SOURCES.md',
                           (base/'huggingface/README.md').read_text())
+
+    def test_support_bundle_excludes_cache_and_detects_changed_members(self):
+        with TemporaryDirectory() as d:
+            root=Path(d);data=root/'data';payload=root/'payload'
+            (data/'enrichment/raw').mkdir(parents=True);(payload/'enrichment').mkdir(parents=True)
+            required=data/'enrichment/raw/warning.txt';required.write_text('original warning')
+            (data/'enrichment/raw/cache.bin').write_bytes(b'large optional input')
+            (data/'enrichment/raw/unused.txt').write_text('unreferenced')
+            asset=dict(path='raw/warning.txt',retention='required',sha256=digest(required),bytes=required.stat().st_size)
+            manifest=dict(assets=[asset,dict(path='raw/cache.bin',retention='optional')])
+            write_json(data/'enrichment/manifest.json',manifest);write_json(payload/'enrichment/manifest.json',manifest)
+            archive=bundle_support(data,payload)
+            self.assertEqual(verify_support(payload),1)
+            with zipfile.ZipFile(archive) as z:self.assertEqual(z.namelist(),['raw/warning.txt'])
+            with zipfile.ZipFile(archive,'w') as z:z.writestr('raw/warning.txt','corrupt')
+            with self.assertRaisesRegex(ValueError,'differs'):verify_support(payload)
 
     def test_archive_integrity_and_unsafe_members(self):
         with TemporaryDirectory() as d:
@@ -71,8 +95,10 @@ class ReleaseIntegrity(unittest.TestCase):
         with TemporaryDirectory() as d:
             base = Path(d); payload = base/'blobs'; self.fixture(payload)
             cache = base/'snapshot'; cache.mkdir()
-            for source in payload.iterdir():
-                (cache/source.name).symlink_to(source)
+            for source in payload.rglob('*'):
+                target=cache/source.relative_to(payload)
+                if source.is_dir():target.mkdir()
+                else:target.symlink_to(source)
             self.assertEqual(verify_release(cache, digest(payload/'release_manifest.json'))['status'], 'passed')
             (payload/'data.csv').write_text('corrupt cache blob')
             with self.assertRaisesRegex(ValueError, 'data.csv'):

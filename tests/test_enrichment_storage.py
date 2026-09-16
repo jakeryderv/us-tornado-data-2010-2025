@@ -106,7 +106,7 @@ class RetentionTests(unittest.TestCase):
             with patch('enrichment.common.urlopen',side_effect=AssertionError('unexpected network')):
                 third=collect(data,out,events,list(DEFAULT_SOURCES),Config(),max_bytes=0,timeout=1,max_cache_bytes=16,workers=1)
             self.assertTrue(third['resumed_complete']);self.assertEqual(len(calls),7)
-            (out/'tables/radar_detections.parquet').write_bytes(b'corrupt')
+            (data/'analysis/radar_detections.parquet').write_bytes(b'corrupt')
             with self.assertRaisesRegex(ValueError,'table changed'):
                 collect(data,out,events,list(DEFAULT_SOURCES),Config(),max_bytes=0,timeout=1,max_cache_bytes=16,workers=1)
 

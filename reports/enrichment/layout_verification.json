@@ -1,0 +1,50 @@
+{
+  "verified_at": "2026-09-16T14:34:29.490929+00:00",
+  "status": "passed",
+  "collection_status": "complete",
+  "full_cohort_processed": true,
+  "selected_events": 20164,
+  "backbone_events": 20164,
+  "source_status_counts": {
+    "complete": 60475,
+    "unavailable": 17
+  },
+  "source_assets": 147285,
+  "source_bytes": 6272457307,
+  "retained_source_bytes": 107383219,
+  "raw_asset_status_counts": {
+    "bytes_verified": 70371,
+    "intentionally_not_retained": 76914
+  },
+  "storage": {
+    "mode": "compact",
+    "max_cache_bytes": 5000000000,
+    "evicted_bytes": 14388541,
+    "cache_bytes": 0
+  },
+  "reproducibility": "offline ML regeneration from retained source tables; raw re-extraction requires upstream downloads",
+  "source_tables": {
+    "radar_detections.parquet": 1805706,
+    "tornado_radar.parquet": 2104931,
+    "warning_updates.parquet": 846391,
+    "tornado_warnings.parquet": 109133,
+    "nlcd_samples.parquet": 40294,
+    "source_coverage.parquet": 60492,
+    "record_provenance.parquet": 4610010,
+    "event_areas.parquet": 20164
+  },
+  "ml_tables": {
+    "events_onset.parquet": 20164,
+    "events_retrospective.parquet": 20164
+  },
+  "enrichment_manifest_sha256": "59a73de48b413d397a865502826ad2386e1dbde0957f2c54b3ee0c0fe9164afc",
+  "ml_manifest_sha256": "b1438669f546ac5f5d2ac91d75abc094b43ebff6f14834f6ae4899eb5c5a4f1f",
+  "checks": [
+    "source/table digests",
+    "keys and source links",
+    "requested cohort coverage",
+    "all backbone IDs/targets preserved",
+    "onset allowlist",
+    "per-job extraction definitions"
+  ]
+}

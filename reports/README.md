@@ -19,7 +19,27 @@ travels with the dataset. Both kinds of report identify their checked manifests;
 a later collection can make an earlier verification stale. The notebook displays
 the collection's saved verification, not the standalone report in this directory.
 
-## Local enrichment pilot
+## Full local enrichment
+
+[Consolidated layout validation](enrichment/layout_migration.md) is the current
+local snapshot: 17 source/supporting tables in `analysis/`, two ML views, unchanged
+table bytes, no re-downloads, and full verification after the move. The
+[layout verification report](enrichment/layout_verification.json) records the
+current manifest hashes.
+
+[Full repair and verification](enrichment/full_repair_validation.md) records the
+completed 20,164-event radar/warnings/NLCD collection: all 133 failures repaired,
+zero failed jobs, and 17 explicitly unavailable NLCD jobs. Both ML views were
+rebuilt with all backbone IDs and EF targets preserved. The
+[full verification snapshot](enrichment/full_collection_verification.json)
+records the checked source/ML manifest hashes. This is local evidence; published
+v2.1.0 remains the backbone-only release.
+
+## Earlier enrichment pilots
+
+[Batched acquisition validation](enrichment/bulk_validation.md) checks the batched
+collector on a separate 200-event cohort, with source/ML equivalence and timing.
+It is not evidence that the full enrichment collection has been downloaded.
 
 `enrichment/pilot_validation.json` verifies the default three-source radar/warnings/NLCD
 four-event implementation pilot,

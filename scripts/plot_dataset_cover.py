@@ -29,7 +29,7 @@ def main():
     fig.text(.5,.88,'U.S. TORNADO DATA',ha='center',color='#f1f6fb',fontsize=17,weight='bold')
     fig.text(.5,.79,'2010–2025',ha='center',color='#7bdfdb',fontsize=12,weight='bold')
     fig.text(.5,.12,'SPC start locations · contiguous U.S.',ha='center',color='#b3c6d4',fontsize=7)
-    fig.text(.5,.045,'SPC  /  NCEI  /  FOOTPRINTS  /  CENSUS',ha='center',color='#7bdfdb',fontsize=7)
+    fig.text(.5,.045,'TRACKS  /  RADAR  /  WARNINGS  /  LAND COVER',ha='center',color='#7bdfdb',fontsize=6.8)
     path=ROOT/'release/kaggle/dataset-cover-image.png'
     path.parent.mkdir(parents=True,exist_ok=True)
     fig.savefig(path,dpi=100,facecolor=fig.get_facecolor()); plt.close(fig)

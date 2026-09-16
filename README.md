@@ -4,20 +4,22 @@
 
 NOAA tornado records and damage footprints with Census county population/housing
 context. Load a frozen release with Python, or collect sources and inspect them
-locally in Jupyter. **v2.1.0** provides one enriched tornado table and eight
-supporting tables, including an auditable cross-source crosswalk. Earlier releases
+locally in Jupyter. **v2.2.0** provides 17 linked source/supporting tables and two event-level ML
+views, including an auditable cross-source crosswalk. Earlier releases
 retain their original layouts and detailed DAT surveys.
 
-Local development now also includes linked radar, warning and Annual NLCD
+The release includes linked radar, warning and Annual NLCD
 enrichment, plus onset and retrospective ML views. [ACS/TIGER tract exposure](docs/CENSUS_TRACTS.md)
-and [ERA5](docs/ERA5.md) are deferred future additions.
-These are **not yet in the published v2.1.0 release**. See the
-[enrichment guide](docs/ENRICHMENT.md) for collection commands, pilot coverage,
+and [ERA5](docs/ERA5.md) are deferred future additions. All 17 local source and
+supporting tables are in `data/analysis/`; the two modeling views are in `data/ml/`.
+Download metadata and checkpoints stay in `data/enrichment/`.
+See the
+[enrichment guide](docs/ENRICHMENT.md) for collection commands, full collection coverage,
 table layout and the prediction-time contract.
 
 - [Hugging Face dataset](https://huggingface.co/datasets/jakeryderv/us-tornado-data-2010-2025)
 - [Kaggle dataset](https://www.kaggle.com/datasets/jakevanslyke/us-tornado-data-2010-2025)
-- [v2.1.0 release receipt](release/v2.1.0.json): pinned revisions and verified checksums.
+- [v2.2.0 release receipt](release/v2.2.0.json): pinned revisions and verified checksums.
 
 ## Download and load
 
@@ -30,7 +32,7 @@ from huggingface_hub import hf_hub_download
 
 path = hf_hub_download(
     "jakeryderv/us-tornado-data-2010-2025", repo_type="dataset",
-    revision="b2b6c9ddb14a5060c9064d4f1c96459ad140e013", filename="analysis/tornadoes.parquet",
+    revision="v2.2.0", filename="analysis/tornadoes.parquet",
 )
 tornadoes = pd.read_parquet(path)
 ```
@@ -42,14 +44,14 @@ import pandas as pd
 import kagglehub
 
 path = kagglehub.dataset_download(
-    "jakevanslyke/us-tornado-data-2010-2025/versions/6",
+    "jakevanslyke/us-tornado-data-2010-2025/versions/7",
     path="analysis/tornadoes.parquet",
 )
 tornadoes = pd.read_parquet(path)
 ```
 
 Change the filename to download another table. To download all analysis files on
-HF, use `snapshot_download(..., repo_type="dataset", revision="b2b6c9ddb14a5060c9064d4f1c96459ad140e013",
+HF, use `snapshot_download(..., repo_type="dataset", revision="v2.2.0",
 allow_patterns=["analysis/*", "ANALYSIS.md"])`. Both clients reuse local caches.
 Full sources are direct files on HF and inside `release.zip.bin` on Kaggle.
 See [release/download verification](docs/RELEASING.md) for full-collection checks.
@@ -120,13 +122,14 @@ To collect the new enrichment separately and rebuild its ML views:
 uv sync --locked --group enrichment
 # No API keys are needed for radar, warnings and NLCD.
 uv run --group enrichment python -m enrichment.pipeline --all-events --dry-run
-uv run --group enrichment python -m enrichment.pipeline --all-events --workers 4 --per-host 2 --storage compact --cache-gb 5 --max-download-gb 100
+uv run --group enrichment python -m enrichment.pipeline --all-events --workers 6 --per-host 2 --parallel-sources --storage compact --cache-gb 5 --max-download-gb 100
 uv run --group enrichment python -m enrichment.features
 uv run --group enrichment python -m enrichment.verify --require-full --report data/enrichment/verification.json
 ```
 
-The collector defaults to four workers and two requests per host, reusing shared
-warning inputs. See the [benchmark and concurrency notes](docs/ENRICHMENT.md#concurrency-and-reuse).
+The collector batches shared radar, warning and NLCD requests. The command above
+runs independent source queues with six workers and two requests per host.
+See the [benchmark and concurrency notes](docs/ENRICHMENT.md#concurrency-and-reuse).
 Full-run timing depends on source latency, retries and geographic coverage.
 The byte ceiling limits new downloads per invocation; rerunning resumes extraction checkpoints. All 20,164 tornadoes remain in the
 ML views even when enrichment is missing. Inspect source statuses before modeling.
@@ -136,7 +139,7 @@ temporary cache and preserves extracted source tables and provenance. See [metho
 
 ## One build, one starting table
 
-`uv run python scripts/build_analysis.py` creates all nine tables under
+`uv run python scripts/build_analysis.py` creates the nine backbone tables under
 `data/analysis/`. Start with `tornadoes.parquet`; use accepted crosswalk links for
 narratives, locations, fatalities, or footprint detail. Every SPC row and its
 original columns remain intact. No duplicate `tornadoes_linked.parquet` is supplied.

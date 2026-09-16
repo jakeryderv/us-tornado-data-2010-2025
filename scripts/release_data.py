@@ -78,6 +78,76 @@ def active_files(data, start, end):
     return sorted(names)
 
 
+def expanded_files(data):
+    """Manifest-listed tables/metadata only; never publish checkpoint/cache trees."""
+    from enrichment.layout import table_path
+    names={'analysis/manifest.json','enrichment/manifest.json','ml/manifest.json','ml/feature_dictionary.json'}
+    for entry in read_json(data/'analysis/manifest.json')['files']:
+        names.add('analysis/'+entry['path'])
+    enrichment_manifest=read_json(data/'enrichment/manifest.json')
+    for entry in enrichment_manifest['outputs']:
+        names.add(table_path(data/'enrichment',enrichment_manifest,entry).resolve().relative_to(data.resolve()).as_posix())
+    for entry in read_json(data/'ml/manifest.json')['files']:
+        names.add('ml/'+entry['path'])
+    for name in names:
+        if not local(data,name).is_file():raise ValueError(f'Missing expanded release file: {name}')
+    return sorted(names)
+
+
+def supporting_assets(manifest):
+    result={}
+    for asset in manifest['assets']:
+        if asset.get('retention')!='required':continue
+        name=asset['path']
+        if name in result and result[name]['sha256']!=asset['sha256']:
+            raise ValueError('Conflicting required asset versions')
+        result[name]=asset
+    return result
+
+
+def bundle_support(data, payload):
+    """Bundle retained warning texts/schema documents, keeping original paths/hashes."""
+    assets=supporting_assets(read_json(data/'enrichment/manifest.json'))
+    archive=payload/'enrichment/supporting_assets.zip'
+    with zipfile.ZipFile(archive,'w',compression=zipfile.ZIP_DEFLATED) as z:
+        for name,asset in sorted(assets.items()):
+            path=local(data/'enrichment',name)
+            if digest(path)!=asset['sha256']:raise ValueError('Supporting asset changed')
+            info=zipfile.ZipInfo(name,date_time=(1980,1,1,0,0,0));info.compress_type=zipfile.ZIP_DEFLATED
+            info.external_attr=0o100644<<16
+            z.writestr(info,path.read_bytes())
+    verify_support(payload)
+    return archive
+
+
+def verify_support(folder):
+    assets=supporting_assets(read_json(folder/'enrichment/manifest.json'))
+    with zipfile.ZipFile(folder/'enrichment/supporting_assets.zip') as z:
+        names=z.namelist()
+        if len(names)!=len(set(names)) or set(names)!=set(assets):raise ValueError('Supporting archive inventory differs')
+        for name,asset in assets.items():
+            local(folder/'enrichment',name)
+            body=z.read(name)
+            if len(body)!=asset['bytes'] or hashlib.sha256(body).hexdigest()!=asset['sha256']:
+                raise ValueError('Supporting archive member differs')
+    return len(assets)
+
+
+def restore_support(folder):
+    """Optional: expand provenance bytes for the standalone enrichment verifier."""
+    folder=Path(folder).resolve()
+    verify_release(folder);count=verify_support(folder)
+    with zipfile.ZipFile(folder/'enrichment/supporting_assets.zip') as z:
+        for info in z.infolist():
+            target=local(folder/'enrichment',info.filename)
+            if target.exists() and digest(target)!=hashlib.sha256(z.read(info)).hexdigest():
+                raise ValueError('Existing supporting file differs')
+        for info in z.infolist():
+            target=local(folder/'enrichment',info.filename);target.parent.mkdir(parents=True,exist_ok=True)
+            if not target.exists():target.write_bytes(z.read(info))
+    return dict(status='passed',restored_supporting_assets=count)
+
+
 def schema(data, start, end):
     paths = {'spc': data / f'spc/tornadoes_{start}_{end}.csv',
              'census_county_context': data / f'census_population/county_context_{start}_{end}.csv'}
@@ -94,6 +164,10 @@ def schema(data, start, end):
               'geometry': 'Footprint and county GeoJSON coordinates are WGS84 longitude/latitude.'}
     if (data / 'analysis/manifest.json').is_file():
         result['analysis_tables'] = read_json(data / 'analysis/manifest.json')['files']
+    if (data/'enrichment/manifest.json').exists():
+        result['additional_analysis_tables']=read_json(data/'enrichment/manifest.json')['outputs']
+        result['ml_tables']=read_json(data/'ml/manifest.json')['files']
+        result['feature_dictionary']='ml/feature_dictionary.json'
     return result
 
 
@@ -144,9 +218,12 @@ def verify_release(folder, expected_manifest_sha=None):
 
 def build(data, output, config, *, backbone_only=False):
     data, output = Path(data).resolve(), Path(output).resolve()
-    if (data / 'enrichment/manifest.json').exists() and not backbone_only:
-        raise ValueError('Local enrichment exists. This release builder packages the backbone only; '
-                         'use --backbone-only explicitly, or prepare the expanded release after full collection.')
+    expanded=bool(config.get('include_enrichment'))
+    if expanded and backbone_only:raise ValueError('This release advertises enrichment; cannot build backbone only')
+    if (data/'enrichment/manifest.json').exists() and not expanded and not backbone_only:
+        raise ValueError('Choose expanded packaging or explicitly request backbone only')
+    if expanded and not (data/'enrichment/manifest.json').exists():
+        raise ValueError('Full enrichment is required for this release')
     if output.exists():
         raise ValueError(f'Release destination already exists: {output}; choose a new version/destination')
     if output.is_relative_to(data) or data.is_relative_to(output):
@@ -166,6 +243,11 @@ def build(data, output, config, *, backbone_only=False):
             saved.get(key) != result[key] for key in ['manifest', 'census_manifest']):
         raise ValueError('Saved collection verification is stale or incomplete; verify the full collection first')
     names = active_files(data, start, end)
+    enrichment_verification=None
+    if expanded:
+        from enrichment.verify import verify as verify_enrichment
+        enrichment_verification=verify_enrichment(data,data/'enrichment',data/'ml',require_full=True)
+        names=sorted(set(names)|set(expanded_files(data)))
     payload = output / 'payload'
     payload.mkdir(parents=True)
     for name in names:
@@ -175,12 +257,16 @@ def build(data, output, config, *, backbone_only=False):
     copied = verify_sources(payload, start, end)
     if copied['status'] != 'passed' or any(copied.get(k) != result.get(k) for k in ['manifest', 'census_manifest', 'counts']):
         raise ValueError('Copied release inputs do not match the verified source snapshot')
-    from scripts.build_analysis import build_analysis
-    build_analysis(payload, start=start, end=end)
+    if expanded:
+        bundle_support(data,payload)
+        write_json(payload/'enrichment/verification.json',enrichment_verification)
+    else:
+        from scripts.build_analysis import build_analysis
+        build_analysis(payload, start=start, end=end)
     repository = config['code_repository']
     for source, name in [('docs/DATASET_CARD.md', 'DATASET_CARD.md'), ('docs/DATASET.md', 'COLLECTION.md'),
                          ('docs/DATA_SOURCES.md', 'DATA_SOURCES.md'), ('docs/ANALYSIS.md', 'ANALYSIS.md'),
-                         ('docs/LINKAGE.md','LINKAGE.md')]:
+                         ('docs/LINKAGE.md','LINKAGE.md'),('docs/ENRICHMENT.md','ENRICHMENT.md')]:
         (payload / name).write_text(source_doc(ROOT / source, commit, repository), encoding='utf-8')
     shutil.copyfile(ROOT / 'LICENSE', payload / 'CODE_LICENSE.txt')
     write_json(payload / 'schema.json', schema(payload, start, end))
@@ -198,7 +284,7 @@ def build(data, output, config, *, backbone_only=False):
                     built_at=datetime.now(timezone.utc).isoformat(), code_commit=commit, code_repository=repository,
                     start_year=start, end_year=end, data_license=config['data_license'], code_license=config['code_license'],
                     source_snapshots={'noaa_completed_at': noaa['completed_at'], 'census_completed_at': census['completed_at']},
-                    source_verification=result, file_count=len(entries), payload_bytes=sum(x['bytes'] for x in entries), files=entries)
+                    source_verification=result, enrichment_verification=enrichment_verification, file_count=len(entries), payload_bytes=sum(x['bytes'] for x in entries), files=entries)
     write_json(payload / 'release_manifest.json', manifest)
     sums = [f'{entry["sha256"]}  {entry["path"]}' for entry in entries]
     sums.append(f'{digest(payload / "release_manifest.json")}  release_manifest.json')
@@ -207,6 +293,12 @@ def build(data, output, config, *, backbone_only=False):
     write_json(output / 'build_verification.json', verified)
     print(json.dumps(verified, indent=2))
     return payload
+
+
+def platform_card(card, platform):
+    """Same factual card, with the host's own quick-start example."""
+    return re.sub(r'<!-- platform:(huggingface|kaggle) -->(.*?)<!-- /platform -->',
+                  lambda match: match[2] if match[1]==platform else '',card,flags=re.S)
 
 
 def stage(payload, destination, platform, owner, config):
@@ -223,7 +315,7 @@ def stage(payload, destination, platform, owner, config):
     if manifest['slug'] != config['slug'] or manifest['version'] != config['version']:
         raise ValueError('Release config does not match payload')
     shutil.copytree(payload, destination)
-    card = (payload / 'DATASET_CARD.md').read_text()
+    card = platform_card((payload / 'DATASET_CARD.md').read_text(),platform)
     summary = f'\nRelease **{manifest["version"]}**; {manifest["file_count"]:,} shared files; {manifest["payload_bytes"]:,} bytes.\n'
     if platform == 'huggingface':
         header = ('---\npretty_name: ' + json.dumps(config['title']) + '\nlanguage:\n- en\nlicense: other\n'
@@ -234,14 +326,16 @@ def stage(payload, destination, platform, owner, config):
         (destination / 'README.md').write_text(header + card + summary)
     elif platform == 'kaggle':
         summary += ('\nKaggle transport: `release.zip.bin` is a ZIP archive with an extra `.bin` suffix '
-                    'to preserve the original compressed source files. Extract it with Python `zipfile` '
+                    'to preserve source files and the bundled supporting assets. Extract it with Python `zipfile` '
                     'for the complete collection. The consolidated analysis tables are also directly '
-                    'available under `analysis/`; they have the same bytes as the copies in the archive. '
+                    'available under `analysis/` and `ml/`; they have the same bytes as the copies in the archive. '
                     'Verify the extracted tree against `release_manifest.json`.\n')
         (destination / 'README.md').write_text(card + summary)
         write_json(destination / 'dataset-metadata.json', dict(title=config['title'], subtitle=config['subtitle'],
                    id=f'{owner}/{config["slug"]}', licenses=[{'name': config['data_license']}],
-                   description=card + summary, keywords=['geography']))
+                   description=card + summary, keywords=['geography','weather','earth and nature'],
+                   **read_json(ROOT/'release/kaggle/metadata.json')))
+        shutil.copyfile(ROOT/'release/kaggle/dataset-cover-image.png',destination/'dataset-cover-image.png')
     else:
         raise ValueError('Unknown platform')
     verified = verify_release(destination, digest(payload / 'release_manifest.json'))
@@ -253,14 +347,14 @@ def stage(payload, destination, platform, owner, config):
                 zipped.write(local(payload, relative), relative)
         # Keep analysis and descriptive files visible; preserve full sources in the archive.
         for item in list(destination.iterdir()):
-            if item.is_dir() and item.name != 'analysis':
+            if item.is_dir() and item.name not in ('analysis','ml'):
                 shutil.rmtree(item)
             elif item.is_dir():
                 continue
             elif item.name not in {'release.zip.bin', 'README.md', 'dataset-metadata.json',
                                    'DATASET_CARD.md', 'DATA_SOURCES.md', 'CITATION.cff',
-                                   'CODE_LICENSE.txt', 'COLLECTION.md', 'ANALYSIS.md', 'LINKAGE.md', 'schema.json',
-                                   'release_manifest.json', 'SHA256SUMS'}:
+                                   'CODE_LICENSE.txt', 'COLLECTION.md', 'ANALYSIS.md', 'LINKAGE.md', 'ENRICHMENT.md', 'schema.json',
+                                   'release_manifest.json', 'SHA256SUMS','dataset-cover-image.png'}:
                 item.unlink()
         verified['archive_sha256'] = digest(archive)
         verified['archive_bytes'] = archive.stat().st_size
@@ -296,6 +390,8 @@ def main(argv=None):
     v = sub.add_parser('verify')
     v.add_argument('folder', type=Path)
     v.add_argument('--manifest-sha256')
+    r = sub.add_parser('restore-support')
+    r.add_argument('folder',type=Path)
     u = sub.add_parser('unpack')
     u.add_argument('archive', type=Path)
     u.add_argument('destination', type=Path)
@@ -312,6 +408,8 @@ def main(argv=None):
         build(args.data_dir, args.output or ROOT / 'dist' / config['version'], config, backbone_only=args.backbone_only)
     elif args.command == 'verify':
         print(json.dumps(verify_release(args.folder, args.manifest_sha256), indent=2))
+    elif args.command == 'restore-support':
+        print(json.dumps(restore_support(args.folder),indent=2))
     elif args.command == 'unpack':
         print(json.dumps(unpack(args.archive, args.destination, args.manifest_sha256, args.archive_sha256), indent=2))
     else:

@@ -1,0 +1,523 @@
+{
+  "status": "passed",
+  "verified_at": "2026-09-16T05:04:16.448553+00:00",
+  "scope": "200-event non-ERA5 acquisition validation; full collection not started",
+  "active_pilot_unchanged": true,
+  "tests_passed": 81,
+  "live": {
+    "wall_seconds": 125.82408507700166,
+    "events": 200,
+    "workers": 6,
+    "replay": false,
+    "status_counts": {
+      "complete": 600
+    },
+    "downloaded_bytes": 128637790,
+    "source_wall_seconds": {
+      "nlcd": 38.64807610099888,
+      "radar": 59.277282262999506,
+      "warnings": 123.54434173999834
+    },
+    "performance": {
+      "workers": 6,
+      "per_host": 2,
+      "parallel_sources": true,
+      "elapsed_seconds": 124.86009796099825,
+      "transport_stats": {
+        "http_requests": 1641,
+        "cache_hits": 1672,
+        "memo_builds": 2251,
+        "memo_hits": 1339,
+        "retries": 1
+      }
+    }
+  },
+  "offline_replay": {
+    "wall_seconds": 48.033147344998724,
+    "events": 200,
+    "workers": 6,
+    "replay": true,
+    "status_counts": {
+      "complete": 600
+    },
+    "downloaded_bytes": 0,
+    "source_wall_seconds": {
+      "nlcd": 12.738901703996817,
+      "warnings": 44.43662407100055,
+      "radar": 45.61628196099991
+    },
+    "performance": {
+      "workers": 6,
+      "per_host": 2,
+      "parallel_sources": true,
+      "elapsed_seconds": 46.972052600001916,
+      "transport_stats": {
+        "cache_hits": 3312,
+        "memo_builds": 2251,
+        "memo_hits": 1386
+      }
+    }
+  },
+  "source_and_ml_comparison": {
+    "source_tables": {
+      "event_areas.parquet": 200,
+      "nlcd_samples.parquet": 400,
+      "radar_detections.parquet": 22998,
+      "source_coverage.parquet": 600,
+      "tornado_radar.parquet": 20445,
+      "tornado_warnings.parquet": 1312,
+      "warning_updates.parquet": 93867
+    },
+    "ml_tables": {
+      "events_onset.parquet": 20164,
+      "events_retrospective.parquet": 20164
+    },
+    "excluded_fields": [
+      "source_coverage.job_id (contains extraction code hashes)",
+      "source asset references and record_provenance (new batched requests; independently verified)",
+      "NLCD affine metadata compared within 1 mm origin / 1 micrometre pixel size; all pixel statistics exact"
+    ]
+  },
+  "strict_replay_comparison": {
+    "source_tables": {
+      "event_areas.parquet": 200,
+      "nlcd_samples.parquet": 400,
+      "radar_detections.parquet": 22998,
+      "record_provenance.parquet": 139520,
+      "source_coverage.parquet": 600,
+      "tornado_radar.parquet": 20445,
+      "tornado_warnings.parquet": 1312,
+      "warning_updates.parquet": 93867
+    },
+    "ml_tables": {
+      "events_onset.parquet": 20164,
+      "events_retrospective.parquet": 20164
+    },
+    "excluded_fields": [
+      "source_coverage.job_id (contains extraction code hashes)"
+    ]
+  },
+  "verification": {
+    "verified_at": "2026-09-16T04:58:10.423797+00:00",
+    "status": "passed",
+    "collection_status": "complete",
+    "full_cohort_processed": false,
+    "selected_events": 200,
+    "backbone_events": 20164,
+    "source_status_counts": {
+      "complete": 600
+    },
+    "source_assets": 2103,
+    "source_bytes": 129418257,
+    "retained_source_bytes": 129418257,
+    "raw_asset_status_counts": {
+      "bytes_verified": 2103
+    },
+    "storage": {
+      "mode": "cache",
+      "max_cache_bytes": 5000000000,
+      "evicted_bytes": 0,
+      "cache_bytes": 127656917
+    },
+    "reproducibility": "all referenced raw source bytes verified locally",
+    "source_tables": {
+      "radar_detections.parquet": 22998,
+      "tornado_radar.parquet": 20445,
+      "warning_updates.parquet": 93867,
+      "tornado_warnings.parquet": 1312,
+      "nlcd_samples.parquet": 400,
+      "source_coverage.parquet": 600,
+      "record_provenance.parquet": 139520,
+      "event_areas.parquet": 200
+    },
+    "ml_tables": {
+      "events_onset.parquet": 20164,
+      "events_retrospective.parquet": 20164
+    },
+    "enrichment_manifest_sha256": "350be9e94aa538cc6f9e17f4fd537da463c10d221cf9ad6692c897fc8d3acdcd",
+    "ml_manifest_sha256": "45ecbf2ece927fd71efebcd7b4247f54032e148773553be33a4397667fe53302",
+    "checks": [
+      "source/table digests",
+      "keys and source links",
+      "requested cohort coverage",
+      "all backbone IDs/targets preserved",
+      "onset allowlist"
+    ]
+  },
+  "full_cohort_request_plan": {
+    "events": 20164,
+    "usable_radar_events": 20164,
+    "radar_event_product_queries": 60492,
+    "radar_batch_product_queries_before_splits": 36318,
+    "nlcd_eligible_events": 20147,
+    "nlcd_individual_product_queries": 40294,
+    "nlcd_batch_product_queries": 35000,
+    "warning_event_partitions": 2855,
+    "warning_batch_partitions": 196,
+    "warning_text_bulk_eligible_days": 2326
+  },
+  "nlcd_affine_max_absolute_component_differences": [
+    9.023651159623114e-09,
+    0.0,
+    8.072820492088795e-06,
+    0.0,
+    3.270607251693036e-08,
+    6.864313036203384e-06
+  ],
+  "extraction_definition": {
+    "config": {
+      "radar_before_minutes": 60,
+      "radar_after_minutes": 60,
+      "radar_radius_km": 20,
+      "radar_latency_minutes": 5,
+      "era5_tile_degrees": 5,
+      "era5_max_distance_km": 25,
+      "fallback_buffer_m": 500,
+      "acs_year_lag": 1,
+      "nlcd_year_lag": 1,
+      "swdi_products": [
+        "nx3tvs",
+        "nx3mda",
+        "nx3structure"
+      ]
+    },
+    "backbone": {
+      "analysis/tornadoes.parquet": "e7b18642bd35d9bd46d06139e68775d33dde40981401c26168e92bcb834fa2b2",
+      "analysis/source_crosswalk.parquet": "0f1d6f705a8e516e66a513195a50c179d3d39199f57654ddc1e4bbe6be510ba6",
+      "analysis/tornado_footprints.parquet": "900dd500d682569e5022fb186e7fcb67d2b7c2fa744646c819c0643caacf4e94",
+      "analysis/tornado_counties.parquet": "7e0d9bf97afa606e445ffc6aeb8fe7d51e6ddd8b49d7c91a65a98c7dba30e68c"
+    },
+    "code": {
+      "common.py": "71c15284e91752224b7b8a48ebe29f7b99fdf354261c8292569c4279c9985238",
+      "cache.py": "dabc8507c19a133b834b2cc5f8f90e4fdcaaf0f956137db12724904d7a8bff50",
+      "transport.py": "06ad9b6f40371b32af20bbe5dde6e43198d93df6fb82b2c9990fb0711e1bed5b",
+      "checkpoints.py": "16b2665dab2ce7dc69b3bcd094bd3c88344b01bdfca2c9f40dd35a97bc101e3c",
+      "storage.py": "0968fa9e40ffc8a23f9c0090dbdda785c7dae68f8cb93a2185f01087a4248472",
+      "pipeline.py": "8b9c4ddf586f20c11cf211362e29e6be20a512fdca0c420241f2d4ab03836385",
+      "land.py": "59964c657509a6772176bf82b354a646de63df7f7f3d2a3c9ab4454db7fd1375",
+      "weather.py": "cf3099af995aba6507a2c79708aecf5acb6e79761eb149b43554058fa37065b5",
+      "batching.py": "f70000e8690768618eee6abc06c9bedf8f31dc310af9c1d41ac76f4082c574aa",
+      "era5.py": "73320afae571f8233170cada5f565b58263b279cf22442ab1db32bf5ec6c5c99",
+      "build_crosswalk.py": "c53374dc49b409eaa9d9c53855fa8974acdd08a4031d2529d14291a789041434"
+    },
+    "acquisition": "batch"
+  },
+  "definition_id": "definition:90155f380144b2ef5259ffb5",
+  "benchmark_script_sha256": "02bf45eb6c79fcb2d11f2a813bfeda846ef6be1ae38d564b43a48246d8a0b88c",
+  "selected_event_ids": [
+    "spc:2010:1004221548-01",
+    "spc:2010:1005121911-01",
+    "spc:2010:1006052325-01",
+    "spc:2010:1006172003-01",
+    "spc:2010:1006211703-01",
+    "spc:2010:1007121435-01",
+    "spc:2010:1007211351-01",
+    "spc:2010:1010211648-01",
+    "spc:2011:1102280032-01",
+    "spc:2011:1104101959-01",
+    "spc:2011:1104261800-01",
+    "spc:2011:1104261804-01",
+    "spc:2011:1104261815-01",
+    "spc:2011:1104261817-01",
+    "spc:2011:1104261818-01",
+    "spc:2011:1104261819-01",
+    "spc:2011:1104261824-01",
+    "spc:2011:1104261834-01",
+    "spc:2011:1104261835-01",
+    "spc:2011:1104261846-02",
+    "spc:2011:1104261848-01",
+    "spc:2011:1104261849-01",
+    "spc:2011:1104271418-01",
+    "spc:2011:1104271540-01",
+    "spc:2011:1104271800-01",
+    "spc:2011:1104271804-01",
+    "spc:2011:1104271809-01",
+    "spc:2011:1104271809-02",
+    "spc:2011:1104271815-02",
+    "spc:2011:1104271832-01",
+    "spc:2011:1104271838-01",
+    "spc:2011:1104271846-01",
+    "spc:2011:1104271855-01",
+    "spc:2011:1104271857-01",
+    "spc:2011:1104271906-01",
+    "spc:2011:1104271906-02",
+    "spc:2011:1104280017-01",
+    "spc:2011:1105251614-01",
+    "spc:2011:1105281338-01",
+    "spc:2011:1109251950-01",
+    "spc:2012:1201230358-01",
+    "spc:2012:1203021444-01",
+    "spc:2012:1203021539-04",
+    "spc:2012:1203182013-01",
+    "spc:2012:1204111500-01",
+    "spc:2012:1206122107-01",
+    "spc:2012:1210011607-01",
+    "spc:2012:1212251805-01",
+    "spc:2013:1302211458-01",
+    "spc:2013:1303181310-01",
+    "spc:2013:1305151858-01",
+    "spc:2013:1305151935-01",
+    "spc:2013:1305281813-01",
+    "spc:2013:1305311927-04",
+    "spc:2013:1307251505-01",
+    "spc:2013:1310111625-01",
+    "spc:2014:1402211226-01",
+    "spc:2014:1404282039-01",
+    "spc:2014:1405181920-01",
+    "spc:2014:1406081635-01",
+    "spc:2014:1406292330-01",
+    "spc:2014:1408201204-01",
+    "spc:2014:1409271455-01",
+    "spc:2014:1410131224-01",
+    "spc:2015:1502050637-01",
+    "spc:2015:1504131254-01",
+    "spc:2015:1504181340-01",
+    "spc:2015:1504231751-01",
+    "spc:2015:1506031920-01",
+    "spc:2015:1506070041-01",
+    "spc:2015:1511161744-01",
+    "spc:2015:1512280253-01",
+    "spc:2016:1602231622-01",
+    "spc:2016:1602231725-01",
+    "spc:2016:1603141226-02",
+    "spc:2016:1604271310-01",
+    "spc:2016:1604291655-01",
+    "spc:2016:1605261652-01",
+    "spc:2016:1608121210-01",
+    "spc:2016:1609061650-01",
+    "spc:2017:1703070009-01",
+    "spc:2017:1703092154-01",
+    "spc:2017:1703242249-01",
+    "spc:2017:1705182130-01",
+    "spc:2017:1705201740-01",
+    "spc:2017:1707101753-01",
+    "spc:2017:1708271315-01",
+    "spc:2017:1710081416-01",
+    "spc:2018:1805021734-01",
+    "spc:2018:1805231942-01",
+    "spc:2018:1806261426-01",
+    "spc:2018:1807191352-01",
+    "spc:2018:1809161429-01",
+    "spc:2018:1809162219-01",
+    "spc:2018:1809210027-01",
+    "spc:2018:1810131503-01",
+    "spc:2019:1901190944-01",
+    "spc:2019:1904301752-01",
+    "spc:2019:1905021340-01",
+    "spc:2019:1905181132-01",
+    "spc:2019:1905201623-01",
+    "spc:2019:1905261920-01",
+    "spc:2019:1905271530-01",
+    "spc:2019:1910021445-01",
+    "spc:2020:2001110558-01",
+    "spc:2020:2001131145-01",
+    "spc:2020:2003030148-01",
+    "spc:2020:2003191444-01",
+    "spc:2020:2004121815-01",
+    "spc:2020:2004121912-01",
+    "spc:2020:2004121933-01",
+    "spc:2020:2004121945-01",
+    "spc:2020:2004121951-01",
+    "spc:2020:2004122000-01",
+    "spc:2020:2004122003-01",
+    "spc:2020:2004122011-01",
+    "spc:2020:2004122012-01",
+    "spc:2020:2004122016-01",
+    "spc:2020:2004122027-01",
+    "spc:2020:2004122041-01",
+    "spc:2020:2005201845-01",
+    "spc:2020:2009160653-01",
+    "spc:2020:2010100401-01",
+    "spc:2020:2012242228-01",
+    "spc:2021:2104081415-01",
+    "spc:2021:2104281753-01",
+    "spc:2021:2105031810-01",
+    "spc:2021:2105151649-01",
+    "spc:2021:2105261749-01",
+    "spc:2021:2109011445-01",
+    "spc:2021:2111131442-01",
+    "spc:2021:2112110109-01",
+    "spc:2022:2205041800-01",
+    "spc:2022:2205061840-01",
+    "spc:2022:2205121639-01",
+    "spc:2022:2205270945-01",
+    "spc:2022:2205301350-01",
+    "spc:2022:2211300542-01",
+    "spc:2022:2212132231-01",
+    "spc:2022:2212141752-01",
+    "spc:2023:2301021925-01",
+    "spc:2023:2302270941-01",
+    "spc:2023:2303311803-01",
+    "spc:2023:2303311806-01",
+    "spc:2023:2303311808-01",
+    "spc:2023:2303311813-01",
+    "spc:2023:2303311813-02",
+    "spc:2023:2303311816-01",
+    "spc:2023:2303311820-01",
+    "spc:2023:2303311824-01",
+    "spc:2023:2303311826-01",
+    "spc:2023:2303311831-01",
+    "spc:2023:2303311831-02",
+    "spc:2023:2303311833-01",
+    "spc:2023:2305261653-01",
+    "spc:2023:2306151804-01",
+    "spc:2023:2306172340-01",
+    "spc:2023:2306211845-01",
+    "spc:2023:2307181143-01",
+    "spc:2023:2311201836-01",
+    "spc:2024:2404181823-01",
+    "spc:2024:2404261158-01",
+    "spc:2024:2405131400-01",
+    "spc:2024:2405241805-01",
+    "spc:2024:2405262224-01",
+    "spc:2024:2408052111-01",
+    "spc:2024:2409211745-01",
+    "spc:2024:2411030157-01",
+    "spc:2024:2412281800-01",
+    "spc:2024:2412281810-01",
+    "spc:2024:2412281819-01",
+    "spc:2024:2412281824-01",
+    "spc:2024:2412281825-01",
+    "spc:2024:2412281825-02",
+    "spc:2024:2412281826-01",
+    "spc:2024:2412281828-01",
+    "spc:2024:2412281836-01",
+    "spc:2024:2412281838-01",
+    "spc:2024:2412281841-01",
+    "spc:2024:2412281842-01",
+    "spc:2025:2501051908-01",
+    "spc:2025:2502152333-01",
+    "spc:2025:2503040751-01",
+    "spc:2025:2503141812-01",
+    "spc:2025:2503141842-01",
+    "spc:2025:2503141850-01",
+    "spc:2025:2503141929-01",
+    "spc:2025:2503141933-01",
+    "spc:2025:2503141934-01",
+    "spc:2025:2503141949-01",
+    "spc:2025:2503141952-01",
+    "spc:2025:2503142011-01",
+    "spc:2025:2503142011-04",
+    "spc:2025:2503142016-01",
+    "spc:2025:2503142018-01",
+    "spc:2025:2504021802-01",
+    "spc:2025:2504022317-01",
+    "spc:2025:2505182351-01",
+    "spc:2025:2506220159-01",
+    "spc:2025:2507111554-01"
+  ],
+  "radar_archive_probe": {
+    "tvs_archive_url": "https://www.ncei.noaa.gov/pub/data/swdi/database-csv/v2/tvs-2010.csv.gz",
+    "tvs_archive_sha256": "f035e922b1200e919a6ee9332281e0168abd6efbe58417d9e4fc56d6d3aba051",
+    "sample_utc_day": "2010-01-01",
+    "annual_csv_records_on_sample_day": 18,
+    "api_url": "https://www.ncei.noaa.gov/swdiws/json/nx3tvs/201001010000:201001020000",
+    "api_response_sha256": "2a18950b1dfb2dd6d03f06498c69bc9b7f09866589d46c2f3c137bfeb69cff2a",
+    "api_records_on_sample_day": 4,
+    "extra_archive_rows_cell_id": "??",
+    "decision": "Retain API source cohort; use grouped API requests. Annual bulk CSV is not a drop-in equivalent."
+  },
+  "limitations": [
+    "Single bounded live timing, not a full-run performance guarantee.",
+    "Different URLs and raw asset hashes are expected; retained source values and all ML values match.",
+    "NLCD affine metadata permits 1 mm origin and 1 micrometre pixel-size drift; every pixel statistic compared exactly.",
+    "Warning collection preserves the existing IEM polygon-export cohort, not a complete VTEC message archive."
+  ],
+  "event_query_control": {
+    "timing": {
+      "wall_seconds": 174.35076202100026,
+      "events": 200,
+      "workers": 4,
+      "replay": false,
+      "status_counts": {
+        "complete": 600
+      },
+      "downloaded_bytes": 93676067,
+      "source_wall_seconds": {
+        "radar": 36.631784124998376,
+        "warnings": 113.38402446700275,
+        "nlcd": 22.962942499001656
+      },
+      "performance": {
+        "workers": 4,
+        "per_host": 2,
+        "parallel_sources": false,
+        "elapsed_seconds": 174.25225139300164,
+        "transport_stats": {
+          "http_requests": 2217,
+          "memo_builds": 2439,
+          "cache_hits": 1095,
+          "memo_hits": 453
+        }
+      }
+    },
+    "verification": {
+      "verified_at": "2026-09-16T05:01:53.470883+00:00",
+      "status": "passed",
+      "collection_status": "complete",
+      "full_cohort_processed": false,
+      "selected_events": 200,
+      "backbone_events": 20164,
+      "source_status_counts": {
+        "complete": 600
+      },
+      "source_assets": 2217,
+      "source_bytes": 93676067,
+      "retained_source_bytes": 93676067,
+      "raw_asset_status_counts": {
+        "bytes_verified": 2217
+      },
+      "storage": {
+        "mode": "cache",
+        "max_cache_bytes": 5000000000,
+        "evicted_bytes": 0,
+        "cache_bytes": 91914727
+      },
+      "reproducibility": "all referenced raw source bytes verified locally",
+      "source_tables": {
+        "radar_detections.parquet": 22998,
+        "tornado_radar.parquet": 20445,
+        "warning_updates.parquet": 93867,
+        "tornado_warnings.parquet": 1312,
+        "nlcd_samples.parquet": 400,
+        "source_coverage.parquet": 600,
+        "record_provenance.parquet": 144180,
+        "event_areas.parquet": 200
+      },
+      "ml_tables": {
+        "events_onset.parquet": 20164,
+        "events_retrospective.parquet": 20164
+      },
+      "enrichment_manifest_sha256": "a9ddf855d08c51ec4ed4f1e29d2a4f59d3b25f023026fd48de90e4f2ee562972",
+      "ml_manifest_sha256": "37bdfb9f7a9298eab1444b360a37c6f9eea0a8a720b9dcfd6cc6b1bb10ddf419",
+      "checks": [
+        "source/table digests",
+        "keys and source links",
+        "requested cohort coverage",
+        "all backbone IDs/targets preserved",
+        "onset allowlist"
+      ]
+    },
+    "comparison": {
+      "source_tables": {
+        "event_areas.parquet": 200,
+        "nlcd_samples.parquet": 400,
+        "radar_detections.parquet": 22998,
+        "source_coverage.parquet": 600,
+        "tornado_radar.parquet": 20445,
+        "tornado_warnings.parquet": 1312,
+        "warning_updates.parquet": 93867
+      },
+      "ml_tables": {
+        "events_onset.parquet": 20164,
+        "events_retrospective.parquet": 20164
+      },
+      "excluded_fields": [
+        "source_coverage.job_id (contains extraction code hashes)",
+        "source asset references and record_provenance (new batched requests; independently verified)",
+        "NLCD affine metadata compared within 1 mm origin / 1 micrometre pixel size; all pixel statistics exact"
+      ]
+    },
+    "timing_caveat": "Part of this run overlapped the offline replay; this is not an isolated speedup baseline."
+  }
+}

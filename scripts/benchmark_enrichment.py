@@ -13,12 +13,14 @@ import time
 from unittest.mock import patch
 
 import pandas as pd
+import numpy as np
 from dotenv import load_dotenv
 
 from enrichment.common import Config, atomic_json, stable_id
 from enrichment.features import build
 from enrichment.pipeline import DEFAULT_SOURCES, collect, event_records
 from enrichment.verify import verify
+from enrichment.layout import table_directory
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -42,16 +44,28 @@ def select_events(events):
     return sorted(selected.values(), key=lambda e: e['tornado_id'])
 
 
-def compare_tables(before, after, *, coverage=False):
-    paths = sorted(before.glob('*.parquet'))
-    if {p.name for p in paths} != {p.name for p in after.glob('*.parquet')}:
+def compare_tables(before, after, *, coverage=False, science=False, names=None):
+    paths = sorted(before/name for name in names) if names is not None else sorted(before.glob('*.parquet'))
+    if names is None and {p.name for p in paths} != {p.name for p in after.glob('*.parquet')}:
         raise ValueError('Table sets differ')
     compared = {}
     for path in paths:
+        if science and path.name == 'record_provenance.parquet':
+            continue  # Verified independently; batched URLs/bytes necessarily differ.
         left, right = pd.read_parquet(path), pd.read_parquet(after / path.name)
         # Job IDs include code hashes, which necessarily differ after an edit.
         if coverage and path.name == 'source_coverage.parquet':
-            left, right = left.drop(columns='job_id'), right.drop(columns='job_id')
+            left, right = (f.drop(columns=['job_id','extraction_definition_id'],errors='ignore') for f in (left,right))
+        if science:
+            cols = [c for c in left if c.endswith('asset_id')]
+            left, right = left.drop(columns=cols), right.drop(columns=cols)
+            if path.name == 'nlcd_samples.parquet' and len(left):
+                delta = np.abs(np.stack(left.raster_transform) - np.stack(right.raster_transform))
+                # Different WCS extents can serialize slightly different affine
+                # coefficients. Counts/means are still compared exactly below.
+                if np.any(delta > np.array([1e-6, 0, .001, 0, 1e-6, .001])):
+                    raise AssertionError('NLCD grid difference exceeds sub-mm origin / micrometre pixel-size tolerance')
+                left, right = left.drop(columns='raster_transform'), right.drop(columns='raster_transform')
         pd.testing.assert_frame_equal(left, right, check_like=True, check_exact=True)
         compared[path.name] = len(left)
     return compared
@@ -65,6 +79,9 @@ def main():
     parser.add_argument('--replay-from', type=Path, help='Copy retained raw inputs; forbid network')
     parser.add_argument('--compare-with', type=Path, help='Require identical source and ML tables')
     parser.add_argument('--workers', type=int, default=4)
+    parser.add_argument('--acquisition', choices=['batch','event'], default='batch')
+    parser.add_argument('--parallel-sources', action='store_true')
+    parser.add_argument('--compare-science', action='store_true', help='Allow changed acquisition assets, but require identical source values, links and ML views')
     args = parser.parse_args()
     if args.output.exists():
         parser.error('Use a new output directory; benchmark must not resume or overwrite a collection')
@@ -83,6 +100,8 @@ def main():
     with context:
         manifest = collect(args.data_dir, args.output, events, list(DEFAULT_SOURCES), Config(),
                            workers=args.workers, per_host=2, timeout=90,
+                           acquisition=args.acquisition,
+                           parallel_sources=args.parallel_sources,
                            max_bytes=10_000_000_000, storage='cache', max_cache_bytes=5_000_000_000)
     timing = dict(wall_seconds=time.monotonic() - start, events=len(events),
                   workers=args.workers, replay=bool(args.replay_from),
@@ -96,10 +115,16 @@ def main():
     if args.compare_with:
         reference_ml = args.output / 'reference_ml'
         build(args.data_dir, args.compare_with, reference_ml)
+        reference_manifest=json.loads((args.compare_with/'manifest.json').read_text())
+        if {v['path'] for v in reference_manifest['outputs']}!={v['path'] for v in manifest['outputs']}:
+            raise ValueError('Source table sets differ')
         comparison = dict(
-            source_tables=compare_tables(args.compare_with / 'tables', args.output / 'tables', coverage=True),
+            source_tables=compare_tables(table_directory(args.compare_with,reference_manifest), table_directory(args.output,manifest),
+                                         names=[v['path'] for v in manifest['outputs']],coverage=True, science=args.compare_science),
             ml_tables=compare_tables(reference_ml, args.output / 'ml'),
-            excluded_fields=['source_coverage.job_id (contains extraction code hashes)'])
+            excluded_fields=['source_coverage.job_id and extraction_definition_id (contain extraction code hashes)'] +
+                (['source asset references and record_provenance (new batched requests; independently verified)',
+                  'NLCD affine metadata compared within 1 mm origin / 1 micrometre pixel size; all pixel statistics exact'] if args.compare_science else []))
         atomic_json(args.output / 'comparison.json', comparison)
     print(json.dumps(timing, indent=2))
 

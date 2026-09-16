@@ -178,15 +178,54 @@ class ConcurrentCacheTests(unittest.TestCase):
             stack.enter_context(patch('enrichment.common.urlopen',side_effect=lambda *a,**k:Response()))
             stack.enter_context(redirect_stdout(io.StringIO()))
             outputs=[]
-            for workers in (1,4):
+            for workers in (1,4,6):
                 out=root/str(workers)
                 m=collect(data,out,events,list(DEFAULT_SOURCES),Config(),max_bytes=1000,timeout=1,
-                          workers=workers,max_cache_bytes=16)
+                          workers=workers,max_cache_bytes=16,parallel_sources=(workers==6))
                 self.assertEqual(m['status_counts'],{'complete':12})
                 self.assertTrue(m['checkpoints_retired'])
-                outputs.append({p['path']:pd.read_parquet(out/'tables'/p['path']) for p in m['outputs']})
-            for name,frame in outputs[0].items():pd.testing.assert_frame_equal(frame,outputs[1][name])
+                outputs.append({p['path']:pd.read_parquet(out/'analysis'/p['path']) for p in m['outputs']})
+            for output in outputs[1:]:
+                for name,frame in outputs[0].items():pd.testing.assert_frame_equal(frame,output[name])
             self.assertEqual(outputs[0]['radar_detections.parquet'].iloc[0]['value'],'d')
+
+    def test_independent_source_queues_can_run_together(self):
+        with TemporaryDirectory() as d, ExitStack() as stack:
+            root=Path(d);data=root/'data';(data/'analysis').mkdir(parents=True)
+            pd.DataFrame({'tornado_id':['a']}).to_parquet(data/'analysis/tornadoes.parquet')
+            event=dict(tornado_id='a',year=2020,area_states=['01'],start_utc=None,
+                       area_wkt=None,latitude=35.,longitude=-97.,usable=True)
+            barrier=Barrier(2)
+            def adapter(*args):
+                barrier.wait(5)
+                return {}
+            stack.enter_context(patch('enrichment.pipeline.input_hashes',return_value={}))
+            stack.enter_context(patch.dict(COLLECTORS,radar=adapter,warnings=adapter))
+            stack.enter_context(redirect_stdout(io.StringIO()))
+            result=collect(data,root/'out',[event],['radar','warnings'],Config(),max_bytes=1,timeout=1,
+                           workers=2,parallel_sources=True)
+            self.assertEqual(result['status_counts'],{'complete':2})
+
+    def test_slow_warning_head_does_not_block_later_radar_jobs(self):
+        with TemporaryDirectory() as d, ExitStack() as stack:
+            root=Path(d);data=root/'data';(data/'analysis').mkdir(parents=True)
+            ids=list('abcde')
+            pd.DataFrame({'tornado_id':ids}).to_parquet(data/'analysis/tornadoes.parquet')
+            events=[dict(tornado_id=i,year=2020,area_states=['01'],start_utc=None,
+                         area_wkt=None,latitude=35.,longitude=-97.,usable=True) for i in ids]
+            radar_done=Event()
+            def radar(event,*args):
+                if event['tornado_id']=='e':radar_done.set()
+                return {}
+            def warnings(*args):
+                if not radar_done.wait(5):raise RuntimeError('Other source queue stalled')
+                return {}
+            stack.enter_context(patch('enrichment.pipeline.input_hashes',return_value={}))
+            stack.enter_context(patch.dict(COLLECTORS,radar=radar,warnings=warnings))
+            stack.enter_context(redirect_stdout(io.StringIO()))
+            result=collect(data,root/'out',events,['radar','warnings'],Config(),max_bytes=1,timeout=1,
+                           workers=4,parallel_sources=True)
+            self.assertEqual(result['status_counts'],{'complete':10})
 
     def test_deferring_tract_sources_retires_previous_tables(self):
         with TemporaryDirectory() as d,ExitStack() as stack:
@@ -200,10 +239,10 @@ class ConcurrentCacheTests(unittest.TestCase):
             stack.enter_context(redirect_stdout(io.StringIO()))
             collect(data,out,[event],list(DEFAULT_SOURCES)+['acs','tiger'],Config(),max_bytes=1,timeout=1)
             deferred=['acs_tracts','tract_boundaries','tornado_tracts']
-            self.assertTrue(all((out/'tables'/f'{name}.parquet').exists() for name in deferred))
+            self.assertTrue(all((out/'analysis'/f'{name}.parquet').exists() for name in deferred))
             result=collect(data,out,[event],list(DEFAULT_SOURCES),Config(),max_bytes=1,timeout=1)
             self.assertEqual(result['requested_sources'],['radar','warnings','nlcd'])
-            self.assertFalse(any((out/'tables'/f'{name}.parquet').exists() for name in deferred))
+            self.assertFalse(any((out/'analysis'/f'{name}.parquet').exists() for name in deferred))
             self.assertEqual(result['status_counts'],{'complete':3})
 
 

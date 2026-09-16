@@ -1,4 +1,5 @@
 """Offline event views with explicit onset and retrospective feature contracts."""
+from .layout import table_path
 import argparse
 import json
 from pathlib import Path
@@ -250,7 +251,7 @@ def build(data, enrichment, output):
     if hashes!=manifest['definition']['backbone']:raise ValueError('Backbone changed since enrichment collection')
     tables={}
     for record in manifest['outputs']:
-        path=enrichment/'tables'/record['path']
+        path=table_path(enrichment,manifest,record)
         if digest(path)!=record['sha256']:raise ValueError(f'Source table changed: {path}')
         tables[path.stem]=pd.read_parquet(path)
     backbone=pd.read_parquet(data/'analysis/tornadoes.parquet')

@@ -20,7 +20,7 @@ source attribution when using those outputs.
 
 ## NOAA and NWS material
 
-The local, unreleased [enrichment pipeline](ENRICHMENT.md) additionally uses
+The v2.2.0 [enrichment pipeline](ENRICHMENT.md) additionally uses
 NOAA NCEI SWDI Level III-derived detections and NWS warnings
 redistributed by Iowa State University's Iowa Environmental Mesonet, USGS Annual
 NLCD land cover/impervious grids. [ACS 5-year estimates and TIGER/Line tract

@@ -1,0 +1,121 @@
+{
+  "status": "passed",
+  "verified_at": "2026-09-16T14:35:27.107188+00:00",
+  "migration": {
+    "status": "migrated",
+    "tables": 8,
+    "table_directory": "../analysis",
+    "manifest_sha256": "59a73de48b413d397a865502826ad2386e1dbde0957f2c54b3ee0c0fe9164afc",
+    "previous_manifest_sha256": "e4f379c7d00b5adb3f7fde76fee225d7026a95c3d66700fd5276eaa69ed24824"
+  },
+  "tests_passed": 87,
+  "analysis_parquet_tables": 17,
+  "ml_parquet_tables": 2,
+  "table_bytes_unchanged": true,
+  "backbone_manifest_unchanged": true,
+  "completed_collection_reuse_downloaded_bytes": 0,
+  "legacy_table_directory_removed": true,
+  "files": [
+    {
+      "previous_path": "data/analysis/storm_fatalities.parquet",
+      "path": "data/analysis/storm_fatalities.parquet",
+      "sha256": "b7ad909ee7a62a5be9542ffd5ed35ca516ae0df2af4f1230f40c985aa92ea14d"
+    },
+    {
+      "previous_path": "data/analysis/tornadoes.parquet",
+      "path": "data/analysis/tornadoes.parquet",
+      "sha256": "e7b18642bd35d9bd46d06139e68775d33dde40981401c26168e92bcb834fa2b2"
+    },
+    {
+      "previous_path": "data/analysis/source_crosswalk.parquet",
+      "path": "data/analysis/source_crosswalk.parquet",
+      "sha256": "0f1d6f705a8e516e66a513195a50c179d3d39199f57654ddc1e4bbe6be510ba6"
+    },
+    {
+      "previous_path": "data/analysis/storm_locations.parquet",
+      "path": "data/analysis/storm_locations.parquet",
+      "sha256": "301c6624b21b19cee67bbf9fa2b9a3add97b04ac91181fd34561bdcff37f8ded"
+    },
+    {
+      "previous_path": "data/analysis/tornado_footprints.parquet",
+      "path": "data/analysis/tornado_footprints.parquet",
+      "sha256": "900dd500d682569e5022fb186e7fcb67d2b7c2fa744646c819c0643caacf4e94"
+    },
+    {
+      "previous_path": "data/analysis/storm_events.parquet",
+      "path": "data/analysis/storm_events.parquet",
+      "sha256": "e0ac3bfd938a605b16a3b2abcb9f5326cdcdc4e3f0f05e9d2872fc764dce2e6c"
+    },
+    {
+      "previous_path": "data/analysis/county_boundaries.parquet",
+      "path": "data/analysis/county_boundaries.parquet",
+      "sha256": "15c75f88b0568141ef26d394d7b8b3b4fc0a08324be4ce2f2f0f0ca735281570"
+    },
+    {
+      "previous_path": "data/analysis/tornado_counties.parquet",
+      "path": "data/analysis/tornado_counties.parquet",
+      "sha256": "7e0d9bf97afa606e445ffc6aeb8fe7d51e6ddd8b49d7c91a65a98c7dba30e68c"
+    },
+    {
+      "previous_path": "data/analysis/county_context.parquet",
+      "path": "data/analysis/county_context.parquet",
+      "sha256": "81ec89c844bfd480cf8a0e5033afe13e8a53f98a47ca09641cc0476acbc17afc"
+    },
+    {
+      "previous_path": "data/ml/events_onset.parquet",
+      "path": "data/ml/events_onset.parquet",
+      "sha256": "33a54a74e4e0a29ea1a62b9f4919e909e88ee53dc3974d675bcf9b1e4463fa18"
+    },
+    {
+      "previous_path": "data/ml/events_retrospective.parquet",
+      "path": "data/ml/events_retrospective.parquet",
+      "sha256": "bdf9ccd0bb295c7957d3c7a07a4ec4b8e2c9b4c9f7b0c2772f216ddbc5e6bed8"
+    },
+    {
+      "previous_path": "data/enrichment/tables/radar_detections.parquet",
+      "path": "data/analysis/radar_detections.parquet",
+      "sha256": "648ecb75cce0ddda374fdb5c978aa2a4ff23b5660b948b1d1033ea90c6c871e0"
+    },
+    {
+      "previous_path": "data/enrichment/tables/tornado_radar.parquet",
+      "path": "data/analysis/tornado_radar.parquet",
+      "sha256": "4370bbdfe17dc9ef22cda6e194a1533dd02afffc81860ee165295b304db97101"
+    },
+    {
+      "previous_path": "data/enrichment/tables/record_provenance.parquet",
+      "path": "data/analysis/record_provenance.parquet",
+      "sha256": "0eec0695cdbf6afd7c891526302d0ed9c8dac6b63cb969e672b4fa4d073ee399"
+    },
+    {
+      "previous_path": "data/enrichment/tables/nlcd_samples.parquet",
+      "path": "data/analysis/nlcd_samples.parquet",
+      "sha256": "34ea6aa396134b66dbeac688828449d578b36f089457a563f5bccfaf9f6b3152"
+    },
+    {
+      "previous_path": "data/enrichment/tables/warning_updates.parquet",
+      "path": "data/analysis/warning_updates.parquet",
+      "sha256": "a04e1e23c9fc81ab30be463de8b4cfeb74a5a7bcc8a127d46ee21b4224be4ed2"
+    },
+    {
+      "previous_path": "data/enrichment/tables/event_areas.parquet",
+      "path": "data/analysis/event_areas.parquet",
+      "sha256": "3e433dae9490445e130766d5eb4643be643536f6516c039e1ed59430023bba1c"
+    },
+    {
+      "previous_path": "data/enrichment/tables/tornado_warnings.parquet",
+      "path": "data/analysis/tornado_warnings.parquet",
+      "sha256": "bc89ff0a03d726e314acb79e6283dd7447783e6d4002273abba4596e4f47d5c8"
+    },
+    {
+      "previous_path": "data/enrichment/tables/source_coverage.parquet",
+      "path": "data/analysis/source_coverage.parquet",
+      "sha256": "cfc5871122f82439e83f6012cbe0b7e8b8bbcdeca15f71a6e54b669c7bf3f579"
+    },
+    {
+      "previous_path": "data/analysis/manifest.json",
+      "path": "data/analysis/manifest.json",
+      "sha256": "d1f00ea6789277d70f4bf5a78fc2a01bc7e7d4fc897d7d323ff0128d2ec82a48"
+    }
+  ],
+  "full_verification_report": "layout_verification.json"
+}

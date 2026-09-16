@@ -1,78 +1,34 @@
-# Kaggle listing maintenance
+# Kaggle listing and notebook maintenance
 
-The current collection is v2.1.0 / Kaggle 6. `metadata.json` supplies source notes,
-23 file-description templates, and column descriptions. The new footprint table
-replaces the three standalone DAT survey tables. The cover is generated from SPC
-start points and the Census county map and labels the current source scope.
+The v2.2.0 release includes 17 linked analysis tables and two ML views. The shared
+dataset card contains both platform examples; the staged Kaggle listing renders
+only the Kaggle quick start. `metadata.json` supplies current source notes and
+file/column descriptions. `dataset-cover-image.png` labels the expanded scope.
 
-`usability.json` is historical unless its recorded revision matches the current
-release; use `release/v2.1.0.json` for current publication verification. File metadata
-API success does not guarantee saved UI descriptions; verify the live listing.
-Nested analysis files previously required the Data Explorer UI for descriptions.
+Use `docs/RELEASING.md` for staging/publication. Export current remote metadata
+before updating so unrelated settings are preserved, then apply the staged Kaggle
+card, source notes, frequency, resources and cover. Check the saved remote values,
+including nested `analysis/` and `ml/` file descriptions. Older API versions have
+not always saved those nested descriptions; verify the listing rather than just
+the success response. A missing UI description must be reported, not silently
+assumed applied. Fixed-snapshot update frequency is `never`.
 
-The public getting-started notebook loads v2.1.0 / Kaggle 6 using `kagglehub`,
-pandas, and GeoPandas. It checks the pinned release manifest and each of eleven
-selected analysis files, then previews all nine tables, the annual summary,
-ratings, missing values, source coverage, and geometry. It does not download
-the full archive. Earlier notebook versions remain available in Kaggle history.
-The execution receipt is `notebook-v2.1.json`.
+The notebook uses `kagglehub` and a pinned dataset attachment. It loads the small
+ML views, predictor dictionary, backbone tornado table, coverage table and annual
+summary; it inventories all 19 tables without eagerly loading large radar/warning
+source tables. It demonstrates target selection, missingness and grouped model
+inputs, not a fitted model or operational forecast.
 
-## Listing fields
-
-Source attribution is in `metadata.json` under `userSpecifiedSources`. The fixed
-study snapshot uses update frequency `never`; future deliberate changes get new
-versions. The collection methodology should describe:
-
-> SPC tracks are filtered to 2010–2025, retaining unknown ratings. NCEI preserves
-> annual all-hazard archives and exact tornado details/fatality/location extracts.
-> NOAA Event Footprint Catalog annual files replace standalone DAT surveys;
-> generation-pinned downloads are verified with upstream MD5 and local SHA-256.
-> Catalog geometry, origin (DAT/SED), relationship arrays, and original sentinels
-> are preserved; nullable EF and usable-width helpers are added. Footprints are
-> damage regions, not unique tornadoes, and SED IDs are generated. Census estimates
-> are reconciled by county/year and the fixed 2020 KML map is converted to GeoJSON.
-> Nine main analysis tables plus an annual summary are verified with typed and
-> geometry round trips. Conservative time/geometry linkage enriches the main
-> tornado table and retains unresolved candidates in a crosswalk. No fixed model
-> split or independently verified event identity is supplied.
-
-## Update workflow
-
-Export current metadata before applying the saved source/frequency fields:
+After dataset publication, update `notebooks/kaggle_getting_started.ipynb` with the
+actual dataset version and trusted release manifest hash. `kernel-metadata.json`
+uses `owner/slug/N`; `kagglehub` uses `owner/slug/versions/N`. Execute locally, then:
 
 ```sh
-uv run --group publish kaggle datasets metadata jakevanslyke/us-tornado-data-2010-2025 -p dist/kaggle-listing
-```
-
-Use a fresh export so unrelated listing fields are preserved. Apply source text,
-current dataset-card description, and cover; upload new versions using the commands
-in [RELEASING.md](../../docs/RELEASING.md). Check file descriptions and collection
-methodology in the UI, especially after removing or renaming tables.
-
-```sh
-uv run python scripts/plot_dataset_cover.py
-```
-
-The cover uses existing data only. Usability is listing completeness, not a measure
-of scientific validity or complete tornado coverage.
-
-## Publish the example notebook
-
-Install local inspection and publishing dependencies, then run the notebook:
-
-```sh
-uv sync --locked --group publish
-uv run --group publish jupyter nbconvert --execute --to notebook notebooks/kaggle_getting_started.ipynb --output /tmp/kaggle-getting-started-executed.ipynb
 uv run --group publish kaggle kernels push -p release/kaggle
 uv run --group publish kaggle kernels status jakevanslyke/us-tornado-data-getting-started
 ```
 
-`kernel-metadata.json` attaches the pinned dataset using the Kaggle CLI form
-`owner/slug/6`; inside the notebook, `kagglehub` uses `owner/slug/versions/6`.
-Keep these pins and the manifest hash in agreement. The notebook runs on CPU
-with internet disabled on Kaggle; the input must already be attached before
-its saved execution starts. Local first-time downloads require internet.
-
-After the hosted run completes, retrieve the executed notebook and inspect its
-outputs, plots, and attachment version. Record the notebook version and checks in
-`notebook-v2.1.json`. A notebook-only update does not create a new dataset release.
+The hosted notebook uses CPU, internet disabled and the pinned attached dataset.
+Retrieve and verify the hosted output and source after completion. Store the run
+receipt in `notebook-v2.2.json`; older receipts and notebook history are retained.
+A notebook-only update does not create a new dataset version.

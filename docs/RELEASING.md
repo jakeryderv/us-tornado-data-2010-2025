@@ -1,177 +1,105 @@
-# Releasing the dataset to Hugging Face and Kaggle
+# Releasing to Hugging Face and Kaggle
 
-[`DATASET_CARD.md`](DATASET_CARD.md) is the platform-neutral description.
-[`release/dataset.json`](../release/dataset.json) holds the shared title, version,
-period, and reuse designation. Platform metadata is generated from these files;
-edit the canonical files rather than maintaining two separate descriptions.
+`release/dataset.json` defines the shared release version and scope.
+`docs/DATASET_CARD.md` is the canonical dataset description: it includes both
+platform examples in marked blocks. Staging renders only the matching quick
+start into each platform's README/listing, while the packaged shared card retains
+both examples. Source facts, tables and limitations come from the same text.
 
-The dataset designation is U.S. Government Works. Kaggle supports that identifier;
-Hugging Face uses `license: other` with an explanatory name and link to the shared
-source notices. MIT applies to code/original project text, not government records.
+## Prepare and validate
 
-## Authenticate locally
-
-Install the optional publishing clients without adding them to the core workflow:
+Use the locked Python 3.12 environment:
 
 ```sh
-uv sync --locked --group publish
-uv run --group publish hf auth login
-uv run --group publish hf auth whoami
+uv sync --locked --group publish --group era5
+uv run --locked --group era5 python -m unittest discover -s tests -v
+uv run --locked --group enrichment python -m enrichment.verify --require-full --report data/enrichment/verification.json
 ```
 
-Use a Hugging Face token permitted to create/write the intended dataset repository.
-Enter credentials only into the local CLI prompt. For Kaggle, obtain a token in
-Kaggle account settings and configure its CLI using the supported local credential
-file or environment variable; do not commit credentials or put them in dataset
-metadata. Existing credentials can be checked with:
+The optional ERA5 dependency group exercises deferred-adapter tests; it does not
+download ERA5. This release includes radar, warnings and NLCD. ACS/TIGER tract
+and ERA5 sources remain excluded. The current scope flag `include_enrichment`
+requires full collection/ML verification and rejects `--backbone-only`.
+
+Commit the code, card, configuration and listing metadata before building. A
+clean code revision is required. The build verifies original backbone sources,
+checks the full enrichment snapshot and copies manifest-listed files without
+regenerating or changing table bytes. It refuses existing staging destinations.
 
 ```sh
+uv run --group enrichment python -m scripts.release_data build
+uv run python -m scripts.release_data verify dist/v2.2.0/payload
+```
+
+The shared payload has all 17 `analysis/` tables and both `ml/` views, their
+manifests/dictionaries, original backbone sources, portable documentation,
+`schema.json`, `CITATION.cff`, `release_manifest.json` and `SHA256SUMS`.
+Working caches/checkpoints/benchmarks are omitted. Required warning texts and
+schema documents are bundled in `enrichment/supporting_assets.zip`; every member
+is checked against its original asset hash. The bundle preserves original paths.
+To run the standalone source verifier on a full consumer download:
+
+```sh
+uv run python -m scripts.release_data restore-support /path/to/download
+uv run --group enrichment python -m enrichment.verify --data-dir /path/to/download --require-full
+```
+
+Offline ML regeneration needs the linked tables, not the expanded support bundle.
+The release checksum verifier can verify the bundle without expanding it.
+
+## Stage both hosts
+
+```sh
+uv run python -m scripts.release_data stage huggingface --owner jakeryderv --payload dist/v2.2.0/payload --output dist/v2.2.0/huggingface
+uv run python -m scripts.release_data stage kaggle --owner jakevanslyke --payload dist/v2.2.0/payload --output dist/v2.2.0/kaggle
+```
+
+Both share identical payload bytes and checksums. HF stores them directly.
+Kaggle exposes `analysis/` and `ml/` directly and places the complete payload in
+`release.zip.bin`, preserving the original compressed source files. Unpack it
+with Python `zipfile` or the `unpack` command, supplying the trusted manifest and
+archive checksums. No full archive is needed to load an individual modeling table.
+
+Kaggle descriptions/resources/source notes are supplied by
+`release/kaggle/metadata.json`; the cover comes from `scripts/plot_dataset_cover.py`.
+The staged listing description is the Kaggle-rendered shared card. The HF README
+uses the HF-rendered card plus host metadata. MIT covers code/original text; data
+reuse notices remain in `DATA_SOURCES.md`.
+
+## Publish and verify
+
+Authenticate through local clients; never place tokens in code, metadata or chat:
+
+```sh
+uv run --group publish hf auth whoami
 uv run --group publish python -c 'import kagglehub; print(kagglehub.whoami(verbose=False))'
 ```
 
-## Build a frozen release
-
-The current builder targets the published backbone layout. New local enrichment
-and ML views are not yet released. If `data/enrichment/manifest.json` exists,
-the builder requires `build --backbone-only` to explicitly exclude those files.
-The next enrichment scope is radar, warnings and NLCD; ACS/TIGER tract
-exposure and ERA5 are deferred and excluded. Follow [the full-run instructions](ENRICHMENT.md), then
-require `python -m enrichment.verify --require-full` to pass. Complete expanded
-packaging/metadata before publishing a release advertised as containing the new sources. Never treat the
-four-event validation pilot as full 2010–2025 enrichment coverage.
-
-Commit the code, card, and config first. Build requires a clean working tree,
-full source verification, and matching collection-side verification manifests.
-It selects active source files and supporting provenance rather than copying
-arbitrary caches from `data/`. The source collection is read-only.
+Only publish an authorized, verified release. Update the existing listings,
+preserve historical versions, and wait for processing to finish. HF folder uploads
+should remove only explicitly identified obsolete files in the new revision;
+never delete the repository or historical revisions. Kaggle uses `datasets version`.
 
 ```sh
-uv run python scripts/release_data.py build
-uv run python scripts/release_data.py verify dist/v2.1.0/payload
+uv run --group publish hf upload jakeryderv/us-tornado-data-2010-2025 dist/v2.2.0/huggingface . --repo-type dataset --commit-message 'Release v2.2.0'
+uv run --group publish kaggle datasets version -p dist/v2.2.0/kaggle --keep-tabular --dir-mode zip -m 'Release v2.2.0: radar, warnings, NLCD and onset/retrospective ML views'
 ```
 
-The build copies sources, re-verifies the staged collection, regenerates the
-analysis tables with Parquet round-trip and annual-total checks, and creates a schema
-inventory, portable documentation, citation metadata, release manifest, and
-checksums. The manifest records the code commit and both source snapshot dates.
-Existing output directories are never overwritten; intentional data or schema
-updates should receive a new release version. `dist/` is ignored by Git.
+Refresh listing metadata/cover using `kaggle datasets metadata --update` and verify
+the saved description, sources and file notes; API success alone is not proof of
+rendered metadata. Both listings must show the same version, sources, 19-table
+inventory, coverage gaps and limitations, with the matching platform's code.
 
-## Prepare both hosts
+Download the full HF payload at its immutable commit and the Kaggle transport
+archive at its numeric version into fresh locations. Compare every file against
+the same trusted release manifest, then test direct Parquet downloads and the
+examples. Save host revisions, tag, sizes, checksums and verification results in
+`release/v2.2.0.json`. HF's `v2.2.0` tag and Kaggle's automatic numeric version are
+separate identifiers for the same shared release.
 
-Replace the example account names with the authenticated owners when needed:
-
-```sh
-uv run python scripts/release_data.py stage huggingface --owner jakeryderv --payload dist/v2.1.0/payload --output dist/v2.1.0/huggingface
-uv run python scripts/release_data.py stage kaggle --owner jakevanslyke --payload dist/v2.1.0/payload --output dist/v2.1.0/kaggle
-```
-
-All shared payload files, `release_manifest.json`, and `SHA256SUMS` are identical
-after extracting Kaggle's transport archive. Hugging Face stores the files directly;
-Kaggle stores `release.zip.bin`, a ZIP with an extra `.bin` suffix. Kaggle otherwise
-automatically extracts the original NOAA `.gz` and Census `.zip` source files,
-which invalidates their paths and checksums. The archive needs one local extraction;
-its SHA-256 and size are recorded separately from the shared manifest.
-Kaggle also exposes identical `analysis/` files directly, so those tables can be
-downloaded individually without the source archive. Host-facing README/metadata
-differ. HF's viewer is disabled because the
-collection contains heterogeneous source tables and GeoJSON; it is not one
-rectangular training table. No automatic train/test splits are declared.
-
-## Publish
-
-Kaggle's cover, file descriptions, provenance, and public example notebook are
-managed separately from the data version. See the
-[Kaggle listing workflow](../release/kaggle/README.md) for the saved metadata,
-verified update commands, and notebook publishing instructions.
-
-```sh
-uv run --group publish hf upload jakeryderv/us-tornado-data-2010-2025 dist/v2.1.0/huggingface . --repo-type dataset --commit-message 'Release v2.1.0'
-uv run --group publish kaggle datasets version -p dist/v2.1.0/kaggle --keep-tabular --dir-mode zip -m "Release v2.1.0: canonical linked tornado table and two bridge tables"
-```
-
-These commands update the existing public datasets while preserving prior versions.
-Verify the resulting remote inventory. Run them only for an authorized release. On Kaggle, `--dir-mode zip` transports the direct `analysis/` folder, which
-Kaggle expands. The complete `release.zip.bin` archive remains a single file.
-Wait for processing to complete before calling the release published. For later Kaggle releases, use
-`datasets version` with version notes and preserve prior versions. Do not silently
-replace an existing release or delete old versions.
-
-After upload, record the immutable Hugging Face commit and the Kaggle numeric
-version alongside the shared release version and manifest hash in
-`release/<version>.json`. Tag the HF commit with the shared version. A tag alone
-is not the trust anchor; consumer examples should pin the commit. The GitHub
-code commit is separate from the two data-host revisions.
-
-## Verify consumer downloads
-
-Use an empty cache or new output location, then validate against the trusted
-manifest SHA-256 from the [release receipt](../release/v2.1.0.json).
-These examples pin the published `v2.1.0` revisions:
-
-```python
-from pathlib import Path
-from huggingface_hub import snapshot_download
-import kagglehub
-
-hf_root = Path(snapshot_download(
-    "jakeryderv/us-tornado-data-2010-2025",
-    repo_type="dataset", revision="b2b6c9ddb14a5060c9064d4f1c96459ad140e013",
-))
-kg_archive = Path(kagglehub.dataset_download(
-    "jakevanslyke/us-tornado-data-2010-2025/versions/6",
-    path="release.zip.bin",
-))
-```
-
-For Kaggle, extract and verify into a new directory using hashes from the release
-receipt (the ordinary Python `zipfile` module can also extract the archive):
-
-```sh
-uv run python scripts/release_data.py unpack /path/to/kaggle/download/release.zip.bin /path/to/extracted-data --manifest-sha256 TRUSTED_MANIFEST_SHA256 --archive-sha256 TRUSTED_ARCHIVE_SHA256
-```
-
-Set `kg_root = Path("/path/to/extracted-data")`. Use Kaggle version 6 for
-`v2.1.0`; v2.0.0 maps to Kaggle version 5, v1.2.0 maps to Kaggle version 4, v1.1.0 maps to Kaggle version 3 and v1.0.0 maps to version 2.
-Kaggle version 1 is retained as upload history but failed original
-archive integrity checks and is superseded. Hugging Face and Kaggle version numbers
-do not need to match; the receipt maps both to the shared release.
-
-In a separate project, the equivalent extraction needs only the standard library:
-
-```python
-import hashlib
-from zipfile import ZipFile
-
-with kg_archive.open("rb") as handle:
-    assert hashlib.file_digest(handle, "sha256").hexdigest() == (
-        "35db758729f19fc9dbc5c4521bfd476d51080e2d31f16a2a5d2aa3c3a5994c21"
-    )  # v2.1.0 archive hash from the receipt
-kg_root = Path("tornado-data-v2.1.0")
-kg_root.mkdir(exist_ok=False)  # Extract once into a new folder; reuse it afterward.
-with ZipFile(kg_archive) as archive:
-    archive.extractall(kg_root)
-```
-
-```sh
-uv run python scripts/release_data.py verify /path/to/download --manifest-sha256 TRUSTED_MANIFEST_SHA256
-```
-
-Load tables directly from the returned cache path; do not modify cached source files:
-
-```python
-import pandas as pd
-spc = pd.read_csv(hf_root / "spc/tornadoes_2010_2025.csv")
-counties = pd.read_csv(
-    hf_root / "census_population/county_context_2010_2025.csv",
-    dtype={"county_fips": str},
-)
-```
-
-Use the extracted `kg_root` in place of `hf_root` for Kaggle. Loading a table does not join it
-with the other sources. Read `event_footprints/<year>_tornado_footprint.geojson` for original annual footprints. Record successful checksum verification and sample loading in
-the release receipt before updating README download links as available.
-
-For the small analysis-only download and direct Kaggle Parquet example, see the
-[repository quickstart](../README.md). A partial download cannot pass full-release
-verification; compare the selected file hashes with the trusted release manifest.
+Update the public Kaggle notebook with the actual numeric version and manifest
+hash. Run it locally against staged data, publish it with the matching pinned
+attachment, wait for hosted completion, and retrieve its executed output/source.
+Record the notebook run/version in `release/kaggle/notebook-v2.2.json`.
+Finally push code/receipts and confirm GitHub CI passes. Historical releases and
+receipts remain available; remove obsolete local staging only after verification.

@@ -1,7 +1,7 @@
 """Resumable optional collection. Existing backbone tables are read-only inputs."""
 import argparse
 from collections import Counter
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
 from collections import deque
 from threading import Event
 import time
@@ -24,6 +24,8 @@ from .weather import collect_radar, collect_warnings
 from .era5 import collect_era5, group_key, plan_requests
 from .storage import verify_asset
 from .checkpoints import BatchedRows, Checkpoints, batches, references, load as load_checkpoint
+from .batching import radar_plans, nlcd_plans, warning_plans
+from .layout import table_directory, table_path, new_table_directory
 
 ROOT = Path(__file__).resolve().parents[1]
 COLLECTORS = {'radar': collect_radar, 'warnings': collect_warnings,
@@ -132,7 +134,12 @@ def prune_checkpoints(output, paths):
         path.unlink(missing_ok=True)
 
 
-def job_order(event, source, config):
+def job_order(event, source, config, cache=None):
+    if cache is not None and source == 'nlcd' and event['tornado_id'] in cache.nlcd_plans:
+        return (event['year'], cache.nlcd_plans[event['tornado_id']], event['tornado_id'])
+    if cache is not None and source == 'radar' and event['tornado_id'] in cache.radar_plans:
+        begin, _, bounds = cache.radar_plans[event['tornado_id']]
+        return (begin.isoformat(), bounds, event['tornado_id'])
     if source in ('tiger','acs'):
         return (event['year'],tuple(event['area_states']),event['tornado_id'])
     if source=='era5':
@@ -140,10 +147,47 @@ def job_order(event, source, config):
     return (event['start_utc'] or '',event['tornado_id'])
 
 
+def repair_snapshot(path, definition, selected, sources, output):
+    """Explicitly inherit verified jobs after a reviewed error-only code repair.
+
+    This is not automatic code compatibility: the caller must supply a frozen
+    pre-repair manifest. Original job IDs and extraction definitions survive.
+    """
+    path = Path(path)
+    if path.resolve() == (output/'manifest.json').resolve():
+        raise ValueError('Repair requires a separate frozen manifest copy')
+    prior = json.loads(path.read_text())
+    if prior['definition_id'] != stable_id('definition', prior['definition']):
+        raise ValueError('Invalid repair definition identity')
+    for field in ('config', 'backbone', 'acquisition'):
+        if prior['definition'].get(field) != definition.get(field):
+            raise ValueError(f'Repair cannot change {field}')
+    if (set(prior['selected_event_ids']) != {e['tornado_id'] for e in selected}
+            or set(prior['requested_sources']) != set(sources)):
+        raise ValueError('Repair cannot change the event or source selection')
+    if prior.get('checkpoints_retired'):
+        raise ValueError('Repair requires the original per-job checkpoints')
+    ids = set(prior.get('job_ids', []))
+    expected = {stable_id('job', [prior['definition_id'], e['tornado_id'], s])
+                for e in selected for s in sources}
+    if ids != expected:
+        raise ValueError('Repair snapshot must contain one original job per event/source')
+    if any(not (output/'jobs'/(j.replace(':','_')+'.json')).exists() for j in ids):
+        raise ValueError('Repair snapshot checkpoints are missing')
+    return prior
+
+
 def collect(data, output, selected, sources, config, *, max_bytes, timeout,
-            storage='compact', max_cache_bytes=5_000_000_000, workers=4, per_host=2):
+            storage='compact', max_cache_bytes=5_000_000_000, workers=4, per_host=2, acquisition='batch', parallel_sources=False,
+            repair_from=None):
     if workers < 1 or per_host < 1:
         raise ValueError('Worker and per-host limits must be positive')
+    if acquisition not in ('event', 'batch'):
+        raise ValueError('Unknown acquisition strategy')
+    if parallel_sources and 'era5' in sources:
+        raise ValueError('ERA5 must run separately from parallel source queues')
+    if parallel_sources and workers < len(sources):
+        raise ValueError('Parallel source queues need at least one worker per requested source')
     # Prevent another collector or cleanup from changing in-use artifacts.
     import fcntl
     output=Path(output);output.mkdir(parents=True,exist_ok=True)
@@ -151,17 +195,22 @@ def collect(data, output, selected, sources, config, *, max_bytes, timeout,
         try:fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
         except BlockingIOError:raise ValueError('Another collector is using this output directory') from None
         return _collect(data,output,selected,sources,config,max_bytes=max_bytes,timeout=timeout,
-                        storage=storage,max_cache_bytes=max_cache_bytes,workers=workers,per_host=per_host)
+                        storage=storage,max_cache_bytes=max_cache_bytes,workers=workers,per_host=per_host,
+                        acquisition=acquisition,parallel_sources=parallel_sources,repair_from=repair_from)
 
 
-def _collect(data, output, selected, sources, config, *, max_bytes, timeout, storage, max_cache_bytes, workers, per_host):
-    if not selected:
-        raise ValueError('Select at least one tornado')
+def extraction_definition(data, config, acquisition):
     hashes = input_hashes(data)
     code = {name:digest(Path(__file__).parent/name) for name in
-            ['common.py','cache.py','transport.py','checkpoints.py','storage.py','pipeline.py','land.py','weather.py','era5.py']}
+            ['common.py','cache.py','transport.py','checkpoints.py','storage.py','pipeline.py','land.py','weather.py','batching.py','era5.py','layout.py']}
     code['build_crosswalk.py']=digest(ROOT/'scripts/build_crosswalk.py')
-    definition = dict(config=json.loads(json.dumps(asdict(config))), backbone=hashes, code=code)
+    return dict(config=json.loads(json.dumps(asdict(config))), backbone=hashes, code=code, acquisition=acquisition)
+
+
+def _collect(data, output, selected, sources, config, *, max_bytes, timeout, storage, max_cache_bytes, workers, per_host, acquisition, parallel_sources, repair_from=None):
+    if not selected:
+        raise ValueError('Select at least one tornado')
+    definition = extraction_definition(data, config, acquisition)
     fingerprint = stable_id('definition', definition)
     output.mkdir(parents=True, exist_ok=True)
     old_manifest = output/'manifest.json'
@@ -173,12 +222,13 @@ def _collect(data, output, selected, sources, config, *, max_bytes, timeout, sto
         migrating='hrrr' in previous.get('requested_sources',[]) and old_config==new_config
         if previous['definition']['config'] != definition['config'] and not migrating:
             raise ValueError('Different extraction settings require a separate --output directory')
-    if (previous.get('status')=='complete' and previous.get('definition_id')==fingerprint
+    if (previous.get('status')=='complete' and (previous.get('definition_id')==fingerprint or
+                 previous.get('layout_migration', {}).get('reusable_definition') == definition)
             and set(previous['selected_event_ids'])=={e['tornado_id'] for e in selected}
             and set(previous['requested_sources'])==set(sources)
             and previous.get('storage',{}).get('mode')==storage):
         for item in previous['outputs']:
-            if digest(output/'tables'/item['path'])!=item['sha256']:raise ValueError('Completed table changed')
+            if digest(table_path(output,previous,item))!=item['sha256']:raise ValueError('Completed table changed')
         for asset in previous['assets']:verify_asset(output,asset)
         completed_cache=Cache(output/'raw',timeout=timeout,max_bytes=max_bytes,
                               storage=storage,max_cache_bytes=max_cache_bytes)
@@ -188,13 +238,19 @@ def _collect(data, output, selected, sources, config, *, max_bytes, timeout, sto
                                      for v in previous.get('job_ids',[])])
         print('Completed selection verified; no downloads or extraction needed.',flush=True)
         return dict(previous,resumed_complete=True,new_downloaded_bytes=0)
+    inherited = repair_snapshot(repair_from, definition, selected, sources, output) if repair_from else None
     cache = Cache(output/'raw', timeout=timeout, max_bytes=max_bytes,
                   storage=storage,max_cache_bytes=max_cache_bytes,per_host=per_host)
+    cache.acquisition = acquisition
+    cache.radar_plans = radar_plans(selected, config) if acquisition == 'batch' and 'radar' in sources else {}
+    cache.nlcd_plans = nlcd_plans(selected, config) if acquisition == 'batch' and 'nlcd' in sources else {}
+    cache.warning_plans, cache.warning_dates, cache.bulk_text_days = (warning_plans(selected)
+        if acquisition == 'batch' and 'warnings' in sources else ({}, set(), set()))
     cache.era5_plans=plan_requests(selected,config) if 'era5' in sources else {}
     # Previous verified extraction snapshots permit adoption of legacy caches.
     if previous.get('outputs'):
         for item in previous['outputs']:
-            if digest(output/'tables'/item['path'])!=item['sha256']:raise ValueError('Previous source table changed')
+            if digest(table_path(output,previous,item))!=item['sha256']:raise ValueError('Previous source table changed')
         for asset in previous.get('assets',[]):
             verify_asset(output,asset)
         cache.commit(previous.get('assets',[]))
@@ -206,9 +262,16 @@ def _collect(data, output, selected, sources, config, *, max_bytes, timeout, sto
     coverage, asset_records = [], {}
     manifest = dict(schema_version=2, created_at=now(), status='in_progress',
                     definition=definition, definition_id=fingerprint,
+                    table_directory=new_table_directory(data,output),
                     selected_event_ids=[x['tornado_id'] for x in selected], requested_sources=sources,
                     storage=dict(mode=storage,max_cache_bytes=max_cache_bytes),
                     event_count=len(selected), full_backbone_count=len(pd.read_parquet(data/'analysis/tornadoes.parquet')))
+    if inherited:
+        manifest['inherited_definitions'] = {inherited['definition_id']: inherited['definition']}
+        manifest['repair'] = dict(input_manifest_sha256=digest(Path(repair_from)),
+            original_definition_id=inherited['definition_id'],
+            original_status_counts=inherited['status_counts'],
+            basis='Explicit reuse after reviewed failure-handling fixes; scientific settings and backbone unchanged')
     atomic_json(old_manifest, manifest)
     jobs = output/'jobs'
     jobs.mkdir(exist_ok=True)
@@ -217,6 +280,7 @@ def _collect(data, output, selected, sources, config, *, max_bytes, timeout, sto
     seen_batches = set()
     paths=[];statuses=Counter();durations=Counter();finished=Counter()
     source_wall = Counter()
+    source_started, source_finished = {}, Counter()
     total_jobs = len(selected) * len(sources)
     run_started = time.monotonic()
 
@@ -224,11 +288,22 @@ def _collect(data, output, selected, sources, config, *, max_bytes, timeout, sto
         started = time.monotonic()
         job_id = stable_id('job', [fingerprint, event['tornado_id'], name])
         job_path = jobs / (job_id.replace(':', '_') + '.json')
+        original_path = None
+        if inherited:
+            original_id = stable_id('job', [inherited['definition_id'], event['tornado_id'], name])
+            original_path = jobs / (original_id.replace(':', '_') + '.json')
         owner = cache.fork()
         result = None
         policy_changed = False
-        if job_path.exists():
-            candidate = load_checkpoint(job_path, output, memo=cache.memo)
+        for candidate_path in dict.fromkeys(p for p in (job_path, original_path) if p is not None):
+            if not candidate_path.exists():
+                continue
+            candidate = load_checkpoint(candidate_path, output, memo=cache.memo)
+            expected_id = stable_id('job', [fingerprint if candidate_path == job_path else inherited['definition_id'], event['tornado_id'], name])
+            if (candidate['coverage']['job_id'] != expected_id
+                    or candidate['coverage']['tornado_id'] != event['tornado_id']
+                    or candidate['coverage']['source'] != name):
+                raise ValueError('Checkpoint identity does not match requested job')
             if candidate['coverage']['status'] in ('complete', 'unavailable'):
                 reusable = True
                 for asset in candidate['assets']:
@@ -238,9 +313,15 @@ def _collect(data, output, selected, sources, config, *, max_bytes, timeout, sto
                     if storage == 'archive' and old_policy == 'optional' and not (output / asset['path']).exists():
                         reusable = False
                         continue
-                    verify_asset(output, asset)
+                    # Cache publication replaces body+metadata while holding this
+                    # lock; do not inspect a half-published replacement version.
+                    with cache._state:
+                        verify_asset(output, asset)
                 if reusable:
                     result = candidate
+                    job_path = candidate_path
+                    result['coverage']['extraction_definition_id'] = (fingerprint if expected_id == job_id else inherited['definition_id'])
+                    break
         new = result is None
         if new:
             status, reason, tables = 'complete', None, {}
@@ -262,25 +343,43 @@ def _collect(data, output, selected, sources, config, *, max_bytes, timeout, sto
                 if secret:
                     reason = reason.replace(secret, '[redacted]')
             assets = [dict(cache.assets[k], path='raw/' + Path(cache.assets[k]['path']).name) for k in sorted(owner.touched)]
-            cov = dict(tornado_id=event['tornado_id'], source=name, status=status, reason=reason, job_id=job_id)
+            cov = dict(tornado_id=event['tornado_id'], source=name, status=status, reason=reason, job_id=job_id,
+                       extraction_definition_id=fingerprint)
             result = dict(coverage=cov, tables=tables, assets=assets)
         return result, owner, job_path, new or policy_changed, time.monotonic() - started
 
     step = 0
+    def phase_results(pool, phase):
+        queues, events = {}, {}
+        for name in phase:
+            # Missing locations remain reportable jobs and sort after usable plans.
+            events[name] = iter(sorted(selected, key=lambda e: (e['tornado_id'] not in
+                (cache.radar_plans if name == 'radar' else cache.nlcd_plans if name == 'nlcd' else {}),
+                job_order(e, name, config, cache))))
+            queues[name] = deque()
+        def submit_next(name):
+            event = next(events[name], None)
+            if event is not None:
+                source_started.setdefault(name, time.monotonic())
+                queues[name].append(pool.submit(run_job, event, name))
+        for i in range(1 if phase == ['era5'] else workers):
+            submit_next(phase[i % len(phase)])
+        while any(queues.values()):
+            # Wait for any source's next ordered result, not a global FIFO. A
+            # slow warning export must not stall NOAA and USGS work queues.
+            wait([q[0] for q in queues.values() if q], return_when=FIRST_COMPLETED)
+            for name in phase:
+                q = queues[name]
+                if q and q[0].done():
+                    yield q.popleft().result()
+                    submit_next(name)
+
     # Bounded submission: at most workers results/active jobs, never 100k futures.
-    # Commit in stable event order so duplicate resolution is scheduling-independent.
+    # Commit in stable event order within each independent source table family.
     try:
         with ThreadPoolExecutor(max_workers=workers) as pool:
-            for name in sources:
-                phase_started = time.monotonic()
-                events = iter(sorted(selected, key=lambda e: job_order(e, name, config)))
-                pending = deque()
-                for _ in range(1 if name == 'era5' else workers):
-                    event = next(events, None)
-                    if event is not None:
-                        pending.append(pool.submit(run_job, event, name))
-                while pending:
-                    result, owner, job_path, needs_save, seconds = pending.popleft().result()
+            for phase in ([sources] if parallel_sources else [[name] for name in sources]):
+                for result, owner, job_path, needs_save, seconds in phase_results(pool, phase):
                     if needs_save:
                         checkpoints.save(job_path, result)
                     cache.commit(result['assets'], owner=owner)
@@ -303,9 +402,13 @@ def _collect(data, output, selected, sources, config, *, max_bytes, timeout, sto
                                         record_id = row.get('record_id') or stable_id(table, row)
                                         provenance_records[(table,record_id,role,asset)] = dict(table=table,record_id=record_id,role=role,asset_id=asset)
                     cov = result['coverage']
+                    name = cov['source']
                     statuses[cov['status']] += 1
                     finished[cov['tornado_id']] += 1
                     durations[name] += seconds
+                    source_finished[name] += 1
+                    if source_finished[name] == len(selected):
+                        source_wall[name] = time.monotonic() - source_started[name]
                     step += 1
                     print(f"[{step}/{total_jobs}] {cov['tornado_id']} {name}: {cov['status']}", flush=True)
                     if step % 25 == 0 or step == total_jobs:
@@ -313,16 +416,12 @@ def _collect(data, output, selected, sources, config, *, max_bytes, timeout, sto
                             events_finished=sum(v==len(sources) for v in finished.values()),events_requested=len(selected),
                             elapsed_seconds=time.monotonic()-run_started, source_seconds=dict(durations),
                             source_wall_seconds=dict(source_wall), status_counts=dict(statuses), workers=workers,
-                            per_host=per_host, **cache.snapshot()))
-                    event = next(events, None)
-                    if event is not None:
-                        pending.append(pool.submit(run_job, event, name))
-                source_wall[name] = time.monotonic() - phase_started
+                            per_host=per_host, parallel_sources=parallel_sources, **cache.snapshot()))
 
     finally:
         cache.close_sessions()
 
-    table_dir = output/'tables'
+    table_dir = table_directory(output,manifest)
     table_dir.mkdir(exist_ok=True)
     provenance = list(provenance_records.values())
     outputs = [write_table(table_dir/(name+'.parquet'), list(rows.values()), TABLES[name]) for name,rows in frames.items()]
@@ -334,9 +433,12 @@ def _collect(data, output, selected, sources, config, *, max_bytes, timeout, sto
     manifest.update(status='partial' if any(x in statuses for x in ['failed','budget_exceeded']) else 'complete',
                     completed_at=now(), status_counts=statuses, outputs=outputs,
                     assets=sorted(asset_records.values(),key=lambda x:x['asset_id']), downloaded_bytes=cache.downloaded)
+    if inherited:
+        manifest['repair']['jobs_by_extraction_definition'] = dict(Counter(r['extraction_definition_id'] for r in coverage))
     manifest.update(storage=dict(mode=storage,max_cache_bytes=max_cache_bytes),
                     source_seconds=dict(durations),source_wall_seconds=dict(source_wall),
-                    performance=dict(workers=workers,per_host=per_host,elapsed_seconds=time.monotonic()-run_started,transport_stats=dict(cache.stats)),job_ids=[r['job_id'] for r in coverage],
+                    performance=dict(workers=workers,per_host=per_host,parallel_sources=parallel_sources,
+                        elapsed_seconds=time.monotonic()-run_started,transport_stats=dict(cache.stats)),job_ids=[r['job_id'] for r in coverage],
                     checkpoints_retired=(manifest['status']=='complete' and len(selected)==manifest['full_backbone_count']
                                          and storage=='compact' and set(DEFAULT_SOURCES)<=set(sources)))
     # Commit the validated consolidated tables before pruning their checkpoints.
@@ -348,7 +450,10 @@ def _collect(data, output, selected, sources, config, *, max_bytes, timeout, sto
     for name, source in OPTIONAL_TABLE_SOURCES.items():
         if source in previous.get('requested_sources',[]) and source not in sources:
             (table_dir/(name+'.parquet')).unlink(missing_ok=True)
-    if manifest['checkpoints_retired']:prune_checkpoints(output,paths)
+    if manifest['checkpoints_retired']:
+        if inherited:
+            paths += [jobs/(j.replace(':','_')+'.json') for j in inherited['job_ids']]
+        prune_checkpoints(output,paths)
     manifest['storage'].update(evicted_bytes=cache.evicted_bytes,
                               cache_bytes=sum(e['bytes'] for e in cache.entries.values()))
     atomic_json(old_manifest,manifest)
@@ -373,7 +478,12 @@ def main(argv=None):
     parser.add_argument('--timeout',type=int,default=90)
     parser.add_argument('--workers',type=int,default=4,help='Bounded concurrent extraction jobs; use 1 for serial comparison')
     parser.add_argument('--per-host',type=int,default=2,help='Maximum simultaneous HTTP requests per service')
+    parser.add_argument('--acquisition', choices=['batch','event'], default='batch',
+                        help='Batch shared queries (default); event keeps individual queries for comparison')
+    parser.add_argument('--parallel-sources', action='store_true', help='Interleave independent source queues within the worker and host limits; ERA5 excluded')
     parser.add_argument('--dry-run',action='store_true')
+    parser.add_argument('--repair-from',type=Path,
+                        help='Frozen pre-repair manifest: explicitly reuse completed checkpoints after reviewed error-only code fixes')
     args=parser.parse_args(argv)
     if not 2010<=args.start_year<=args.end_year<=2025 or args.max_download_gb<=0 or args.cache_gb<=0 or args.timeout<=0 or args.workers<1 or args.per_host<1 or (args.limit is not None and args.limit<=0):
         parser.error('Invalid years, limit, timeout or download budget')
@@ -387,14 +497,15 @@ def main(argv=None):
     output=args.output or args.data_dir/'enrichment'
     if args.dry_run:
         print(json.dumps(dict(events=len(events),sources=args.sources,output=str(output),config=asdict(config),
-                             max_download_gb=args.max_download_gb,storage=args.storage,cache_gb=args.cache_gb,workers=args.workers,per_host=args.per_host,
+                             max_download_gb=args.max_download_gb,storage=args.storage,cache_gb=args.cache_gb,workers=args.workers,per_host=args.per_host,acquisition=args.acquisition,parallel_sources=args.parallel_sources,
                              environment='ERA5; retrospective only' if 'era5' in args.sources else 'Deferred; ERA5 is not requested'),indent=2))
         return 0
     from dotenv import load_dotenv
     load_dotenv(ROOT/'.env',override=False)
     result=collect(args.data_dir,output,events,args.sources,config,
                    max_bytes=int(args.max_download_gb*1e9),timeout=args.timeout,
-                   storage=args.storage,max_cache_bytes=int(args.cache_gb*1e9),workers=args.workers,per_host=args.per_host)
+                   storage=args.storage,max_cache_bytes=int(args.cache_gb*1e9),workers=args.workers,per_host=args.per_host,
+                   acquisition=args.acquisition,parallel_sources=args.parallel_sources,repair_from=args.repair_from)
     return 0 if result['status']=='complete' else 2
 
 

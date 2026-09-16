@@ -1,0 +1,74 @@
+{
+  "verified_at": "2026-09-16T14:06:22.426840+00:00",
+  "status": "passed",
+  "original_manifest_sha256": "38d826de5d380ab6b123bff43ebe843acc16303b35d571816d2e665d3e667aad",
+  "final_manifest_sha256": "e4f379c7d00b5adb3f7fde76fee225d7026a95c3d66700fd5276eaa69ed24824",
+  "originally_complete": 60342,
+  "preserved_unavailable": 17,
+  "repaired_jobs": 133,
+  "repaired_by_source": {
+    "nlcd": 121,
+    "warnings": 11,
+    "radar": 1
+  },
+  "final_by_source": [
+    {
+      "source": "nlcd",
+      "status": "complete",
+      "jobs": 20147
+    },
+    {
+      "source": "nlcd",
+      "status": "unavailable",
+      "jobs": 17
+    },
+    {
+      "source": "radar",
+      "status": "complete",
+      "jobs": 20164
+    },
+    {
+      "source": "warnings",
+      "status": "complete",
+      "jobs": 20164
+    }
+  ],
+  "reused_original_jobs": 60359,
+  "new_downloaded_bytes": 12435636,
+  "repair_elapsed_seconds": 194.76721764399963,
+  "scientific_comparison": {
+    "radar_detections": {
+      "original_rows": 1805671,
+      "final_rows": 1805706,
+      "added_rows": 35,
+      "existing_scientific_values": "unchanged"
+    },
+    "tornado_radar": {
+      "original_rows": 2104839,
+      "final_rows": 2104931,
+      "added_rows": 92,
+      "existing_scientific_values": "unchanged"
+    },
+    "warning_updates": {
+      "original_rows": 846391,
+      "final_rows": 846391,
+      "added_rows": 0,
+      "existing_scientific_values": "unchanged; formerly null warning action/expiry may be resolved"
+    },
+    "tornado_warnings": {
+      "original_rows": 109013,
+      "final_rows": 109133,
+      "added_rows": 120,
+      "existing_scientific_values": "unchanged"
+    },
+    "nlcd_samples": {
+      "original_rows": 40052,
+      "final_rows": 40294,
+      "added_rows": 242,
+      "existing_scientific_values": "unchanged"
+    }
+  },
+  "newly_resolved_warning_updates": 70,
+  "original_collection_manifest_sha256": "099e8a89311f9986f8e0d0c2496cbcb3c2ff6eee3f1102721081d6c774666cd6",
+  "snapshot_note": "The repair input is a JSON-reserialized copy of the original manifest; its byte checksum differs while its data is unchanged."
+}

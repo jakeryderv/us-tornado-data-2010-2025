@@ -9,6 +9,9 @@ from email.utils import parsedate_to_datetime
 from urllib.error import HTTPError
 from urllib.parse import urlsplit
 from urllib.request import Request
+from urllib.error import URLError
+from requests.exceptions import ConnectionError as RequestsConnectionError, Timeout
+from urllib3.exceptions import HTTPError as TransportError
 
 from . import common
 from .common import BudgetExceeded, CacheLimitExceeded, atomic_json, digest, now, public_url, stable_id
@@ -30,6 +33,9 @@ class JobCache:
 
     def json(self, url):
         return self.shared.json(url, owner=self)
+
+    def member(self, *args, **kwargs):
+        return self.shared.member(*args, **kwargs, owner=self)
 
 
 class Cache:
@@ -153,6 +159,12 @@ class Cache:
                 meta_path = path.with_suffix(path.suffix + '.json')
                 meta = self._metadata.get(path) or json.loads(meta_path.read_text())
                 if meta['sha256'] != asset['sha256']:
+                    from .storage import verify_asset
+                    if (asset.get('retention') == 'optional' and
+                            verify_asset(self.root, dict(asset, path=path.name)) == 'intentionally_not_retained'):
+                        # Committing an inherited job must not mark its newer
+                        # replacement download as committed for another owner.
+                        continue
                     raise ValueError('Source changed before extraction checkpoint')
                 if not meta.get('extraction_committed_at'):
                     meta['extraction_committed_at'] = now()
@@ -192,6 +204,31 @@ class Cache:
     def _host(self, host):
         with self._state:
             return self._hosts.setdefault(host, BoundedSemaphore(self.per_host))
+
+    def member(self, container, name, text, *, owner=None):
+        """Retain selected ZIP text with its container hash, without keeping the ZIP."""
+        from urllib.parse import quote
+        owner = self if owner is None else owner
+        parent = self.assets[container]
+        clean = parent['url'] + '#member=' + quote(name, safe='')
+        request_id = stable_id('http', [clean, parent['sha256']])
+        path = self.root / (request_id.replace(':', '_') + '.txt')
+        body = text.encode('utf-8')
+        with self._state:
+            if not path.exists():
+                temp = path.with_suffix('.txt.part')
+                temp.write_bytes(body)
+                temp.replace(path)
+            elif path.read_bytes() != body:
+                raise ValueError('Changed retained warning ZIP member')
+            meta = dict(request_id=request_id, url=clean, final_url=clean,
+                        retrieved_at=parent['retrieved_at'], bytes=len(body), sha256=digest(path),
+                        request_metadata=dict(container_asset_id=container, container_sha256=parent['sha256'], member=name),
+                        path=str(path.resolve()), retention='required')
+            meta['asset_id'] = stable_id('asset', [request_id, meta['sha256']])
+            atomic_json(path.with_suffix('.txt.json'), meta)
+            self._touch(path, meta, owner)
+        return path, meta['asset_id']
 
     def fetch(self, url, *, suffix='.bin', headers=None, identity_url=None, request_metadata=None, owner=None):
         owner = self if owner is None else owner
@@ -315,6 +352,12 @@ class Cache:
                         self._cooldown[host] = max(self._cooldown.get(host, 0), time.monotonic() + max(0, delay))
                 except (BudgetExceeded, CacheLimitExceeded, ValueError):
                     raise
+                except (Timeout, RequestsConnectionError, TransportError, URLError, TimeoutError, ConnectionError) as exc:
+                    if attempt == 2:
+                        raise RuntimeError(f'{type(exc).__name__} after 3 attempts for {clean}') from None
+                    with self._state:
+                        self.stats['retries'] += 1
+                        self._cooldown[host] = max(self._cooldown.get(host, 0), time.monotonic() + 2 ** attempt)
                 except Exception as exc:
                     raise RuntimeError(f'{type(exc).__name__} for {clean}') from None
                 finally:

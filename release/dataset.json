@@ -1,12 +1,13 @@
 {
   "slug": "us-tornado-data-2010-2025",
   "title": "US Tornado Data, 2010\u20132025",
-  "subtitle": "Linked NOAA tornado records, damage footprints, and Census county context",
-  "version": "v2.1.0",
+  "subtitle": "Linked tornado records, radar, warnings, land cover and EF modeling tables",
+  "version": "v2.2.0",
   "start_year": 2010,
   "end_year": 2025,
   "code_repository": "https://github.com/jakeryderv/us-tornado-data-2010-2025",
   "author": "Jake Van Slyke",
   "data_license": "US-Government-Works",
-  "code_license": "MIT"
+  "code_license": "MIT",
+  "include_enrichment": true
 }
