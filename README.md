@@ -4,17 +4,18 @@
 
 NOAA tornado records and damage footprints with Census county population/housing
 context. Load a frozen release with Python, or collect sources and inspect them
-locally in Jupyter. **v2.0.0** replaces standalone DAT surveys with NOAA's Event
-Footprint Catalog. Earlier releases retain the detailed survey data.
+locally in Jupyter. **v2.1.0** provides one enriched tornado table and eight
+supporting tables, including an auditable cross-source crosswalk. Earlier releases
+retain their original layouts and detailed DAT surveys.
 
 - [Hugging Face dataset](https://huggingface.co/datasets/jakeryderv/us-tornado-data-2010-2025)
 - [Kaggle dataset](https://www.kaggle.com/datasets/jakevanslyke/us-tornado-data-2010-2025)
-- [v2.0.0 release receipt](release/v2.0.0.json): pinned revisions and verified checksums.
+- [v2.1.0 release receipt](release/v2.1.0.json): pinned revisions and verified checksums.
 
 ## Download and load
 
 Install `pandas`, `pyarrow`, and either `huggingface-hub` or `kagglehub` in your
-project. Fetch only the 0.9 MB SPC table to begin:
+project. Fetch only the 1.1 MB enriched tornado table to begin:
 
 ```python
 import pandas as pd
@@ -22,7 +23,7 @@ from huggingface_hub import hf_hub_download
 
 path = hf_hub_download(
     "jakeryderv/us-tornado-data-2010-2025", repo_type="dataset",
-    revision="dbe9453af95255c77de5d4616fba2f924a2f80ad", filename="analysis/tornadoes.parquet",
+    revision="v2.1.0", filename="analysis/tornadoes.parquet",
 )
 tornadoes = pd.read_parquet(path)
 ```
@@ -34,14 +35,14 @@ import pandas as pd
 import kagglehub
 
 path = kagglehub.dataset_download(
-    "jakevanslyke/us-tornado-data-2010-2025/versions/5",
+    "jakevanslyke/us-tornado-data-2010-2025/versions/6",
     path="analysis/tornadoes.parquet",
 )
 tornadoes = pd.read_parquet(path)
 ```
 
 Change the filename to download another table. To download all analysis files on
-HF, use `snapshot_download(..., repo_type="dataset", revision="dbe9453af95255c77de5d4616fba2f924a2f80ad",
+HF, use `snapshot_download(..., repo_type="dataset", revision="v2.1.0",
 allow_patterns=["analysis/*", "ANALYSIS.md"])`. Both clients reuse local caches.
 Full sources are direct files on HF and inside `release.zip.bin` on Kaggle.
 See [release/download verification](docs/RELEASING.md) for full-collection checks.
@@ -50,17 +51,19 @@ See [release/download verification](docs/RELEASING.md) for full-collection check
 
 | Source | Files under analysis/ |
 |---|---|
-| SPC | `tornadoes.parquet` — 20,164 tracks, including unknown EF ratings |
+| SPC + accepted links | `tornadoes.parquet` — 20,164 tracks, EF labels, linkage counts, and county summaries |
 | NCEI Storm Events | `storm_events.parquet`, `storm_fatalities.parquet`, `storm_locations.parquet` |
 | NOAA Event Footprint Catalog | `tornado_footprints.parquet` — 24,858 damage regions from DAT/Storm Events |
 | Census | `county_context.parquet`, `county_boundaries.parquet` |
+| Link evidence | `source_crosswalk.parquet`, `tornado_counties.parquet` |
 | Summary/provenance | `annual_summary.csv`, `manifest.json` |
 
-There are **seven main tables**, plus the annual summary, totaling **24.1 MB**. Use `pandas.read_parquet`
+There are **nine main tables**, plus the annual summary, totaling **29.3 MB**. Use `pandas.read_parquet`
 for ordinary tables and `geopandas.read_parquet` for footprints and boundaries.
 The [field dictionary](docs/ANALYSIS.md) covers types, units, and missing values.
 
-Footprints are not unique tornadoes and have not been matched to SPC. Some are
+Footprints are not unique tornadoes. The crosswalk records accepted, ambiguous,
+and unmatched links to SPC. Some footprints are
 nested regions or reconstructed paths. Raw placeholder widths and unknown ratings
 remain explicit; a separate usable-width column marks unusable widths as null.
 The catalog does not include individual DAT damage-indicator points. See the
@@ -101,22 +104,20 @@ select manifest-backed sources and exclude old DAT caches.
 
 Census supplies annual county population/housing estimates and one fixed 2020
 simplified county map. These are context, not exact people/buildings struck.
-The frozen release contains no radar, photos, building footprints, cross-source
-event join, or model split. An optional local linkage layer is described below.
+The release contains no radar, photos, individual building footprints, or fixed
+train/test split. The crosswalk is automatic research evidence, not verified identity.
 
-## Link records across sources
+## One build, one starting table
 
-```sh
-uv run python scripts/build_crosswalk.py
-```
+`uv run python scripts/build_analysis.py` creates all nine tables under
+`data/analysis/`. Start with `tornadoes.parquet`; use accepted crosswalk links for
+narratives, locations, fatalities, or footprint detail. Every SPC row and its
+original columns remain intact. No duplicate `tornadoes_linked.parquet` is supplied.
 
-This builds `data/linkage/source_crosswalk.parquet`, `tornado_counties.parquet`,
-and `tornadoes_linked.parquet` without changing the seven original tables.
-The crosswalk retains candidates and unmatched records; the linked view preserves
-one row per SPC tornado. Automatic acceptance requires a unique close match in
-time and geometry. [Linkage methods and usage](docs/LINKAGE.md) and the
-[audit](reports/linkage/audit.md) describe coverage, ambiguity, and limitations.
-These are local research outputs, separate from the frozen v2.0.0 host releases.
+The [linkage methods](docs/LINKAGE.md) explain conservative acceptance, unresolved
+candidates, county aggregation, and suggested split groups. The
+[audit](reports/linkage/audit.md) records coverage and limitations. Rebuild after
+refreshing sources; do not use record availability as a physical intensity feature.
 
 ## Repository
 
@@ -137,7 +138,7 @@ dist/                    Local staged releases, ignored by Git
 
 [Reports](reports/README.md) distinguish current verification from the historical
 DAT study. The [public Kaggle example](https://www.kaggle.com/code/jakevanslyke/us-tornado-data-getting-started)
-loads v2.0.0 / Kaggle 5 with `kagglehub` and reads the seven consolidated tables.
+loads v2.1.0 / Kaggle 6 with `kagglehub` and reads the nine consolidated tables.
 It runs on Kaggle or locally; the local inspection notebook additionally checks
 the repository collection and analysis provenance.
 

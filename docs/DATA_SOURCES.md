@@ -58,5 +58,5 @@ The GitHub repository is the code and methodology reference:
 The frozen data is available on
 [Hugging Face](https://huggingface.co/datasets/jakeryderv/us-tornado-data-2010-2025)
 and [Kaggle](https://www.kaggle.com/datasets/jakevanslyke/us-tornado-data-2010-2025).
-Use the revisions and checksums in the [v2.0.0 release receipt](https://github.com/jakeryderv/us-tornado-data-2010-2025/blob/main/release/v2.0.0.json)
+Use the revisions and checksums in the [v2.1.0 release receipt](https://github.com/jakeryderv/us-tornado-data-2010-2025/blob/main/release/v2.1.0.json)
 and the `CITATION.cff` included with the snapshot when citing this collection.

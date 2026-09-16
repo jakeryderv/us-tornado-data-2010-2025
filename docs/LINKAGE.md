@@ -1,33 +1,33 @@
 # SPC-centered crosswalk and linked analysis view
 
-This optional **local research layer** connects NCEI records and NOAA footprint
-regions to the SPC tornado catalog. It preserves all seven source-oriented
-analysis tables and all SPC rows, including unknown EF ratings. It is generated
-separately under `data/linkage/`; the frozen v2.0.0 / Kaggle 5 release does not
-contain it. The published Kaggle example continues to demonstrate that release.
+The **v2.1.0 / Kaggle 6** release connects NCEI records and NOAA footprint regions
+to the SPC tornado catalog. All nine main tables live in `analysis/`. The main
+`tornadoes.parquet` preserves every SPC row and original column, adding accepted
+link counts and county summaries. Six supporting source tables retain their v2.0.0
+bytes; two bridge tables make links traceable. No duplicate tornado table is needed.
 
 ```sh
-uv run python scripts/build_crosswalk.py
+uv run python scripts/build_analysis.py
 ```
 
-The command needs four existing Parquet tables and `analysis/manifest.json`, not
-a new download. It verifies their checksums, builds the links, checks cardinality
-and Parquet round trips, and writes a manifest with input/output hashes, rules,
-software versions, and the builder's hash. `--data-dir` and `--output` select other
-locations. Rebuild after rebuilding the analysis tables; the local inspection
-notebook detects stale linkage inputs. These files are deliberately outside the
-current release packager's source/analysis inventory.
+This single command rebuilds all tables from retained source files, verifies source
+checksums and table cardinality, and checks Parquet round trips before replacing
+outputs. `analysis/manifest.json` records source hashes, rules, software, and the
+linkage builder hash. Its `linkage` section contains decision metadata and counts.
+`build_crosswalk.py` remains a compatibility entry point for the same full build.
+The inspection notebook checks for stale inputs. Old local `data/linkage/` outputs
+were retired; earlier public releases remain available.
 
-## Three derived tables
+## Main table and link evidence
 
 | File | Row unit | Purpose |
 |---|---|---|
 | `source_crosswalk.parquet` | Source record/candidate SPC pair; one null-target row if no candidates | Complete linkage evidence and decisions for every NCEI detail record and footprint region |
 | `tornado_counties.parquet` | Accepted NCEI event's county/year context | Traceable county codes and left-joined Census estimates; repeated county segments stay visible |
-| `tornadoes_linked.parquet` | One SPC tornado | All original SPC columns plus link counts, county-context summaries, and a suggested split group |
+| `tornadoes.parquet` | One SPC tornado | All original SPC columns plus link counts, county-context summaries, and a suggested split group |
 
 The [audit](../reports/linkage/audit.md) records coverage and unresolved cases.
-`data/linkage/manifest.json` supplies the exact columns, dtypes, hashes, counts,
+`data/analysis/manifest.json` supplies the exact columns, dtypes, hashes, counts,
 and rules for a run. No source values or EF labels are overwritten.
 
 ## How decisions work
@@ -94,9 +94,9 @@ reporting; these sources are not independent confirmations.
 from pathlib import Path
 import pandas as pd
 
-root = Path("data/linkage")
+root = Path("data/analysis")
 crosswalk = pd.read_parquet(root / "source_crosswalk.parquet")
-linked = pd.read_parquet(root / "tornadoes_linked.parquet")
+linked = pd.read_parquet(root / "tornadoes.parquet")
 accepted = crosswalk.loc[crosswalk["accepted"]]
 review = crosswalk.loc[crosswalk["plausible"] & ~crosswalk["accepted"]]
 

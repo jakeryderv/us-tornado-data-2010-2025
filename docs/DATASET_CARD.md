@@ -7,9 +7,9 @@ independent compilation, not an official government product.
 
 ## Start with the analysis tables
 
-**v2.0.0** provides seven main Parquet tables, an annual summary, and a provenance
-manifest under `analysis/`. The tables total **24.1 MB**. Start with `tornadoes.parquet`: 20,164 SPC tracks in
-about 0.9 MB. The footprint and county boundary tables are GeoParquet; use GeoPandas
+**v2.1.0** provides nine main Parquet tables, an annual summary, and a provenance
+manifest under `analysis/`. The tables total **29.3 MB**. Start with `tornadoes.parquet`: 20,164 SPC tracks in
+about 1.1 MB. The footprint and county boundary tables are GeoParquet; use GeoPandas
 for geometry. Other tables load with pandas. See [ANALYSIS.md](ANALYSIS.md) for
 all fields, units, missing-value conventions, and loading examples.
 
@@ -20,7 +20,7 @@ import pandas as pd
 
 root = Path(snapshot_download(
     "jakeryderv/us-tornado-data-2010-2025", repo_type="dataset",
-    revision="v2.0.0", allow_patterns=["analysis/tornadoes.parquet", "ANALYSIS.md"],
+    revision="v2.1.0", allow_patterns=["analysis/tornadoes.parquet", "ANALYSIS.md"],
 ))
 tornadoes = pd.read_parquet(root / "analysis/tornadoes.parquet")
 ```
@@ -35,21 +35,40 @@ The two hosts' shared payload bytes and checksums are identical after extraction
 
 | File under analysis/ | Source | Rows | Unit |
 |---|---|---:|---|
-| `tornadoes.parquet` | SPC | 20,164 | Historical track, including 1,525 unknown EF ratings |
+| `tornadoes.parquet` | SPC + linkage | 20,164 | Track, original EF label, accepted-link counts and county summaries |
 | `storm_events.parquet` | NCEI Storm Events | 23,189 | Tornado event/county segment |
 | `storm_fatalities.parquet` | NCEI Storm Events | 1,352 | Related fatality record |
 | `storm_locations.parquet` | NCEI Storm Events | 35,920 | Related location record |
 | `tornado_footprints.parquet` | NOAA Event Footprint Catalog | 24,858 | Damage region; not a unique tornado |
 | `county_context.parquet` | Census estimates | 50,294 | County/year population and housing |
 | `county_boundaries.parquet` | Census cartographic map | 3,234 | Fixed 2020 county polygon |
+| `source_crosswalk.parquet` | Source matching | 95,222 | Candidate link or unmatched source record |
+| `tornado_counties.parquet` | NCEI + Census | 20,842 | Accepted NCEI county/year link with context |
 | `annual_summary.csv` | Source counts | 16 | Year |
 
 NCEI's 48 original annual all-hazard gzip tables are retained alongside exact
 tornado extracts: 1,037,691 details, 14,711 fatalities, and 950,862 locations rows.
 Counts across sources describe different units and must not be added to count
-tornadoes. No cross-source tornado join, train/test split, or model is supplied.
+tornadoes. A conservative crosswalk links source records to SPC; no fixed train/test split or model is supplied.
 
-## What changed in v2
+## What changed in v2.1
+
+The enriched `tornadoes.parquet` is the single starting table, retaining all original
+SPC columns and adding link counts, county summaries, and suggested grouping.
+`source_crosswalk.parquet` and `tornado_counties.parquet` join the six unchanged
+supporting tables under `analysis/`, making nine main tables plus the annual CSV.
+There is no duplicate tornado table. Accepted links cover 18,313 SPC tracks with
+NCEI records and 14,488 with footprints; 14,341 have both. Every source record,
+including ambiguous and unmatched records, remains represented in the crosswalk.
+
+Acceptance requires a unique plausible match, valid timestamps, at most two minutes
+outside the SPC interval, and at most two kilometers of directed geometry distance.
+A wider ambiguity check and footprint-family conflict check prevent forced matches.
+EF ratings are never matching inputs. These are automatic research decisions,
+not calibrated probabilities or manually confirmed identities. County aggregates
+are totals across linked county-years, not exact exposure. Read [LINKAGE.md](LINKAGE.md).
+
+## Earlier v2 source change
 
 The three standalone DAT survey tables and original DAT batches have been replaced
 by one Footprint Catalog table and 16 annual source GeoJSON files. EFC prioritizes
@@ -58,7 +77,7 @@ DAT-derived and 8,393 SED-derived footprint regions in this snapshot.
 
 Detailed survey points, damage indicators/degrees, and original standalone DAT
 lines/polygons are no longer included. Earlier v1.2.0 / Kaggle 4 remains available
-for that survey detail. SPC, NCEI, and Census table schemas are unchanged. The
+for that survey detail. The v2.0.0 source change preserved SPC, NCEI, and Census table schemas. The
 annual summary replaces DAT point/line/polygon counts with EFC DAT/SED footprint
 counts. The [public Kaggle example](https://www.kaggle.com/code/jakevanslyke/us-tornado-data-getting-started)
 loads these v2 tables with `kagglehub`; its earlier notebook versions retain the
@@ -81,8 +100,8 @@ map. County housing counts are residences, not buildings directly struck.
 EFC footprints remain damage-survey/report derived; some are reconstructed from
 lines/endpoints. Multiple nested damage regions can belong to the same tornado.
 The catalog uses proximity rules to supplement DAT, not verified SPC event joins.
-Its generated SED IDs are not original NCEI EVENT_IDs. Keep source/year/ID provenance
-and reconcile associations before modeling or combining records.
+Its generated SED IDs are not original NCEI EVENT_IDs. The separate crosswalk uses
+time and geometry evidence; inspect its uncertainty before combining records.
 
 The footprint table preserves raw values, including EFU, EF3+, -99, nulls, and
 blank strings. Nullable `ef_rating`/`max_ef_rating` accept only exact EF0–EF5 labels.
@@ -100,7 +119,7 @@ and reporting/survey biases need explicit treatment in modeling.
 ## Files and reproducibility
 
 ```text
-analysis/                  Seven Parquet tables, annual summary, manifest
+analysis/                  Nine Parquet tables, annual summary, manifest
 spc/                       Selected tornado CSV and full-archive provenance
 ncei_storm_events/raw/      Original annual all-hazard gzip CSVs
 ncei_storm_events/tornado/  Exact tornado extracts by year/table

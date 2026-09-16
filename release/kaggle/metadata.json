@@ -1,6 +1,6 @@
 {
   "expectedUpdateFrequency": "never",
-  "userSpecifiedSources": "Independent compilation of five U.S. government products:\n\n- NOAA/NWS SPC tornado database: https://www.spc.noaa.gov/wcm/#data\n- NOAA NCEI Storm Events: https://www.ncei.noaa.gov/stormevents/\n- NOAA Event Footprint Catalog (derived from DAT and Storm Events): https://www.ncei.noaa.gov/products/event-footprint-catalog\n- Census Population Estimates Program: https://www.census.gov/programs-surveys/popest.html\n- Census 2020 Cartographic Boundary Files: https://www.census.gov/geographies/mapping-files/2020/geo/carto-boundary-file.html\n\nv2 replaces the standalone DAT survey collection with annual footprint files. Footprints are damage regions, sometimes reconstructed or nested, not unique tornadoes or independent radar observations. Source URLs, retrieval times, generations, hashes, and original files are retained. Census estimates use vintage 2020 for 2010–2019 and vintage 2025 for 2020–2025 with a fixed 2020 map.\n\nFixed 2010–2025 study snapshot; no scheduled refresh. Code, limitations, and release receipts: https://github.com/jakeryderv/us-tornado-data-2010-2025",
+  "userSpecifiedSources": "Independent compilation of five U.S. government products:\n\n- NOAA/NWS SPC tornado database: https://www.spc.noaa.gov/wcm/#data\n- NOAA NCEI Storm Events: https://www.ncei.noaa.gov/stormevents/\n- NOAA Event Footprint Catalog (derived from DAT and Storm Events): https://www.ncei.noaa.gov/products/event-footprint-catalog\n- Census Population Estimates Program: https://www.census.gov/programs-surveys/popest.html\n- Census 2020 Cartographic Boundary Files: https://www.census.gov/geographies/mapping-files/2020/geo/carto-boundary-file.html\n\nv2 replaces the standalone DAT survey collection with annual footprint files. Footprints are damage regions, sometimes reconstructed or nested, not unique tornadoes or independent radar observations. Source URLs, retrieval times, generations, hashes, and original files are retained. Census estimates use vintage 2020 for 2010\u20132019 and vintage 2025 for 2020\u20132025 with a fixed 2020 map.\n\nFixed 2010\u20132025 study snapshot; no scheduled refresh. Code, limitations, and release receipts: https://github.com/jakeryderv/us-tornado-data-2010-2025",
   "resources": [
     {
       "path": "README.md",
@@ -32,7 +32,7 @@
     },
     {
       "path": "release_manifest.json",
-      "description": "Frozen v2.0.0 shared payload inventory: source snapshots, code revision, paths, byte sizes, and SHA-256. Use with SHA256SUMS to verify either host."
+      "description": "Frozen v2.1.0 shared payload inventory: source snapshots, code revision, paths, byte sizes, and SHA-256. Use with SHA256SUMS to verify either host."
     },
     {
       "path": "SHA256SUMS",
@@ -40,15 +40,15 @@
     },
     {
       "path": "release.zip.bin",
-      "description": "Complete v2.0.0 dataset as a ZIP archive with an extra .bin suffix to retain original compressed files. Includes SPC/NCEI, annual NOAA footprints, Census, seven analysis tables, annual summary, and provenance. Extract with Python zipfile. Standalone DAT batches are absent."
+      "description": "Complete v2.1.0 dataset as a ZIP archive with an extra .bin suffix to retain original compressed files. Includes SPC/NCEI, annual NOAA footprints, Census, nine analysis tables, annual summary, and provenance. Extract with Python zipfile. Standalone DAT batches are absent."
     },
     {
       "path": "ANALYSIS.md",
-      "description": "Field dictionary for seven main tables plus annual summary; source IDs, types, geometry, timestamp conventions, placeholder widths, and EF/modeling limitations."
+      "description": "Field dictionary for nine main tables plus annual summary; source IDs, types, geometry, timestamp conventions, placeholder widths, and EF/modeling limitations."
     },
     {
       "path": "analysis/tornadoes.parquet",
-      "description": "20,164 retained SPC tornado tracks, 2010–2025. Descriptive field names, string identifiers, nullable EF ratings, explicit units, and coordinate plausibility flags. Unknown EF labels remain null; no cross-source joins or model split.",
+      "description": "20,164 SPC tornadoes with all original fields and nullable EF labels, accepted-link counts, county population/housing summaries, and a suggested split group. Single starting table; linkage is automatic research evidence, not independently confirmed identity.",
       "columns": [
         {
           "name": "tornado_id",
@@ -60,7 +60,7 @@
         },
         {
           "name": "year",
-          "description": "Calendar year, 2010–2025."
+          "description": "Calendar year, 2010\u20132025."
         },
         {
           "name": "start_date",
@@ -132,7 +132,7 @@
         },
         {
           "name": "ef_rating",
-          "description": "Nullable integer 0–5; -9 becomes null"
+          "description": "Nullable integer 0\u20135; -9 becomes null"
         },
         {
           "name": "ef_rating_known",
@@ -140,11 +140,59 @@
         },
         {
           "name": "start_coordinates_valid",
-          "description": "Both coordinates present, latitude within ±90, longitude within ±180, and neither zero"
+          "description": "Both coordinates present, latitude within \u00b190, longitude within \u00b1180, and neither zero"
         },
         {
           "name": "end_coordinates_valid",
-          "description": "Both coordinates present, latitude within ±90, longitude within ±180, and neither zero"
+          "description": "Both coordinates present, latitude within \u00b190, longitude within \u00b1180, and neither zero"
+        },
+        {
+          "name": "ncei_accepted_records",
+          "description": "Number of NCEI event records accepted for this SPC track; zero means no accepted link."
+        },
+        {
+          "name": "ncei_unresolved_candidate_records",
+          "description": "Number of distinct NCEI records with plausible but unaccepted links to this track."
+        },
+        {
+          "name": "footprint_accepted_records",
+          "description": "Number of accepted footprint regions; these are not unique tornadoes."
+        },
+        {
+          "name": "footprint_unresolved_candidate_records",
+          "description": "Distinct footprint regions with plausible but unaccepted links to this track."
+        },
+        {
+          "name": "footprint_dat_accepted_regions",
+          "description": "Accepted regions originating from DAT in the Footprint Catalog."
+        },
+        {
+          "name": "footprint_sed_accepted_regions",
+          "description": "Accepted regions originating from Storm Events in the Footprint Catalog."
+        },
+        {
+          "name": "linked_county_years",
+          "description": "Distinct linked county/year keys after deduplicating accepted NCEI county segments."
+        },
+        {
+          "name": "county_context_missing_rows",
+          "description": "Linked county/year keys with no Census context join."
+        },
+        {
+          "name": "linked_county_population_sum",
+          "description": "Sum of populations for unique linked county/years; all-or-null if any value is missing. County totals, not people struck."
+        },
+        {
+          "name": "linked_county_housing_units_sum",
+          "description": "Sum of housing units for unique linked county/years; all-or-null if any value is missing. Not buildings struck."
+        },
+        {
+          "name": "suggested_split_group",
+          "description": "Conservative grouping of UTC days and plausible episode/family links. Not a verified outbreak ID or model feature."
+        },
+        {
+          "name": "linkage_available",
+          "description": "True when at least one NCEI or footprint link is accepted; coverage metadata, not storm intensity."
         }
       ]
     },
@@ -154,7 +202,7 @@
       "columns": [
         {
           "name": "year",
-          "description": "Calendar year, 2010–2025."
+          "description": "Calendar year, 2010\u20132025."
         },
         {
           "name": "county_fips",
@@ -178,7 +226,7 @@
         },
         {
           "name": "estimate_vintage",
-          "description": "Census estimate vintage: 2020 for 2010–2019, 2025 for 2020–2025."
+          "description": "Census estimate vintage: 2020 for 2010\u20132019, 2025 for 2020\u20132025."
         },
         {
           "name": "map_2020_fips_present",
@@ -192,7 +240,7 @@
       "columns": [
         {
           "name": "year",
-          "description": "Calendar year, 2010–2025."
+          "description": "Calendar year, 2010\u20132025."
         },
         {
           "name": "spc_tracks",
@@ -243,30 +291,30 @@
           "description": "Rows in the NCEI tornado locations extract for its source year; not matched to SPC events."
         },
         {
-          "name": "census_county_rows",
-          "description": "County context rows in the year."
-        },
-        {
-          "name": "census_counties_without_2020_map",
-          "description": "County/year rows whose saved 2020-map code-presence flag is false."
-        },
-        {
           "name": "efc_dat_footprints",
           "description": "DAT-derived damage regions in the EFC annual file, including nested regions; not unique tornadoes."
         },
         {
           "name": "efc_sed_footprints",
           "description": "Storm Events-derived damage regions supplementing DAT in EFC; generated IDs, not original NCEI event IDs."
+        },
+        {
+          "name": "census_county_rows",
+          "description": "County context rows in the year."
+        },
+        {
+          "name": "census_counties_without_2020_map",
+          "description": "County/year rows whose saved 2020-map code-presence flag is false."
         }
       ]
     },
     {
       "path": "analysis/manifest.json",
-      "description": "Input/output checksums, types, source field mappings, software versions, and reconciliation for seven main tables plus annual summary (schema version 3)."
+      "description": "Input/output checksums, types, source field mappings, software versions, and reconciliation for nine main tables plus annual summary (schema version 3)."
     },
     {
       "path": "analysis/storm_events.parquet",
-      "description": "23,189 NCEI tornado event/county-segment records across 2010–2025, with ratings, narratives, retained damage strings, source-local dates, and source-file/row provenance. NCEI event IDs are separate from SPC/DAT IDs.",
+      "description": "23,189 NCEI tornado event/county-segment records across 2010\u20132025, with ratings, narratives, retained damage strings, source-local dates, and source-file/row provenance. NCEI event IDs are separate from SPC/DAT IDs.",
       "columns": [
         {
           "name": "begin_yearmonth",
@@ -494,7 +542,7 @@
         },
         {
           "name": "ef_rating",
-          "description": "Nullable integer 0–5 from exact EF0–EF5 source labels; unknown or other categories remain null. Survey feature ratings are not tornado maxima."
+          "description": "Nullable integer 0\u20135 from exact EF0\u2013EF5 source labels; unknown or other categories remain null. Survey feature ratings are not tornado maxima."
         }
       ]
     },
@@ -694,7 +742,7 @@
     },
     {
       "path": "analysis/tornado_footprints.parquet",
-      "description": "24,858 NOAA Event Footprint Catalog damage regions for annual files 2010–2025: 16,465 DAT and 8,393 Storm Events. Original geometry, source attributes, parent/child arrays, and sentinels retained; nullable EF/width helpers added. Regions are not independent tornadoes; no SPC/NCEI join. GeoParquet, WGS84 longitude/latitude.",
+      "description": "24,858 NOAA Event Footprint Catalog damage regions for annual files 2010\u20132025: 16,465 DAT and 8,393 Storm Events. Original geometry, source attributes, parent/child arrays, and sentinels retained; nullable EF/width helpers added. Regions are not independent tornadoes; no SPC/NCEI join. GeoParquet, WGS84 longitude/latitude.",
       "columns": [
         {
           "name": "footprint_id",
@@ -986,11 +1034,11 @@
         },
         {
           "name": "ef_rating",
-          "description": "Nullable exact EF0–EF5 regional rating; EFU/EF3+ remain null. Raw efscale is preserved."
+          "description": "Nullable exact EF0\u2013EF5 regional rating; EFU/EF3+ remain null. Raw efscale is preserved."
         },
         {
           "name": "max_ef_rating",
-          "description": "Nullable exact EF0–EF5 catalog maximum among associated regions; not a reconciled SPC label."
+          "description": "Nullable exact EF0\u2013EF5 catalog maximum among associated regions; not a reconciled SPC label."
         },
         {
           "name": "width_is_placeholder",
@@ -1053,6 +1101,190 @@
           "description": "Original catalog Polygon/MultiPolygon WKB in GeoParquet, OGC:CRS84 longitude/latitude; surveyed or reconstructed footprint."
         }
       ]
+    },
+    {
+      "path": "analysis/source_crosswalk.parquet",
+      "description": "All NCEI detail and footprint source records, with every candidate SPC link or a null-target unmatched row. Time/geometry evidence, acceptance decisions, ambiguity, source provenance, and confidence are retained.",
+      "columns": [
+        {
+          "name": "source_table",
+          "description": "Original analysis table: storm_events or tornado_footprints."
+        },
+        {
+          "name": "source_id",
+          "description": "NCEI event_id or EFC footprint_id; interpret with source_table."
+        },
+        {
+          "name": "source_group_id",
+          "description": "NCEI episode or EFC source/year-scoped family used for grouping; not necessarily a single tornado."
+        },
+        {
+          "name": "source_origin",
+          "description": "NCEI, DAT, or SED origin of the linked source record."
+        },
+        {
+          "name": "source_year",
+          "description": "Original source-file year; not necessarily the UTC calendar year."
+        },
+        {
+          "name": "source_file",
+          "description": "Original source file path for tracing the record."
+        },
+        {
+          "name": "source_row",
+          "description": "One-based record position in the source file."
+        },
+        {
+          "name": "time_basis",
+          "description": "Fields used to interpret source event timestamps."
+        },
+        {
+          "name": "input_issue",
+          "description": "Missing/invalid source time or geometry issue, or none."
+        },
+        {
+          "name": "source_start_utc",
+          "description": "Selected source event start timestamp converted/interpreted in UTC."
+        },
+        {
+          "name": "source_end_utc",
+          "description": "Selected source event end timestamp converted/interpreted in UTC."
+        },
+        {
+          "name": "source_auto_eligible",
+          "description": "Whether source time/geometry are valid for automatic acceptance."
+        },
+        {
+          "name": "tornado_id",
+          "description": "SPC tornado key; null only for a no-candidate source record."
+        },
+        {
+          "name": "spc_start_utc",
+          "description": "SPC start converted using its fixed source time-zone code."
+        },
+        {
+          "name": "spc_end_utc",
+          "description": "SPC end converted using its fixed source time-zone code."
+        },
+        {
+          "name": "interval_gap_minutes",
+          "description": "Nonnegative separation between source and SPC time intervals, in minutes."
+        },
+        {
+          "name": "interval_outside_minutes",
+          "description": "Maximum extension of source interval outside SPC interval, in minutes."
+        },
+        {
+          "name": "start_delta_minutes",
+          "description": "Absolute source/SPC start-time difference in minutes; diagnostic only."
+        },
+        {
+          "name": "geometry_gap_km",
+          "description": "Minimum source-geometry to SPC endpoint-track distance, kilometers."
+        },
+        {
+          "name": "source_extent_distance_km",
+          "description": "Maximum source-vertex distance to the SPC endpoint track, kilometers."
+        },
+        {
+          "name": "plausible",
+          "description": "Passes wider 10-minute and 5-km ambiguity guard."
+        },
+        {
+          "name": "evidence_score",
+          "description": "Interval extension / 10 plus directed distance / 5. Lower is closer; not a probability."
+        },
+        {
+          "name": "confidence",
+          "description": "High only for accepted rule-based links; none otherwise. Not measured precision."
+        },
+        {
+          "name": "evidence_tier",
+          "description": "Strong, borderline, weak or none based on time/geometry evidence."
+        },
+        {
+          "name": "candidate_rank",
+          "description": "One-based evidence-score order within source record; null with no candidates."
+        },
+        {
+          "name": "candidate_count",
+          "description": "Number of broad-window SPC candidates for this source record."
+        },
+        {
+          "name": "plausible_candidate_count",
+          "description": "Number passing the wider ambiguity guard; acceptance requires exactly one."
+        },
+        {
+          "name": "accepted",
+          "description": "True only for unique, eligible, strict time/geometry links that pass family checks."
+        },
+        {
+          "name": "match_status",
+          "description": "Accepted, ambiguous, review_required, outside_acceptance or unmatched."
+        },
+        {
+          "name": "decision_reason",
+          "description": "Reason for acceptance or withheld acceptance."
+        }
+      ]
+    },
+    {
+      "path": "analysis/tornado_counties.parquet",
+      "description": "Accepted NCEI county/year records linked to SPC and left-joined to Census context. Repeated county segments stay visible; use unique county/year keys for sums.",
+      "columns": [
+        {
+          "name": "tornado_id",
+          "description": "SPC tornado key; null only for a no-candidate source record."
+        },
+        {
+          "name": "ncei_event_id",
+          "description": "Accepted NCEI event identifier; multiple events may share a county/year."
+        },
+        {
+          "name": "year",
+          "description": "NCEI event/source year used to join Census estimates."
+        },
+        {
+          "name": "county_fips",
+          "description": "Five-character county FIPS string, preserving leading zeros."
+        },
+        {
+          "name": "state_name",
+          "description": "Census state name; null when context is unavailable."
+        },
+        {
+          "name": "county_name",
+          "description": "Census county or equivalent name; null when context is unavailable."
+        },
+        {
+          "name": "population",
+          "description": "County population estimate, not tornado exposure."
+        },
+        {
+          "name": "housing_units",
+          "description": "County housing unit estimate, not buildings struck."
+        },
+        {
+          "name": "estimate_vintage",
+          "description": "Census source estimate vintage (2020 or 2025)."
+        },
+        {
+          "name": "map_2020_fips_present",
+          "description": "Whether county FIPS appears in the fixed 2020 map; not boundary stability."
+        },
+        {
+          "name": "context_available",
+          "description": "True when the accepted NCEI county/year matched a Census row."
+        },
+        {
+          "name": "link_basis",
+          "description": "accepted_ncei_county_code; county join derives from accepted source records, not polygon overlay."
+        }
+      ]
+    },
+    {
+      "path": "LINKAGE.md",
+      "description": "Crosswalk field definitions, conservative matching thresholds, uncertainty, county aggregation, and modeling/grouping limitations."
     }
   ],
   "image": "dataset-cover-image.png"

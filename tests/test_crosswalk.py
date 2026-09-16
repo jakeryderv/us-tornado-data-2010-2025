@@ -129,7 +129,7 @@ class CrosswalkTests(unittest.TestCase):
         import json
         from pathlib import Path
         from tempfile import TemporaryDirectory
-        from scripts.build_crosswalk import build_crosswalk,sha
+        from scripts.build_crosswalk import enrich_analysis,sha
         spc=pd.DataFrame([dict(tornado_id='spc:a',year=2020,start_date=pd.Timestamp('2020-06-01'),
             start_time='12:00:00',end_date=pd.Timestamp('2020-06-01'),end_time='12:10:00',spc_timezone_code=3,
             start_longitude=-97.,start_latitude=35.,end_longitude=-96.9,end_latitude=35.,ef_rating=pd.NA)])
@@ -143,26 +143,21 @@ class CrosswalkTests(unittest.TestCase):
             starttime_line_datetime_utc=pd.NaT,endtime_line_datetime_utc=pd.NaT,stormdate_datetime_utc=timestamp(),
             geometry=Point(-96.97,35).buffer(.001))],crs='OGC:CRS84')
         counties=pd.DataFrame([dict(year=2020,county_fips='01001',population=100,housing_units=40)])
+        frames={'tornadoes.parquet':spc,'storm_events.parquet':events,'tornado_footprints.parquet':footprints,'county_context.parquet':counties}
+        original={name:frame.copy(deep=True) for name,frame in frames.items()}
+        result,report=enrich_analysis(frames)
+        self.assertEqual(report['summary']['spc_with_both'],1)
+        self.assertEqual(report['verification']['status'],'passed')
+        self.assertTrue(pd.isna(result['tornadoes.parquet'].ef_rating.iloc[0]))
+        self.assertEqual(result['tornadoes.parquet'].linked_county_population_sum.iloc[0],100)
+        self.assertNotIn('tornadoes_linked.parquet',result)
+        for name,frame in frames.items():pd.testing.assert_frame_equal(frame,original[name])
+        again,_=enrich_analysis(frames)
+        for name in result:pd.testing.assert_frame_equal(result[name],again[name])
         with TemporaryDirectory() as temp:
-            root=Path(temp); analysis=root/'analysis';analysis.mkdir()
-            frames={'tornadoes.parquet':spc,'storm_events.parquet':events,'tornado_footprints.parquet':footprints,'county_context.parquet':counties}
-            for name,frame in frames.items():frame.to_parquet(analysis/name,index=False)
-            (analysis/'manifest.json').write_text(json.dumps({'files':[{'path':name,'sha256':sha(analysis/name)} for name in frames]}))
-            original={name:sha(analysis/name) for name in frames}
-            report=build_crosswalk(root)
-            self.assertEqual(report['summary']['spc_with_both'],1)
-            self.assertEqual(report['verification']['status'],'passed')
-            result=pd.read_parquet(root/'linkage/tornadoes_linked.parquet')
-            self.assertTrue(pd.isna(result.ef_rating.iloc[0]))
-            self.assertEqual(result.linked_county_population_sum.iloc[0],100)
-            self.assertEqual(original,{name:sha(analysis/name) for name in frames})
-            again=build_crosswalk(root)
-            self.assertEqual([f['sha256'] for f in report['files']],[f['sha256'] for f in again['files']])
-            saved=sha(root/'linkage/manifest.json')
-            (analysis/'tornadoes.parquet').write_bytes(b'corrupted')
-            with self.assertRaisesRegex(ValueError,'Stale analysis'):build_crosswalk(root)
-            self.assertEqual(sha(root/'linkage/manifest.json'),saved)
-            with self.assertRaisesRegex(ValueError,'separate'):build_crosswalk(root,analysis)
-
+            for name in ['source_crosswalk.parquet','tornado_counties.parquet']:
+                path=Path(temp)/name
+                result[name].to_parquet(path,index=False)
+                pd.testing.assert_frame_equal(result[name],pd.read_parquet(path))
 
 if __name__=='__main__':unittest.main()

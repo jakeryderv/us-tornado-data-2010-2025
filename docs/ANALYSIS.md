@@ -1,10 +1,10 @@
 # Analysis tables
 
-Release **v2.0.0** provides **seven main tables**, a 16-row annual summary, and
-one manifest under `analysis/`. The tables total about **24 MB**. Start with
-`tornadoes.parquet` (0.9 MB); download the additional tables as needed.
+Release **v2.1.0** provides **nine main tables**, a 16-row annual summary, and
+one manifest under `analysis/`. The tables total about **29.3 MB**. Start with
+`tornadoes.parquet` (1.1 MB); download the additional tables as needed.
 These preserve separate units of observation; no cross-source joined training
-dataset is implied. The SPC, NCEI, and Census tables retain their existing schemas. Version 2 replaces the three DAT survey tables with one footprint table.
+dataset is implied. The main SPC table adds linkage summaries; the six supporting source tables retain their v2.0.0 schemas. Version 2 replaced the three DAT survey tables with one footprint table.
 
 | Source | File | Rows | Unit |
 |---|---|---:|---|
@@ -15,6 +15,8 @@ dataset is implied. The SPC, NCEI, and Census tables retain their existing schem
 | NCEI | `storm_fatalities.parquet` | 1,352 | Related fatality record |
 | NCEI | `storm_locations.parquet` | 35,920 | Related location record |
 | NOAA Event Footprint Catalog | `tornado_footprints.parquet` | 24,858 | Damage footprint region; not a unique tornado |
+| Linkage | `source_crosswalk.parquet` | 95,222 | Source/candidate pair or unmatched source |
+| NCEI + Census | `tornado_counties.parquet` | 20,842 | Accepted event county/year context |
 | Cross-source counts | `annual_summary.csv` | 16 | Year, 2010–2025 |
 
 `analysis/manifest.json` records input hashes, output hashes, field types, the SPC
@@ -275,10 +277,22 @@ data. Damage characteristics, casualties, and survey-derived values may leak the
 rating process. This layer supplies neither a model split nor pre-storm forecasting
 inputs. See [the dataset card](DATASET_CARD.md) for broader limitations and sources.
 
-## Optional cross-source linkage
 
-The seven source-oriented tables above remain unchanged. Run
-`uv run python scripts/build_crosswalk.py` to create a separate local SPC-centered
-crosswalk and linked view. See [LINKAGE.md](LINKAGE.md) for evidence rules,
-uncertainty, county aggregation, and loading examples. These derived files are
-not part of the frozen v2.0.0 / Kaggle 5 release.
+## Linkage columns and bridge tables (v2.1.0)
+
+`tornadoes.parquet` keeps its original 24 SPC columns and adds accepted NCEI and
+footprint counts, unresolved plausible-candidate counts, DAT/SED region counts,
+linked county-year counts, missing context-join counts, population/housing sums,
+`suggested_split_group`, and `linkage_available`. Zero counts mean no accepted
+links, not no tornado damage. County sums deduplicate county-year keys and remain
+null if no context exists or any linked value is missing; they are county totals,
+not people or buildings struck.
+
+`source_crosswalk.parquet` contains every source/candidate pair and one null-target
+row for source records with no candidates. `tornado_counties.parquet` records
+accepted NCEI county-year links with Census context. See [LINKAGE.md](LINKAGE.md)
+for every evidence field, statuses, thresholds, and merge examples.
+
+The complete schemas and dtypes are in `analysis/manifest.json` and `schema.json`.
+All files are under `analysis/`; no second tornado table or `linkage/` directory
+is needed. These additional columns are not a preselected modeling feature set.

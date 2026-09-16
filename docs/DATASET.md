@@ -15,7 +15,7 @@ threshold or the EF transition. The EF scale began February 1, 2007.
 
 Version 2 replaces the standalone DAT collection and its three analysis tables
 with the Footprint Catalog. Earlier releases retain the detailed surveys.
-No cross-source event matching, model splits, or exposure estimates are supplied.
+The analysis build adds conservative cross-source matching and county-context summaries. No fixed model split or precise exposure estimate is supplied.
 Unknown ratings must not become EF0; exclude rating-revealing fields from predictors.
 
 ## Downloads and provenance
@@ -154,10 +154,11 @@ read-only and uses the existing pandas/matplotlib dependencies.
 
 ## Consolidated analysis layer
 
-`scripts/build_analysis.py` verifies the sources and writes seven Parquet tables
+`scripts/build_analysis.py` verifies the sources and writes nine Parquet tables
 plus an annual summary under `data/analysis/`. Start with `tornadoes.parquet`.
 Optional tables supply NCEI details/fatalities/locations, EFC footprints, and Census
-context/boundaries. Both spatial tables use GeoParquet with original geometry.
+context/boundaries, candidate links, and a county bridge. The main tornado table
+contains accepted-link counts and county summaries. Both spatial tables use GeoParquet with original geometry.
 The manifest records input/output hashes, field types, mappings, and reconciliation.
 
 A successful rebuild removes only the three superseded generated `survey_*.parquet`

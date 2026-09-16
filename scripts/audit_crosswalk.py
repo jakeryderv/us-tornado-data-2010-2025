@@ -13,13 +13,14 @@ from scripts.build_crosswalk import sha
 
 def audit(data, output):
     data,output=Path(data),Path(output)
-    manifest=json.loads((data/'linkage/manifest.json').read_text())
+    manifest=json.loads((data/'analysis/manifest.json').read_text())
+    linkage=manifest['linkage']
     for entry in manifest['inputs']:
         if sha(data/entry['path'])!=entry['sha256']:raise ValueError('Stale linkage input')
     for entry in manifest['files']:
-        if sha(data/'linkage'/entry['path'])!=entry['sha256']:raise ValueError('Changed linkage output')
-    crosswalk=pd.read_parquet(data/'linkage/source_crosswalk.parquet')
-    linked=pd.read_parquet(data/'linkage/tornadoes_linked.parquet')
+        if sha(data/'analysis'/entry['path'])!=entry['sha256']:raise ValueError('Changed linkage output')
+    crosswalk=pd.read_parquet(data/'analysis/source_crosswalk.parquet')
+    linked=pd.read_parquet(data/'analysis/tornadoes.parquet')
     ncei=pd.read_parquet(data/'analysis/storm_events.parquet')
     accepted=crosswalk.loc[crosswalk.accepted]
     # Ratings are a post-linkage diagnostic only, never an input to decisions.
@@ -49,8 +50,8 @@ def audit(data, output):
         with_ncei=('ncei_accepted_records',lambda x:int(x.gt(0).sum())),
         with_footprints=('footprint_accepted_records',lambda x:int(x.gt(0).sum())),
         with_any_link=('linkage_available','sum')).reset_index()
-    metrics=dict(algorithm=manifest['algorithm'],linkage_manifest_sha256=sha(data/'linkage/manifest.json'),
-        summary=manifest['summary'],files=manifest['files'],threshold_sensitivity=sensitivity,
+    metrics=dict(algorithm=linkage['algorithm'],linkage_manifest_sha256=sha(data/'analysis/manifest.json'),
+        summary=linkage['summary'],files=manifest['files'],threshold_sensitivity=sensitivity,
         ncei_spc_rating_diagnostic=discordance,by_year=yearly.to_dict('records'),
         source_records=int(crosswalk.groupby(['source_table','source_id']).ngroups),candidate_rows=len(crosswalk),
         review_sample_rows=len(sample),largest_suggested_split_group=int(linked.groupby('suggested_split_group').size().max()),
@@ -59,17 +60,17 @@ def audit(data, output):
     output.mkdir(parents=True,exist_ok=True)
     sample.to_csv(output/'review_sample.csv',index=False)
     (output/'metrics.json').write_text(json.dumps(metrics,indent=2)+'\n')
-    summary=manifest['summary']
-    lines=['# SPC-centered linkage audit','',f"Algorithm `{manifest['algorithm']}`; generated {manifest['generated_at']}.",
-        f"The input/output hashes and rules are recorded in `data/linkage/manifest.json` (SHA-256 `{metrics['linkage_manifest_sha256']}`).",'',
-        'This is a coverage and implementation audit of automatic research links, **not an independently measured precision/recall score**. The original seven analysis tables remain unchanged. No EF rating was used to select a match.','',
+    summary=linkage['summary']
+    lines=['# SPC-centered linkage audit','',f"Algorithm `{linkage['algorithm']}`; generated {manifest['generated_at']}.",
+        f"The input/output hashes and rules are recorded in `data/analysis/manifest.json` (SHA-256 `{metrics['linkage_manifest_sha256']}`).",'',
+        'This is a coverage and implementation audit of automatic research links, **not an independently measured precision/recall score**. The six supporting source tables remain unchanged; the main tornado table retains every original SPC column and adds linkage summaries. No EF rating was used to select a match.','',
         '| Source records | Total | Accepted | Plausible, unresolved | Only outside acceptance | No candidates |',
         '|---|---:|---:|---:|---:|---:|']
     for r in summary['sources']:
         lines.append(f"| {r['source_origin']} / {r['source_table']} | {r['source_records']:,} | {r['accepted_records']:,} | {r['unresolved_with_plausible_candidates']:,} | {r['only_outside_acceptance']:,} | {r['no_candidates']:,} |")
     lines += ['',f"All **{len(linked):,} SPC tornadoes** and **{metrics['source_records']:,} NCEI/footprint source records** are represented. The crosswalk contains {len(crosswalk):,} candidate/no-candidate rows.",
         f"Accepted NCEI links cover **{summary['spc_with_ncei']:,}** SPC tracks; footprints cover **{summary['spc_with_footprints']:,}**; **{summary['spc_with_both']:,}** have both. **{summary['spc_without_accepted_links']:,}** have neither and remain in the linked table.",
-        f"The three derived Parquet files total **{sum(f['bytes'] for f in manifest['files']):,} bytes**.",'',
+        f"The nine main tables plus annual summary total **{sum(f['bytes'] for f in manifest['files']):,} bytes**.",'',
         '## Sensitivity','',
         'The acceptance rule is 2 minutes/2 km with a unique candidate inside the wider 10-minute/5-km ambiguity guard. Tightening the accepted set to 1 minute/1 km gives the following counts; this tests threshold dependence, not accuracy. The wider ambiguity guard stays fixed.','',
         '| Maximum interval extension / directed distance | NCEI records | Footprint regions | SPC tracks with any link |',
@@ -87,7 +88,7 @@ def audit(data, output):
         '', '## Coverage by SPC year','', '| Year | SPC tracks | With NCEI | With footprints | With any accepted link |','|---|---:|---:|---:|---:|']
     for r in yearly.to_dict('records'):lines.append(f"| {r['year']} | {r['spc_tracks']:,} | {r['with_ncei']:,} | {r['with_footprints']:,} | {r['with_any_link']:,} |")
     lines += ['', '## Reproduce','', '```sh','uv run python scripts/build_crosswalk.py','uv run python scripts/audit_crosswalk.py','uv run python -m unittest discover -s tests -v','```','',
-        'See [linkage methods](../../docs/LINKAGE.md) for thresholds, source time definitions, county context, loading examples, and limitations. Public v2.0.0 / Kaggle 5 remains unchanged; these are separate local research outputs.','']
+        'See [linkage methods](../../docs/LINKAGE.md) for thresholds, source time definitions, county context, loading examples, and limitations. This canonical linkage is included in v2.1.0 / Kaggle 6.','']
     (output/'audit.md').write_text('\n'.join(lines))
     return metrics
 

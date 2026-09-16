@@ -1,9 +1,9 @@
 # SPC-centered linkage audit
 
-Algorithm `spc-time-geometry-v1`; generated 2026-09-16T00:14:23.744444+00:00.
-The input/output hashes and rules are recorded in `data/linkage/manifest.json` (SHA-256 `c5dd3e9bb3e93bdb6717462b20f48b7ea2f2e1ce0af07d62095858689ebde864`).
+Algorithm `spc-time-geometry-v1`; generated 2026-09-16T00:32:56.519546+00:00.
+The input/output hashes and rules are recorded in `data/analysis/manifest.json` (SHA-256 `d1f00ea6789277d70f4bf5a78fc2a01bc7e7d4fc897d7d323ff0128d2ec82a48`).
 
-This is a coverage and implementation audit of automatic research links, **not an independently measured precision/recall score**. The original seven analysis tables remain unchanged. No EF rating was used to select a match.
+This is a coverage and implementation audit of automatic research links, **not an independently measured precision/recall score**. The six supporting source tables remain unchanged; the main tornado table retains every original SPC column and adds linkage summaries. No EF rating was used to select a match.
 
 | Source records | Total | Accepted | Plausible, unresolved | Only outside acceptance | No candidates |
 |---|---:|---:|---:|---:|---:|
@@ -13,7 +13,7 @@ This is a coverage and implementation audit of automatic research links, **not a
 
 All **20,164 SPC tornadoes** and **48,047 NCEI/footprint source records** are represented. The crosswalk contains 95,222 candidate/no-candidate rows.
 Accepted NCEI links cover **18,313** SPC tracks; footprints cover **14,488**; **14,341** have both. **1,704** have neither and remain in the linked table.
-The three derived Parquet files total **6,105,773 bytes**.
+The nine main tables plus annual summary total **29,329,113 bytes**.
 
 ## Sensitivity
 
@@ -67,4 +67,4 @@ uv run python scripts/audit_crosswalk.py
 uv run python -m unittest discover -s tests -v
 ```
 
-See [linkage methods](../../docs/LINKAGE.md) for thresholds, source time definitions, county context, loading examples, and limitations. Public v2.0.0 / Kaggle 5 remains unchanged; these are separate local research outputs.
+See [linkage methods](../../docs/LINKAGE.md) for thresholds, source time definitions, county context, loading examples, and limitations. This canonical linkage is included in v2.1.0 / Kaggle 6.

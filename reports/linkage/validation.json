@@ -1,11 +1,12 @@
 {
   "status": "passed",
+  "scope": "Canonical v2.1.0 analysis build",
   "offline_tests": 33,
-  "full_inspection_notebook": "passed",
-  "all_original_analysis_file_hashes_unchanged": true,
-  "builder_hash_matches_linkage_manifest": true,
-  "spc_rows_preserved": 20164,
-  "source_records_represented": 48047,
-  "dataset_hosts_updated": false,
-  "scope": "Local derived crosswalk, county bridge, and linked analysis view. This validates implementation and artifacts, not independent match precision."
+  "all_original_spc_columns_preserved": true,
+  "six_supporting_tables_and_annual_csv_byte_identical_to_v2_0_0": true,
+  "linkage_values_identical_to_previous_local_layer": true,
+  "duplicate_linkage_directory_removed": true,
+  "spc_rows": 20164,
+  "candidate_crosswalk_rows": 95222,
+  "canonical_main_tables": 9
 }

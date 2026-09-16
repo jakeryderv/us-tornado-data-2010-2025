@@ -176,7 +176,8 @@ def build(data, output, config):
     build_analysis(payload, start=start, end=end)
     repository = config['code_repository']
     for source, name in [('docs/DATASET_CARD.md', 'DATASET_CARD.md'), ('docs/DATASET.md', 'COLLECTION.md'),
-                         ('docs/DATA_SOURCES.md', 'DATA_SOURCES.md'), ('docs/ANALYSIS.md', 'ANALYSIS.md')]:
+                         ('docs/DATA_SOURCES.md', 'DATA_SOURCES.md'), ('docs/ANALYSIS.md', 'ANALYSIS.md'),
+                         ('docs/LINKAGE.md','LINKAGE.md')]:
         (payload / name).write_text(source_doc(ROOT / source, commit, repository), encoding='utf-8')
     shutil.copyfile(ROOT / 'LICENSE', payload / 'CODE_LICENSE.txt')
     write_json(payload / 'schema.json', schema(payload, start, end))
@@ -255,7 +256,7 @@ def stage(payload, destination, platform, owner, config):
                 continue
             elif item.name not in {'release.zip.bin', 'README.md', 'dataset-metadata.json',
                                    'DATASET_CARD.md', 'DATA_SOURCES.md', 'CITATION.cff',
-                                   'CODE_LICENSE.txt', 'COLLECTION.md', 'ANALYSIS.md', 'schema.json',
+                                   'CODE_LICENSE.txt', 'COLLECTION.md', 'ANALYSIS.md', 'LINKAGE.md', 'schema.json',
                                    'release_manifest.json', 'SHA256SUMS'}:
                 item.unlink()
         verified['archive_sha256'] = digest(archive)

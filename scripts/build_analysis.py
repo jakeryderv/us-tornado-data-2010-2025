@@ -306,6 +306,8 @@ def build_analysis(data, output=None, start=2010, end=2025):
     assert annual.census_county_rows.sum() == len(counties)
     output.mkdir(parents=True, exist_ok=True)
     tables = {'tornadoes.parquet':tornadoes,'county_context.parquet':counties,'annual_summary.csv':annual,**consolidated}
+    from scripts.build_crosswalk import enrich_analysis
+    tables, linkage = enrich_analysis(tables)
     with TemporaryDirectory(prefix='.analysis-',dir=output.parent) as temp:
         temp = Path(temp)
         entries = []
@@ -330,7 +332,7 @@ def build_analysis(data, output=None, start=2010, end=2025):
                     'types':sorted(frame.geometry.geom_type.dropna().unique().tolist()),
                     'null_geometries':int(frame.geometry.isna().sum()),'empty_geometries':int(frame.geometry.is_empty.sum()),
                     'invalid_geometries':int((~frame.geometry.isna() & ~frame.geometry.is_valid).sum())}
-        manifest = {'schema_version':3,'generated_at':datetime.now(timezone.utc).isoformat(),
+        manifest = {'schema_version':4,'linkage':linkage,'generated_at':datetime.now(timezone.utc).isoformat(),
                     'start_year':start,'end_year':end,'inputs':inputs,'files':entries,
                     'software':{'pandas':pd.__version__,'pyarrow':pyarrow.__version__,'geopandas':gpd.__version__},
                     'source_field_mappings':mappings,

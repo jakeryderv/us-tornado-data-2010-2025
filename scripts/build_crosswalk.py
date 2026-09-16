@@ -125,10 +125,10 @@ def footprint_families(frame):
 def prepare_sources(events, footprints, rules):
     records = []
     for r in events.itertuples(index=False):
-        offset = ncei_offset(r.source_timezone)
-        start,end = [utc_from_local(x,offset) for x in [r.begin_datetime_local,r.end_datetime_local]]
-        geometry,complete = track(r.begin_longitude,r.begin_latitude,r.end_longitude,r.end_latitude)
-        records.append(dict(source_table='storm_events',source_id=str(r.event_id),source_group_id=f'ncei-episode:{r.episode_id}',
+        offset = ncei_offset(getattr(r,'source_timezone',None))
+        start,end = [utc_from_local(x,offset) for x in [getattr(r,'begin_datetime_local',pd.NaT),getattr(r,'end_datetime_local',pd.NaT)]]
+        geometry,complete = track(*(getattr(r,name,pd.NA) for name in ['begin_longitude','begin_latitude','end_longitude','end_latitude']))
+        records.append(dict(source_table='storm_events',source_id=str(r.event_id),source_group_id=f'ncei-episode:{getattr(r,"episode_id",r.event_id)}',
             source_origin='NCEI',source_year=int(r.source_year),source_file=r.source_file,source_row=int(r.source_row),
             start=start,end=end,geometry=geometry,time_basis='ncei_fixed_offset',
             eligible=complete and interval_valid(start,end,rules),
@@ -262,6 +262,8 @@ def linked_views(spc_frame, events, counties, crosswalk, prepared_spc):
     accepted=crosswalk.loc[crosswalk.accepted]
     ncei=accepted.loc[accepted.source_table.eq('storm_events'),['tornado_id','source_id']]
     detail=ncei.merge(events,left_on='source_id',right_on='event_id',validate='one_to_one')
+    for name in ['county_zone_type','state_fips','county_zone_code']:
+        if name not in detail:detail[name]=pd.Series(pd.NA,index=detail.index,dtype='string')
     county_links=detail.loc[detail.county_zone_type.eq('C'),['tornado_id','source_id','source_year','state_fips','county_zone_code']].copy()
     county_links['county_fips']=county_links.state_fips.str.zfill(2)+county_links.county_zone_code.str.zfill(3)
     county_links=county_links.rename(columns={'source_id':'ncei_event_id','source_year':'year'}).drop(columns=['state_fips','county_zone_code'])
@@ -321,21 +323,9 @@ def summarize(crosswalk, linked):
         spc_without_accepted_links=int((~linked.linkage_available).sum()),split_groups=int(linked.suggested_split_group.nunique()))
 
 
-def build_crosswalk(data=ROOT/'data', output=None, rules=Rules()):
-    data=Path(data).resolve(); analysis=data/'analysis'
-    output=Path(output).resolve() if output else data/'linkage'
-    if data.is_relative_to(output) or output.is_relative_to(analysis) or output.is_relative_to(data/'spc') or output.is_relative_to(data/'ncei_storm_events') or output.is_relative_to(data/'event_footprints') or output.is_relative_to(data/'census_population') or output.is_relative_to(data/'census_boundaries'):
-        raise ValueError('Linkage output must be separate from the source and analysis directories')
-    manifest=json.loads((analysis/'manifest.json').read_text())
-    inputs=[dict(path='analysis/manifest.json',sha256=sha(analysis/'manifest.json'))]
-    frames={}
-    for name in ['tornadoes.parquet','storm_events.parquet','tornado_footprints.parquet','county_context.parquet']:
-        expected=next(x for x in manifest['files'] if x['path']==name)
-        actual=sha(analysis/name)
-        if actual!=expected['sha256']:raise ValueError(f'Stale analysis input: {name}')
-        inputs.append(dict(path='analysis/'+name,sha256=actual))
-        frames[name]=(gpd.read_parquet if name=='tornado_footprints.parquet' else pd.read_parquet)(analysis/name)
-    spc,events,footprints,counties=[frames[x] for x in ['tornadoes.parquet','storm_events.parquet','tornado_footprints.parquet','county_context.parquet']]
+def enrich_analysis(tables, rules=Rules()):
+    """Return canonical nine-table content and linkage metadata; never mutate inputs."""
+    spc,events,footprints,counties=[tables[x] for x in ['tornadoes.parquet','storm_events.parquet','tornado_footprints.parquet','county_context.parquet']]
     if not spc.tornado_id.is_unique or not events.event_id.is_unique or not footprints.footprint_id.is_unique or counties.duplicated(['year','county_fips']).any():
         raise ValueError('Source keys must be unique')
     targets=prepare_spc(spc,rules); sources=prepare_sources(events,footprints,rules)
@@ -351,37 +341,28 @@ def build_crosswalk(data=ROOT/'data', output=None, rules=Rules()):
     assert accepted.plausible_candidate_count.eq(1).all()
     county_links,linked=linked_views(spc,events,counties,crosswalk,targets)
     pd.testing.assert_frame_equal(spc,linked[spc.columns])
-    metrics=summarize(crosswalk,linked)
-    output.mkdir(parents=True,exist_ok=True)
-    tables={'source_crosswalk.parquet':crosswalk,'tornado_counties.parquet':county_links,'tornadoes_linked.parquet':linked}
-    with TemporaryDirectory(prefix='.linkage-',dir=output.parent) as temp:
-        temp=Path(temp); entries=[]
-        for name,frame in tables.items():
-            path=temp/name;frame.to_parquet(path,index=False,compression='zstd')
-            pd.testing.assert_frame_equal(frame,pd.read_parquet(path))
-            entries.append(dict(path=name,rows=len(frame),bytes=path.stat().st_size,sha256=sha(path),columns=[dict(name=c,dtype=str(frame[c].dtype)) for c in frame]))
-        report=dict(schema_version=1,algorithm='spc-time-geometry-v1',generated_at=datetime.now(timezone.utc).isoformat(),
-            rules=asdict(rules),inputs=inputs,files=entries,summary=metrics,
-            code_sha256=sha(Path(__file__)),
-            spc_auto_eligible=sum(bool(row['eligible']) for row in targets),
-            verification=dict(status='passed',all_source_records_represented=True,one_accepted_spc_per_source_record=True,spc_rows_and_values_preserved=True,accepted_links_pass_strict_thresholds=True,parquet_roundtrip='passed'),
-            limitations=['Automatic evidence tiers are not calibrated probabilities or manual confirmation.',
-                'Search completeness is limited to the documented time and geometry windows; absent links are not absent tornadoes.',
-                'SPC straight endpoint tracks and reconstructed footprint geometry can differ from true paths.',
-                'County totals describe linked county-years, not people or buildings struck; coverage can be partial.',
-                'Suggested split groups combine UTC days and plausible NCEI episode/EFC family relationships, not verified outbreaks.'],
-            software=dict(pandas=pd.__version__,geopandas=gpd.__version__,shapely=shapely.__version__,pyproj=pyproj.__version__,numpy=np.__version__))
-        (temp/'manifest.json').write_text(json.dumps(report,indent=2)+'\n')
-        for name in [*tables,'manifest.json']:os.replace(temp/name,output/name)
-    return report
+    metadata=dict(algorithm='spc-time-geometry-v1',rules=asdict(rules),
+        code_sha256=sha(Path(__file__)),summary=summarize(crosswalk,linked),
+        spc_auto_eligible=sum(bool(row['eligible']) for row in targets),
+        base_spc_columns=list(spc.columns),
+        verification=dict(status='passed',all_source_records_represented=True,
+            one_accepted_spc_per_source_record=True,spc_rows_and_values_preserved=True,
+            accepted_links_pass_strict_thresholds=True),
+        limitations=['Automatic evidence tiers are not calibrated probabilities or manual confirmation.',
+            'Search completeness is limited to documented time and geometry windows.',
+            'County totals describe linked county-years, not people or buildings struck.',
+            'Suggested split groups combine UTC days and plausible episode/family links, not verified outbreaks.'],
+        software=dict(pandas=pd.__version__,geopandas=gpd.__version__,shapely=shapely.__version__,pyproj=pyproj.__version__,numpy=np.__version__))
+    return dict(tables,**{'tornadoes.parquet':linked,'source_crosswalk.parquet':crosswalk,
+                         'tornado_counties.parquet':county_links}),metadata
 
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--data-dir',type=Path,default=ROOT/'data')
-    parser.add_argument('--output',type=Path)
-    args=parser.parse_args()
-    print(json.dumps(build_crosswalk(args.data_dir,args.output)['summary'],indent=2))
+    # Compatibility entry point: the canonical build now includes linkage.
+    import sys
+    if str(ROOT) not in sys.path:sys.path.insert(0,str(ROOT))
+    from scripts.build_analysis import main as build_main
+    build_main()
 
 
 if __name__=='__main__':main()
