@@ -58,8 +58,12 @@
         "expectedUpdateFrequency": true
       },
       "collection_methodology": "Updated and verified in the UI; source text retained in release/kaggle/collection-methodology.md.",
-      "file_descriptions": "Current definitions submitted through metadata resources; full field schemas and table descriptions remain in the shared payload. Kaggle cannot preview the largest radar Parquet file.",
-      "license": "U.S. Government Works"
+      "file_descriptions": "Nested resource descriptions were not reliably saved by the API. Both ML table descriptions were saved and verified directly in the UI; canonical descriptions/column definitions for all tables remain in metadata.json and the shared documentation/schema. Kaggle cannot preview the largest radar Parquet file.",
+      "license": "U.S. Government Works",
+      "ui_file_descriptions_verified": [
+        "ml/events_onset.parquet",
+        "ml/events_retrospective.parquet"
+      ]
     },
     "notebook_receipt": "kaggle/notebook-v2.2.json"
   },
@@ -226,7 +230,9 @@
       "unchanged_previous_files": 215,
       "unchanged_backbone_tables": 9,
       "all_19_tables_match_active_data": true
-    }
+    },
+    "release_receipt_ci_run": 35116352301,
+    "release_receipt_ci_conclusion": "success"
   },
   "local_cleanup": {
     "removed": [

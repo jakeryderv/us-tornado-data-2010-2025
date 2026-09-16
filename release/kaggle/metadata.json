@@ -1212,11 +1212,11 @@
     },
     {
       "path": "ml/events_onset.parquet",
-      "description": "EF target, normalized onset/location, pre-cutoff radar aggregates, warning counts/lead time and missingness"
+      "description": "EF target, normalized onset/location, pre-cutoff radar aggregates, warning counts/lead time and missingness. Release v2.2.0: one row per tornado, 20,164 rows and 30 columns. Use ml/feature_dictionary.json to select the 15 onset predictor candidates; targets, IDs and metadata are not predictors. Reported onset/location are hindsight anchors, radar latency is assumed to be five minutes, and warning cancellation coverage is incomplete. Unknown EF targets remain missing. Join linked source tables using tornado_id."
     },
     {
       "path": "ml/events_retrospective.parquet",
-      "description": "Onset fields plus final track/impact data, radar through onset +60 minutes and land-cover summaries"
+      "description": "Onset fields plus final track/impact data, radar through onset +60 minutes and land-cover summaries. Release v2.2.0: one row per tornado, 20,164 rows and 53 columns. This view supports retrospective EF-rating analysis. Final path dimensions, damage/impact fields and footprint-dependent NLCD summaries are post-event information and must not enter onset forecasts. Land cover uses prior-year Annual NLCD at native 30 m resolution; 17 events are outside selected coverage. Unknown EF targets and missing values are preserved. Use ml/feature_dictionary.json for field roles and join source evidence by tornado_id."
     },
     {
       "path": "README.md",
