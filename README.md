@@ -33,7 +33,7 @@ from huggingface_hub import hf_hub_download
 
 path = hf_hub_download(
     "jakeryderv/us-tornado-data-2010-2025", repo_type="dataset",
-    revision="v2.2.1", filename="analysis/tornadoes.parquet",
+    revision="edf45b72a05fe25488339a2a11d4953ebdfee059", filename="analysis/tornadoes.parquet",
 )
 tornadoes = pd.read_parquet(path)
 ```
@@ -52,7 +52,7 @@ tornadoes = pd.read_parquet(path)
 ```
 
 Change the filename to download another table. To download all analysis files on
-HF, use `snapshot_download(..., repo_type="dataset", revision="v2.2.1",
+HF, use `snapshot_download(..., repo_type="dataset", revision="edf45b72a05fe25488339a2a11d4953ebdfee059",
 allow_patterns=["analysis/*", "ANALYSIS.md"])`. Both clients reuse local caches.
 Full sources are direct files on HF and inside `release.zip.bin` on Kaggle.
 See [release/download verification](docs/RELEASING.md) for full-collection checks.

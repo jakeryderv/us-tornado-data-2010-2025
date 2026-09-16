@@ -1,0 +1,35 @@
+{
+  "checked_at": "2026-09-16T16:37:07.683012+00:00",
+  "notebook_url": "https://www.kaggle.com/code/jakevanslyke/us-tornado-data-getting-started",
+  "notebook_version": 6,
+  "dataset_release": "v2.2.1",
+  "dataset_version": 8,
+  "dataset_handle": "jakevanslyke/us-tornado-data-2010-2025/versions/8",
+  "manifest_sha256": "9a4ec9b89cbf43cdfa88db26360881aab84437fee619f1b98e1fb04a338f8feb",
+  "notebook_source_sha256": "dd60fa60bcdebea14a390238c3c3e3f6b1fae008403675d37f5c1e40eb251ae8",
+  "local_executed_notebook_sha256": "2af5871460631bdf10072d93abb4635e397fdbab4fe92c5d6658d906f00cf29b",
+  "hosted_execution_log_sha256": "6668882ba3e369b042d18403ae356544bbdb75a746dca62623d091e517dd991b",
+  "validation": {
+    "local_execution": "passed",
+    "kaggle_execution": "COMPLETE",
+    "published_source_cells_match_local": true,
+    "code_cells_executed": 5,
+    "table_inventory": 19,
+    "selected_files_sha256_verified": 7,
+    "release_manifest_sha256_verified": true,
+    "all_event_ids_and_targets_preserved": 20164,
+    "labeled_rows": 18639,
+    "onset_predictor_candidates": 15
+  },
+  "execution": {
+    "public": true,
+    "gpu": false,
+    "internet": false,
+    "runtime_seconds_rounded": 25,
+    "loading": "kagglehub pinned version-8 files from attached cache; optional local-root override"
+  },
+  "notes": [
+    "Dictionary schema 2 distinguishes conditional eligibility from unverified actual delivery.",
+    "The notebook includes coverage/missingness definitions; no fitted model is published."
+  ]
+}

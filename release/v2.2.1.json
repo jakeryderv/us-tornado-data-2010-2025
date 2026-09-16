@@ -1,0 +1,280 @@
+{
+  "schema_version": 1,
+  "slug": "us-tornado-data-2010-2025",
+  "version": "v2.2.1",
+  "recorded_at": "2026-09-16T16:37:07.683012+00:00",
+  "payload_code_commit": "c6aa15628e99337f29cf0859758cf38bd026d4ff",
+  "built_at": "2026-09-16T16:22:25.540508+00:00",
+  "source_snapshots": {
+    "noaa_completed_at": "2026-09-15T23:13:08.122184+00:00",
+    "census_completed_at": "2026-09-15T23:13:08.850471+00:00"
+  },
+  "manifest_sha256": "9a4ec9b89cbf43cdfa88db26360881aab84437fee619f1b98e1fb04a338f8feb",
+  "shared_file_count": 250,
+  "shared_payload_bytes": 1335942053,
+  "previous_release": "v2.2.0.json",
+  "changes": [
+    "Preserved all 19 Parquet tables byte for byte; no source recollection or event/target changes.",
+    "Added eight-product citation/terms/provenance registry with actual acquisition dates and a validated compiled citation.",
+    "Added reproducible research coverage/missingness summaries by year, state/territory and EF class, plus intended-use and bias guidance.",
+    "Feature dictionary schema 2 separates conditional onset eligibility from verified availability and documents field provenance, units and windows; NLCD valid-pixel fraction is quality metadata.",
+    "Independent source-time verification reconstructs all 11 onset radar/warning aggregates; refreshed both platform descriptions and the hosted notebook."
+  ],
+  "huggingface": {
+    "url": "https://huggingface.co/datasets/jakeryderv/us-tornado-data-2010-2025",
+    "repo_id": "jakeryderv/us-tornado-data-2010-2025",
+    "commit": "edf45b72a05fe25488339a2a11d4953ebdfee059",
+    "tag": "v2.2.1",
+    "verification": {
+      "status": "passed",
+      "version": "v2.2.1",
+      "files": 250,
+      "payload_bytes": 1335942053,
+      "manifest_sha256": "9a4ec9b89cbf43cdfa88db26360881aab84437fee619f1b98e1fb04a338f8feb"
+    },
+    "listing_readme_matches_staged": true
+  },
+  "kaggle": {
+    "url": "https://www.kaggle.com/datasets/jakevanslyke/us-tornado-data-2010-2025/versions/8",
+    "handle": "jakevanslyke/us-tornado-data-2010-2025/versions/8",
+    "numeric_version": 8,
+    "transport": "Direct analysis/, ml/ and research/ files; complete shared payload in release.zip.bin.",
+    "archive_bytes": 958819998,
+    "archive_sha256": "5e8cbb088247f8d7a54ed741c0f6f72d8165c180d655d54303b633cdfeb6e8fb",
+    "verification": {
+      "status": "passed",
+      "version": "v2.2.1",
+      "files": 250,
+      "payload_bytes": 1335942053,
+      "manifest_sha256": "9a4ec9b89cbf43cdfa88db26360881aab84437fee619f1b98e1fb04a338f8feb"
+    },
+    "listing": {
+      "usability_score": 10,
+      "visible_files": 47,
+      "metadata_matches_staged": {
+        "description": true,
+        "subtitle": true,
+        "userSpecifiedSources": true,
+        "expectedUpdateFrequency": true
+      },
+      "collection_methodology": "Updated and verified in the UI; exact text in release/kaggle/collection-methodology.md.",
+      "file_descriptions": "The API retained older ML descriptions; both were updated and verified in the UI. Full source schemas and column definitions remain in packaged documentation.",
+      "ui_file_descriptions_verified": [
+        "ml/events_onset.parquet",
+        "ml/events_retrospective.parquet"
+      ]
+    },
+    "notebook_receipt": "kaggle/notebook-v2.2.1.json"
+  },
+  "tables": {
+    "analysis_tables": 17,
+    "ml_tables": 2,
+    "all_19_unchanged_from_v220": true,
+    "parquet_bytes": 782811667,
+    "kaggle_direct_downloads": {
+      "analysis/county_boundaries.parquet": {
+        "rows": 3234,
+        "columns": 16,
+        "sha256": "15c75f88b0568141ef26d394d7b8b3b4fc0a08324be4ce2f2f0f0ca735281570"
+      },
+      "analysis/county_context.parquet": {
+        "rows": 50294,
+        "columns": 8,
+        "sha256": "81ec89c844bfd480cf8a0e5033afe13e8a53f98a47ca09641cc0476acbc17afc"
+      },
+      "analysis/event_areas.parquet": {
+        "rows": 20164,
+        "columns": 15,
+        "sha256": "3e433dae9490445e130766d5eb4643be643536f6516c039e1ed59430023bba1c"
+      },
+      "analysis/nlcd_samples.parquet": {
+        "rows": 40294,
+        "columns": 32,
+        "sha256": "34ea6aa396134b66dbeac688828449d578b36f089457a563f5bccfaf9f6b3152"
+      },
+      "analysis/radar_detections.parquet": {
+        "rows": 1805706,
+        "columns": 16,
+        "sha256": "648ecb75cce0ddda374fdb5c978aa2a4ff23b5660b948b1d1033ea90c6c871e0"
+      },
+      "analysis/record_provenance.parquet": {
+        "rows": 4610010,
+        "columns": 4,
+        "sha256": "0eec0695cdbf6afd7c891526302d0ed9c8dac6b63cb969e672b4fa4d073ee399"
+      },
+      "analysis/source_coverage.parquet": {
+        "rows": 60492,
+        "columns": 6,
+        "sha256": "cfc5871122f82439e83f6012cbe0b7e8b8bbcdeca15f71a6e54b669c7bf3f579"
+      },
+      "analysis/source_crosswalk.parquet": {
+        "rows": 95222,
+        "columns": 30,
+        "sha256": "0f1d6f705a8e516e66a513195a50c179d3d39199f57654ddc1e4bbe6be510ba6"
+      },
+      "analysis/storm_events.parquet": {
+        "rows": 23189,
+        "columns": 57,
+        "sha256": "e0ac3bfd938a605b16a3b2abcb9f5326cdcdc4e3f0f05e9d2872fc764dce2e6c"
+      },
+      "analysis/storm_fatalities.parquet": {
+        "rows": 1352,
+        "columns": 14,
+        "sha256": "b7ad909ee7a62a5be9542ffd5ed35ca516ae0df2af4f1230f40c985aa92ea14d"
+      },
+      "analysis/storm_locations.parquet": {
+        "rows": 35920,
+        "columns": 14,
+        "sha256": "301c6624b21b19cee67bbf9fa2b9a3add97b04ac91181fd34561bdcff37f8ded"
+      },
+      "analysis/tornado_counties.parquet": {
+        "rows": 20842,
+        "columns": 12,
+        "sha256": "7e0d9bf97afa606e445ffc6aeb8fe7d51e6ddd8b49d7c91a65a98c7dba30e68c"
+      },
+      "analysis/tornado_footprints.parquet": {
+        "rows": 24858,
+        "columns": 89,
+        "sha256": "900dd500d682569e5022fb186e7fcb67d2b7c2fa744646c819c0643caacf4e94"
+      },
+      "analysis/tornado_radar.parquet": {
+        "rows": 2104931,
+        "columns": 7,
+        "sha256": "4370bbdfe17dc9ef22cda6e194a1533dd02afffc81860ee165295b304db97101"
+      },
+      "analysis/tornado_warnings.parquet": {
+        "rows": 109133,
+        "columns": 6,
+        "sha256": "bc89ff0a03d726e314acb79e6283dd7447783e6d4002273abba4596e4f47d5c8"
+      },
+      "analysis/tornadoes.parquet": {
+        "rows": 20164,
+        "columns": 36,
+        "sha256": "e7b18642bd35d9bd46d06139e68775d33dde40981401c26168e92bcb834fa2b2"
+      },
+      "analysis/warning_updates.parquet": {
+        "rows": 846391,
+        "columns": 12,
+        "sha256": "a04e1e23c9fc81ab30be463de8b4cfeb74a5a7bcc8a127d46ee21b4224be4ed2"
+      },
+      "ml/events_onset.parquet": {
+        "rows": 20164,
+        "columns": 30,
+        "sha256": "33a54a74e4e0a29ea1a62b9f4919e909e88ee53dc3974d675bcf9b1e4463fa18"
+      },
+      "ml/events_retrospective.parquet": {
+        "rows": 20164,
+        "columns": 53,
+        "sha256": "bdf9ccd0bb295c7957d3c7a07a4ec4b8e2c9b4c9f7b0c2772f216ddbc5e6bed8"
+      }
+    }
+  },
+  "validation": {
+    "offline_tests": 93,
+    "implementation_ci_run": 35121076762,
+    "implementation_ci_conclusion": "success",
+    "local_inspection_notebook": "passed",
+    "local_kaggle_notebook": "passed",
+    "hosted_kaggle_notebook": "COMPLETE",
+    "citation_cff_schema": "passed; official CFF schema with required YAML-date conversion",
+    "full_enrichment": {
+      "verified_at": "2026-09-16T16:21:52.361819+00:00",
+      "status": "passed",
+      "collection_status": "complete",
+      "full_cohort_processed": true,
+      "selected_events": 20164,
+      "backbone_events": 20164,
+      "source_status_counts": {
+        "complete": 60475,
+        "unavailable": 17
+      },
+      "source_assets": 147285,
+      "source_bytes": 6272457307,
+      "retained_source_bytes": 107383219,
+      "raw_asset_status_counts": {
+        "bytes_verified": 70371,
+        "intentionally_not_retained": 76914
+      },
+      "storage": {
+        "mode": "compact",
+        "max_cache_bytes": 5000000000,
+        "evicted_bytes": 14388541,
+        "cache_bytes": 0
+      },
+      "reproducibility": "offline ML regeneration from retained source tables; raw re-extraction requires upstream downloads",
+      "source_tables": {
+        "radar_detections.parquet": 1805706,
+        "tornado_radar.parquet": 2104931,
+        "warning_updates.parquet": 846391,
+        "tornado_warnings.parquet": 109133,
+        "nlcd_samples.parquet": 40294,
+        "source_coverage.parquet": 60492,
+        "record_provenance.parquet": 4610010,
+        "event_areas.parquet": 20164
+      },
+      "ml_tables": {
+        "events_onset.parquet": 20164,
+        "events_retrospective.parquet": 20164
+      },
+      "enrichment_manifest_sha256": "59a73de48b413d397a865502826ad2386e1dbde0957f2c54b3ee0c0fe9164afc",
+      "ml_manifest_sha256": "2d250e32a010d3450842526a5163d873b650463d4f7b7cd8f0e3be510bf2301f",
+      "temporal_verification": {
+        "status": "passed",
+        "aggregate_columns": [
+          "radar_tvs_count",
+          "radar_mda_count",
+          "radar_structure_count",
+          "radar_max_shear_per_s",
+          "radar_max_velocity_difference_knots",
+          "radar_max_rotation_velocity_knots",
+          "radar_max_reflectivity_dbz",
+          "radar_max_vil_kg_m2",
+          "warning_active_tornado_count",
+          "warning_active_severe_count",
+          "warning_tornado_lead_minutes"
+        ],
+        "eligible_radar_links": 827103,
+        "active_warning_event_rows": 22166,
+        "future_selected_observations": 0,
+        "actual_receipt_verified": false,
+        "scope": "independent source-time/value reconstruction; availability and cancellation completeness remain qualified"
+      },
+      "checks": [
+        "source-time aggregate reconstruction",
+        "source/table digests",
+        "keys and source links",
+        "requested cohort coverage",
+        "all backbone IDs/targets preserved",
+        "onset allowlist",
+        "per-job extraction definitions"
+      ]
+    },
+    "offline_ml_rebuild": {
+      "status": "passed",
+      "source": "frozen v2.2.0 linked tables; same input hashes as v2.2.1",
+      "byte_identical_outputs": {
+        "events_onset.parquet": "33a54a74e4e0a29ea1a62b9f4919e909e88ee53dc3974d675bcf9b1e4463fa18",
+        "events_retrospective.parquet": "bdf9ccd0bb295c7957d3c7a07a4ec4b8e2c9b4c9f7b0c2772f216ddbc5e6bed8",
+        "feature_dictionary.json": "9e52d85fbabc5ccdf83b3ec5b41870ec6ddc033040d47d711931e71bc88114ef"
+      }
+    },
+    "coverage_reports": "All strata totals reconcile; packaged reports equal repository reports."
+  },
+  "remaining_limitations": [
+    "Actual operational receipt is unverified; onset uses hindsight event anchors and assumed radar latency.",
+    "Standalone warning cancellations are incomplete in this archive export.",
+    "Saved NLCD WCS metadata does not resolve the collection revision; exact requests, layer/year/grid and hashes are retained."
+  ],
+  "temporary_verification_copies_removed": [
+    {
+      "path": "dist/v2.2.1/consumer-hf",
+      "files": 765,
+      "bytes": 1336119030
+    },
+    {
+      "path": "dist/v2.2.1/consumer-kaggle",
+      "files": 292,
+      "bytes": 3077657278
+    }
+  ]
+}
